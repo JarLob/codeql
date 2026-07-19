@@ -488,7 +488,7 @@ AstNode getCheckoutReference(PRHeadCheckoutStep checkout) {
 
 /** Gets a display label for the expression that controls the untrusted checkout. */
 string getCheckoutReferenceText(AstNode reference) {
-  result = reference.(Expression).getExpression()
+  result = reference.(Expression).toString()
   or
   not reference instanceof Expression and result = "the checkout command"
 }
