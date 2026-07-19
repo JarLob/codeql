@@ -1,0 +1,7 @@
+extensions:
+  - addsTo:
+      pack: codeql/actions-all
+      extensible: unsafePrCheckoutGuardDataModel
+    data:
+      # actions/checkout v7.0.0
+      - ["actions/checkout", "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0"]

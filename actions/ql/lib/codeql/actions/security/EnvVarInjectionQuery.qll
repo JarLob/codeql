@@ -22,8 +22,9 @@ class EnvVarInjectionFromFileReadSink extends EnvVarInjectionSink {
   EnvVarInjectionFromFileReadSink() {
     exists(Run run, Step step |
       (
-        step instanceof UntrustedArtifactDownloadStep or
-        step instanceof PRHeadCheckoutStep
+        step instanceof UntrustedArtifactDownloadStep
+        or
+        step instanceof PRHeadCheckoutStep and mayExecuteUnsafeCheckout(step)
       ) and
       this.asExpr() = run.getScript() and
       step.getAFollowingStep() = run and

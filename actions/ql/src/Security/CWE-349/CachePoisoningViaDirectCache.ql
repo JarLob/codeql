@@ -37,6 +37,7 @@ where
   not exists(ControlCheck check |
     check.protects(source, event, ["untrusted-checkout", "artifact-poisoning"])
   ) and
+  not runtimeGuardPreventsCheckout(source, event) and
   job.getATriggerEvent() = event and
   // job can be triggered by an external user
   event.isExternallyTriggerable() and

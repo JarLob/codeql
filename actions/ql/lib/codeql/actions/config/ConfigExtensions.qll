@@ -75,6 +75,11 @@ extensible predicate vulnerableActionsDataModel(
 );
 
 /**
+ * Holds if an action version implements the unsafe pull request checkout runtime guard.
+ */
+extensible predicate unsafePrCheckoutGuardDataModel(string action, string version);
+
+/**
  * Holds for actions that are known to be immutable.
  */
 extensible predicate immutableActionsDataModel(string action);

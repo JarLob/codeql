@@ -156,6 +156,16 @@ predicate vulnerableActionsDataModel(
 }
 
 /**
+ * MaD models for action versions that implement the unsafe pull request checkout runtime guard.
+ * Fields:
+ *    - action: action name
+ *    - version: exact action version or commit SHA
+ */
+predicate unsafePrCheckoutGuardDataModel(string action, string version) {
+  Extensions::unsafePrCheckoutGuardDataModel(action, version)
+}
+
+/**
  * MaD models for immutable actions
  * Fields:
  *    - action: action name

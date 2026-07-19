@@ -25,6 +25,7 @@ where
   // the checkout occurs in a privileged context
   inPrivilegedContext(checkout, event) and
   event.getName() = checkoutTriggers() and
+  not runtimeGuardPreventsCheckout(checkout, event) and
   (
     // issue_comment: check for date comparison checks and actor/access control checks
     event.getName() = "issue_comment" and

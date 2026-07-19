@@ -1,0 +1,23 @@
+on: pull_request_target
+
+jobs:
+  guarded:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: |
+          echo "SAFE=hardcoded" >> $GITHUB_OUTPUT
+          echo "UNSAFE=$(cat value.txt)" >> $GITHUB_OUTPUT
+
+  opted-out:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          allow-unsafe-pr-checkout: true
+      - run: |
+          echo "SAFE=hardcoded" >> $GITHUB_OUTPUT
+          echo "UNSAFE=$(cat value.txt)" >> $GITHUB_OUTPUT

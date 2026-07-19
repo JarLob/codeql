@@ -41,6 +41,7 @@ Customizing Actions-specific analysis:
 - ``poisonableLocalScriptsDataModel(regexp, group)``
 - ``repositoryDataModel(visibility, default_branch_name)``
 - ``trustedActionsOwnerDataModel(owner)``
+- ``unsafePrCheckoutGuardDataModel(action, version)``
 - ``untrustedEventPropertiesDataModel(property, kind)``
 - ``untrustedGhCommandDataModel(cmd_regex, flag)``
 - ``untrustedGitCommandDataModel(cmd_regex, flag)``

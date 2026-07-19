@@ -1,10 +1,72 @@
 import actions
 private import codeql.actions.DataFlow
+private import codeql.actions.config.Config
 private import codeql.actions.dataflow.FlowSources
 private import codeql.actions.TaintTracking
 
 string checkoutTriggers() {
   result = ["pull_request_target", "workflow_run", "workflow_call", "issue_comment"]
+}
+
+private predicate hasUnsafePrCheckoutGuard(UsesStep checkout) {
+  checkout.getCallee() = "actions/checkout" and
+  (
+    checkout.getMajorVersion() = 7
+    or
+    unsafePrCheckoutGuardDataModel(checkout.getCallee(), checkout.getVersion())
+  )
+}
+
+private predicate unsafePrCheckoutGuardEnabled(UsesStep checkout) {
+  not exists(checkout.getArgument("allow-unsafe-pr-checkout"))
+  or
+  checkout.getArgument("allow-unsafe-pr-checkout").trim().toLowerCase() = ["", "false"]
+}
+
+private predicate runtimeGuardRecognizesCheckout(UsesStep checkout, Event event) {
+  checkout.getArgument("ref").regexpMatch("refs/pull/[0-9]+/(head|merge)")
+  or
+  event.getName() = "pull_request_target" and
+  (
+    normalizeExpr(checkout.getArgument("ref"))
+        .regexpMatch(".*\\bgithub\\.event\\.pull_request\\.(head\\.sha|merge_commit_sha)\\b.*")
+    or
+    normalizeExpr(checkout.getArgument("repository"))
+        .regexpMatch(".*\\bgithub\\.event\\.pull_request\\.head\\.repo\\.full_name\\b.*")
+  )
+  or
+  event.getName() = "workflow_run" and
+  (
+    normalizeExpr(checkout.getArgument("ref"))
+        .regexpMatch(".*\\bgithub\\.event\\.workflow_run\\.(head_commit\\.id|head_sha)\\b.*")
+    or
+    normalizeExpr(checkout.getArgument("repository"))
+        .regexpMatch(".*\\bgithub\\.event\\.workflow_run\\.head_repository\\.full_name\\b.*")
+  )
+}
+
+/**
+ * Holds if `checkout` refuses to check out fork pull request code for `event` at runtime.
+ */
+predicate runtimeGuardPreventsCheckout(Step checkout, Event event) {
+  exists(UsesStep step |
+    step = checkout and
+    hasUnsafePrCheckoutGuard(step) and
+    unsafePrCheckoutGuardEnabled(step) and
+    step.getATriggerEvent() = event and
+    event.getName() = ["pull_request_target", "workflow_run"] and
+    runtimeGuardRecognizesCheckout(step, event)
+  )
+}
+
+/** Holds if `checkout` can execute for at least one statically known trigger. */
+predicate mayExecuteUnsafeCheckout(Step checkout) {
+  not exists(checkout.getATriggerEvent())
+  or
+  exists(Event event |
+    checkout.getATriggerEvent() = event and
+    not runtimeGuardPreventsCheckout(checkout, event)
+  )
 }
 
 /**
@@ -203,7 +265,8 @@ class SimplePRHeadCheckoutStep extends Step {
       uses.getCallee() = "actions/checkout" and
       exists(uses.getArgument("ref")) and
       not uses.getArgument("ref").matches("%base%") and
-      uses.getATriggerEvent().getName() = checkoutTriggers()
+      uses.getATriggerEvent().getName() = checkoutTriggers() and
+      mayExecuteUnsafeCheckout(this)
     )
     or
     this instanceof GitMutableRefCheckout
