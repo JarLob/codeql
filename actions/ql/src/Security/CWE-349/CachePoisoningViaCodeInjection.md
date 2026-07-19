@@ -1,6 +1,6 @@
 ## Overview
 
-GitHub Actions cache poisoning is a technique that allows an attacker to inject malicious content into the Action's cache from unprivileged workflow, potentially leading to code execution in privileged workflows.
+GitHub Actions cache poisoning allows attacker-controlled code in one workflow execution to write malicious content to a cache that is later restored by another execution, potentially leading to code execution with greater privileges.
 
 An attacker with the ability to run code in the context of the default branch (e.g. through Code Injection or Execution of Untrusted Code) can exploit this to:
 
@@ -9,7 +9,7 @@ An attacker with the ability to run code in the context of the default branch (e
 3. Poison cache entries with malicious payloads.
 4. Achieve code execution in privileged workflows that restore the poisoned cache.
 
-This allows lateral movement from low-privileged to high-privileged workflows within a repository.
+This allows privilege escalation or lateral movement between workflow executions that share a cache scope.
 
 ### Cache Structure
 
