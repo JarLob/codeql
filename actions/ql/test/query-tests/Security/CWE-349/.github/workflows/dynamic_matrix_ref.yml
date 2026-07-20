@@ -1,0 +1,19 @@
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        required: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ref: ["${{ github.event.inputs.ref }}"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: example/example
+          ref: ${{ matrix.ref }}
+      # VULNERABLE: matrix.ref is controlled by the dispatch input.
+      - run: npm install
