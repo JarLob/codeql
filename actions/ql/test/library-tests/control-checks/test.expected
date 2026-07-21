@@ -6,7 +6,7 @@ labelChecks
 | .github/workflows/test.yml:37:9:37:91 | "contai ... = true" |
 | .github/workflows/test.yml:55:9:55:102 | "github ... safe')" |
 | .github/workflows/test.yml:61:9:61:127 | "github ... safe')" |
-| .github/workflows/test.yml:67:9:67:67 | 'contai ... safe")' |
+| .github/workflows/test.yml:67:9:70:9 | >- |
 parsedChecks
 | .github/workflows/test.yml:7:9:7:67 | "contai ... safe')" |
 | .github/workflows/test.yml:13:9:13:96 | "contai ... tocat'" |
@@ -14,3 +14,4 @@ parsedChecks
 | .github/workflows/test.yml:31:9:31:96 | "contai ... tocat'" |
 | .github/workflows/test.yml:43:9:43:35 | "github ... tocat'" |
 | .github/workflows/test.yml:61:9:61:127 | "github ... safe')" |
+| .github/workflows/test.yml:67:9:70:9 | >- |

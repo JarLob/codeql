@@ -260,10 +260,14 @@ class ExpressionImpl extends AstNodeImpl, TExpressionNode {
 
   ExpressionImpl() {
     this = TExpressionNode(key, value, rawExpression, exprOffset - 1) and
-    if rawExpression.trim().regexpMatch("\\$\\{\\{.*\\}\\}")
-    then
-      fullExpression = rawExpression.trim().regexpCapture("\\$\\{\\{\\s*(.*)\\s*\\}\\}", 1).trim()
-    else fullExpression = rawExpression.trim()
+    exists(string trimmedExpression |
+      trimmedExpression = rawExpression.trim() and
+      if
+        trimmedExpression.prefix(3) = "${{" and
+        trimmedExpression.suffix(trimmedExpression.length() - 2) = "}}"
+      then fullExpression = trimmedExpression.substring(3, trimmedExpression.length() - 2).trim()
+      else fullExpression = trimmedExpression
+    )
   }
 
   override string toString() { result = fullExpression }
