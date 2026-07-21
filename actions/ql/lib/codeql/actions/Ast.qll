@@ -1,4 +1,5 @@
 private import codeql.actions.ast.internal.Ast
+private import codeql.actions.ast.internal.ExpressionParser
 private import codeql.Locations
 import codeql.actions.Helper
 
@@ -48,6 +49,88 @@ class Expression extends AstNode instanceof ExpressionImpl {
   string getRawExpression() { result = rawExpression }
 
   string getNormalizedExpression() { result = normalizeExpr(expression) }
+
+  /** Gets the root of the parsed expression syntax tree, if parsing succeeds. */
+  ExpressionRoot getRoot() { result.getExpression() = this }
+}
+
+/** A node in a parsed GitHub Actions expression syntax tree. */
+abstract class ExpressionNode instanceof ExpressionNodeImpl {
+  Expression getExpression() { result = super.getExpression() }
+
+  ExpressionNode getAChild() { result = super.getAChild() }
+
+  ExpressionNode getChild(int i) { result = super.getChild(i) }
+
+  ExpressionNode getParent() { result = super.getParent() }
+
+  string getKind() { result = super.getKind() }
+
+  string getText() { result = super.getText() }
+
+  int getStartOffset() { result = super.getStartOffset() }
+
+  int getEndOffset() { result = super.getEndOffset() }
+
+  string toString() { result = super.toString() }
+}
+
+/** The root of a parsed GitHub Actions expression. */
+class ExpressionRoot extends ExpressionNode instanceof ExpressionRootImpl { }
+
+/** A binary operation in a GitHub Actions expression. */
+class BinaryExpression extends ExpressionNode instanceof BinaryExpressionImpl {
+  ExpressionNode getLeftOperand() { result = super.getLeftOperand() }
+
+  ExpressionNode getRightOperand() { result = super.getRightOperand() }
+
+  string getOperator() { result = super.getOperator() }
+}
+
+/** A unary operation in a GitHub Actions expression. */
+class UnaryExpression extends ExpressionNode instanceof UnaryExpressionImpl {
+  ExpressionNode getOperand() { result = super.getOperand() }
+
+  string getOperator() { result = super.getOperator() }
+}
+
+/** An identifier in a GitHub Actions expression. */
+class IdentifierExpression extends ExpressionNode instanceof IdentifierExpressionImpl {
+  string getName() { result = super.getName() }
+}
+
+/** A function call in a GitHub Actions expression. */
+class FunctionCallExpression extends ExpressionNode instanceof FunctionCallExpressionImpl {
+  IdentifierExpression getCallee() { result = super.getCallee() }
+
+  ExpressionNode getArgument(int i) { result = super.getArgument(i) }
+}
+
+/** A property, wildcard, or index access in a GitHub Actions expression. */
+class AccessExpression extends ExpressionNode instanceof AccessExpressionImpl {
+  ExpressionNode getBase() { result = super.getBase() }
+
+  ExpressionNode getAccessor() { result = super.getAccessor() }
+
+  string getAccessPath() { result = normalizeExpr(this.getText()) }
+}
+
+/** A named property accessor in a GitHub Actions expression. */
+class PropertyAccessExpression extends ExpressionNode instanceof PropertyAccessExpressionImpl {
+  string getName() { result = super.getName() }
+}
+
+/** A wildcard property accessor in a GitHub Actions expression. */
+class WildcardAccessExpression extends ExpressionNode instanceof WildcardAccessExpressionImpl { }
+
+/** An index accessor in a GitHub Actions expression. */
+class IndexAccessExpression extends ExpressionNode instanceof IndexAccessExpressionImpl {
+  ExpressionNode getIndex() { result = super.getIndex() }
+}
+
+/** A Boolean, null, number, or string literal in a GitHub Actions expression. */
+class LiteralExpression extends ExpressionNode instanceof LiteralExpressionImpl {
+  string getValue() { result = super.getValue() }
 }
 
 /** An `env` in workflow, job or step. */

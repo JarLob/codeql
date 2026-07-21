@@ -1,0 +1,12 @@
+shortCircuitEdges
+| partial-and | false | .github/workflows/test.yml:7:11:7:79 | complete AndExpression(github.event_name == 'workflow_dispatch' && github.actor == 'octocat') as false |
+| partial-and | true | .github/workflows/test.yml:7:11:7:79 | evaluate EqualityExpression(github.actor == 'octocat') |
+| partial-or | false | .github/workflows/test.yml:13:11:13:79 | evaluate EqualityExpression(github.actor == 'octocat') |
+| partial-or | true | .github/workflows/test.yml:13:11:13:79 | complete OrExpression(github.event_name == 'workflow_dispatch' \|\| github.actor == 'octocat') as true |
+pullRequestRightOperandReachability
+| partial-or | .github/workflows/test.yml:13:11:13:79 | evaluate EqualityExpression(github.actor == 'octocat') |
+pullRequestFinalOutcomes
+| nested | true |
+| partial-and | false |
+| partial-or | false |
+| partial-or | true |

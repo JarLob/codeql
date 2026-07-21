@@ -1,0 +1,80 @@
+"on":
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      foo:
+        type: string
+
+jobs:
+  event-name:
+    if: "github.event_name == 'workflow_dispatch'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo event
+
+  event-action:
+    if: "github.event.action == 'labeled'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo action
+
+  partial-and:
+    if: "github.event_name == 'workflow_dispatch' && github.actor == 'octocat'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo and
+
+  partial-or:
+    if: "github.event_name == 'workflow_dispatch' || github.actor == 'octocat'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo or
+
+  unknown:
+    if: "github.actor == 'octocat'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo unknown
+
+  literals:
+    if: "!(false || 2 < 1) && contains('CodeQL', 'deq')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo literals
+
+  always:
+    if: "always()"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo always
+
+  missing-pr-payload:
+    if: "contains(github.event.pull_request.labels.*.name, 'safe')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo payload
+
+  dispatch-input:
+    if: "github.event.inputs.foo == 'bar'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo input
+
+  success-status:
+    if: "success()"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo success
+
+  success-or-event:
+    if: "success() || github.event_name == 'workflow_dispatch'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo status or event
+
+  not-success-status:
+    if: "!success()"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo not success

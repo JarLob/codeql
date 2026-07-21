@@ -1,0 +1,70 @@
+on:
+  pull_request_target:
+    types: [labeled]
+
+jobs:
+  direct-call:
+    if: "contains(github.event.pull_request.labels.*.name, 'safe')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo direct
+
+  conjunctive-call:
+    if: "contains(github.event.pull_request.labels.*.name, 'safe') && github.actor == 'octocat'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo conjunctive
+
+  direct-comparison:
+    if: "github.event.label.name == 'safe'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo comparison
+
+  negated-call:
+    if: "!contains(github.event.pull_request.labels.*.name, 'safe')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo negated
+
+  disjunctive-call:
+    if: "contains(github.event.pull_request.labels.*.name, 'safe') || github.actor == 'octocat'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo disjunctive
+
+  bypassable-label:
+    if: "contains(github.event.pull_request.labels.*.name, 'safe') || inputs.force == true"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo bypassable
+
+  actor-only:
+    if: "github.actor == 'octocat'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo actor
+
+  bot-only:
+    if: "github.actor == 'dependabot[bot]'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo bot
+
+  bot-or-label:
+    if: "github.actor == 'renovate[bot]' || contains(github.event.pull_request.labels.*.name, 'safe')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo bot or label
+
+  association-or-label:
+    if: "github.event.pull_request.author_association == 'MEMBER' || contains(github.event.pull_request.labels.*.name, 'safe')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo association
+
+  legacy-double-quoted-label:
+    if: 'contains(github.event.pull_request.labels.*.name, "safe")'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo legacy
