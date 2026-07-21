@@ -2,6 +2,14 @@ private import Ast
 
 private string epsilon() { result = "" }
 
+private int maxExpressionLength() { result = 21000 }
+
+/** Holds if `expression` is within the public runner's expression length limit. */
+bindingset[expression]
+predicate expressionLengthIsValid(string expression) {
+  expression.length() <= maxExpressionLength()
+}
+
 private string grammarText() {
   result =
     "Start ::= _Formula\n" + "_Formula ::= _Or\n" + "_Or ::= OrExpression\n" + "_Or ::= _And\n" +
@@ -18,21 +26,24 @@ private string grammarText() {
       "_Unary ::= NotExpression\n" + "_Unary ::= _Postfix\n" +
       "NotExpression ::= _NotOperator _Unary\n" + "_NotOperator ::= '!'\n" +
       "_Postfix ::= AccessExpression\n" + "_Postfix ::= _Primary\n" +
-      "AccessExpression ::= _Postfix _Accessor\n" + "_Accessor ::= PropertyAccess\n" +
-      "_Accessor ::= WildcardAccess\n" + "_Accessor ::= IndexAccess\n" +
-      "PropertyAccess ::= '.' Identifier\n" + "WildcardAccess ::= '.' '*'\n" +
-      "IndexAccess ::= '[' _Formula ']'\n" + "_Primary ::= FunctionCall\n" +
-      "_Primary ::= BooleanLiteral\n" + "_Primary ::= NullLiteral\n" +
-      "_Primary ::= NumberLiteral\n" + "_Primary ::= StringLiteral\n" + "_Primary ::= Identifier\n" +
-      "_Primary ::= '(' _Formula ')'\n" + "FunctionCall ::= Identifier '(' ')'\n" +
-      "FunctionCall ::= Identifier '(' _Arguments ')'\n" +
+      "AccessExpression ::= _AccessBase _Accessor\n" + "_AccessBase ::= AccessExpression\n" +
+      "_AccessBase ::= FunctionCall\n" + "_AccessBase ::= Identifier\n" + "_AccessBase ::= _Group\n"
+      + "_Accessor ::= PropertyAccess\n" + "_Accessor ::= WildcardAccess\n" +
+      "_Accessor ::= IndexAccess\n" + "PropertyAccess ::= '.' PropertyIdentifier\n" +
+      "WildcardAccess ::= '.' '*'\n" + "IndexAccess ::= '[' _Formula ']'\n" +
+      "IndexAccess ::= '[' IndexWildcard ']'\n" + "IndexWildcard ::= '*'\n" +
+      "_Primary ::= FunctionCall\n" + "_Primary ::= BooleanLiteral\n" + "_Primary ::= NullLiteral\n"
+      + "_Primary ::= NumberLiteral\n" + "_Primary ::= StringLiteral\n" +
+      "_Primary ::= Identifier\n" + "_Primary ::= _Group\n" + "_Group ::= '(' _Formula ')'\n" +
+      "FunctionCall ::= Identifier '(' ')'\n" + "FunctionCall ::= Identifier '(' _Arguments ')'\n" +
       "_Arguments ::= _Arguments ',' _Formula\n" + "_Arguments ::= _Formula\n" +
       "BooleanLiteral ::= 'true'\n" + "BooleanLiteral ::= 'false'\n" + "NullLiteral ::= 'null'\n" +
       "NumberLiteral ::= r'0x[0-9a-fA-F]+'\n" + "NumberLiteral ::= r'0o[0-7]+'\n" +
       "NumberLiteral ::= r'[+-]?([0-9]+(\\.[0-9]*)?|\\.[0-9]+)([eE][+-]?[0-9]+)?'\n" +
-      "NumberLiteral ::= r'[+-]?Infinity'\n" +
+      "NumberLiteral ::= 'NaN'\n" + "NumberLiteral ::= r'-?Infinity'\n" +
       "StringLiteral ::= r'\\x27([^\\x27]|\\x27\\x27)*\\x27'\n" +
-      "Identifier ::= r'[A-Za-z_][A-Za-z0-9_-]*'\n" + "_Space ::= r'\\s+'"
+      "Identifier ::= r'(?!(null|true|false|NaN|Infinity)(?![A-Za-z0-9_-]))[A-Za-z_][A-Za-z0-9_-]*'\n"
+      + "PropertyIdentifier ::= r'[A-Za-z_][A-Za-z0-9_-]*'\n" + "_Space ::= r'\\s+'"
 }
 
 private string grammarLine(int i) { result = grammarText().splitAt("\n", i) }
@@ -238,6 +249,7 @@ predicate parserItem(ExpressionImpl e, Production prod, int start, int end, int 
   end = start and
   trimmedEnd = end and
   prod.isStartItem() and
+  expressionLengthIsValid(e.getExpression()) and
   exists(e)
   or
   scan(e, prod, start, end) and trimmedEnd = end

@@ -18,11 +18,98 @@ class ExpressionNodeImpl extends ItemNode {
 
   int getEndOffset() { result = this.getEnd() }
 
+  int getRunnerDepth() {
+    result =
+      max(int depth |
+        exists(ExpressionNodeImpl descendant | runnerDescendantDepth(this, descendant, depth))
+      |
+        depth
+      )
+  }
+
   override string toString() { result = this.getKind() + "(" + this.getText() + ")" }
 }
 
+private ExpressionNodeImpl getALogicalOperand(BinaryExpressionImpl binary) {
+  exists(ExpressionNodeImpl direct | direct = [binary.getLeftOperand(), binary.getRightOperand()] |
+    if
+      binary.getOperator() = ["&&", "||"] and
+      direct instanceof BinaryExpressionImpl and
+      direct.(BinaryExpressionImpl).getOperator() = binary.getOperator()
+    then result = getALogicalOperand(direct.(BinaryExpressionImpl))
+    else result = direct
+  )
+}
+
+private ExpressionNodeImpl getARunnerChild(ExpressionNodeImpl parent) {
+  parent instanceof BinaryExpressionImpl and
+  parent.(BinaryExpressionImpl).getOperator() = ["&&", "||"] and
+  result = getALogicalOperand(parent.(BinaryExpressionImpl))
+  or
+  parent instanceof BinaryExpressionImpl and
+  parent.(BinaryExpressionImpl).getOperator() != ["&&", "||"] and
+  result =
+    [
+      parent.(BinaryExpressionImpl).getLeftOperand(),
+      parent.(BinaryExpressionImpl).getRightOperand()
+    ]
+  or
+  parent instanceof UnaryExpressionImpl and
+  result = parent.(UnaryExpressionImpl).getOperand()
+  or
+  parent instanceof FunctionCallExpressionImpl and
+  result = parent.(FunctionCallExpressionImpl).getArgument(_)
+  or
+  parent instanceof AccessExpressionImpl and
+  (
+    result = parent.(AccessExpressionImpl).getBase()
+    or
+    parent.(AccessExpressionImpl).getAccessor() instanceof IndexAccessExpressionImpl and
+    result = parent.(AccessExpressionImpl).getAccessor().(IndexAccessExpressionImpl).getIndex()
+    or
+    not parent.(AccessExpressionImpl).getAccessor() instanceof IndexAccessExpressionImpl and
+    result = parent.(AccessExpressionImpl).getAccessor()
+  )
+}
+
+private predicate runnerDescendantDepth(ExpressionNodeImpl root, ExpressionNodeImpl node, int depth) {
+  node = root and depth = 1
+  or
+  exists(ExpressionNodeImpl parent, int parentDepth |
+    node = getARunnerChild(parent) and
+    runnerDescendantDepth(root, parent, parentDepth) and
+    depth = parentDepth + 1
+  )
+}
+
+private predicate hasValidWellKnownFunctionArity(FunctionCallExpressionImpl call) {
+  exists(string name, int argumentCount |
+    name = call.getCallee().getName().toLowerCase() and
+    argumentCount = count(call.getArgument(_))
+  |
+    name = "case" and argumentCount in [3 .. 255] and argumentCount % 2 = 1
+    or
+    name = ["contains", "endswith", "startswith"] and argumentCount = 2
+    or
+    name = ["fromjson", "tojson"] and argumentCount = 1
+    or
+    name = "join" and argumentCount in [1, 2]
+    or
+    name = "format" and argumentCount in [1 .. 255]
+    or
+    not name =
+      ["case", "contains", "endswith", "startswith", "fromjson", "tojson", "join", "format"]
+  )
+}
+
 class ExpressionRootImpl extends ExpressionNodeImpl {
-  ExpressionRootImpl() { this.isTopNode() }
+  ExpressionRootImpl() {
+    this.isTopNode() and
+    this.getChild(0).getRunnerDepth() <= 50 and
+    forall(FunctionCallExpressionImpl call | call.getExpression() = this.getExpression() |
+      hasValidWellKnownFunctionArity(call)
+    )
+  }
 }
 
 class BinaryExpressionImpl extends ExpressionNodeImpl {
@@ -35,11 +122,12 @@ class BinaryExpressionImpl extends ExpressionNodeImpl {
   ExpressionNodeImpl getRightOperand() { result = this.getChild(1) }
 
   string getOperator() {
-    result =
-      this.getExpression()
-          .getExpression()
-          .substring(this.getLeftOperand().getEndOffset(), this.getRightOperand().getStartOffset())
-          .trim()
+    exists(ItemNode operator |
+      operator = this.getARawChild() and
+      operator.getProduction().getLhs() =
+        ["_OrOperator", "_AndOperator", "_EqualityOperator", "_ComparisonOperator"] and
+      result = operator.getText().trim()
+    )
   }
 }
 
@@ -52,7 +140,11 @@ class UnaryExpressionImpl extends ExpressionNodeImpl {
 }
 
 class IdentifierExpressionImpl extends ExpressionNodeImpl {
-  IdentifierExpressionImpl() { this.getKind() = "Identifier" }
+  IdentifierExpressionImpl() {
+    this.getProduction().getLhs() = ["Identifier", "PropertyIdentifier"]
+  }
+
+  override string getKind() { result = "Identifier" }
 
   string getName() { result = this.getText() }
 }
