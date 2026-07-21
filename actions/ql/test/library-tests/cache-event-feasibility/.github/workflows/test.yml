@@ -80,6 +80,20 @@ jobs:
     steps:
       - run: echo not success
 
+  needs-failure:
+    needs: prerequisite-pr-only
+    if: "failure()"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo failure
+
+  needs-cancelled:
+    needs: prerequisite-pr-only
+    if: "cancelled()"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo cancelled
+
   needs-transitive:
     needs: needs-default
     runs-on: ubuntu-latest

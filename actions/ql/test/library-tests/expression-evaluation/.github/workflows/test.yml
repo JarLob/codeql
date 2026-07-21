@@ -78,3 +78,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo not success
+
+  failure-status:
+    if: "failure()"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo failure
+
+  cancelled-status:
+    if: "cancelled()"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo cancelled
+
+  combined-status:
+    if: "failure() && cancelled()"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo combined

@@ -11,6 +11,12 @@ jobs:
   guarded:
     if: "github.event_name == 'workflow_dispatch' && !cancelled()"
     runs-on: ubuntu-latest
+    env:
+      WRAPPED: "prefix ${{ github.actor }} suffix"
+      FOLDED: >-
+        prefix ${{ github.repository }}
+        suffix
+      ESCAPED: "prefix\t${{ github.ref }} suffix"
     steps:
       - if: "contains(github.event.pull_request.labels.*.name, 'safe') || inputs.force == true"
         run: echo guarded

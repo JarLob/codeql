@@ -304,7 +304,15 @@ class ExpressionImpl extends AstNodeImpl, TExpressionNode {
       lineDiff = 0 and
       sl = loc.getStartLine() and
       el = sl and
-      sc = loc.getStartColumn() + exprOffset and
+      (
+        style = ["\"", "'"] and
+        rawExpression = value.getValue() and
+        sc = loc.getStartColumn() + exprOffset - 1
+        or
+        not style = ["\"", "'"] and sc = loc.getStartColumn() + exprOffset
+        or
+        not rawExpression = value.getValue() and sc = loc.getStartColumn() + exprOffset
+      ) and
       ec = sc + rawExpression.length() - 1
       or
       // eg:
@@ -373,6 +381,56 @@ class ExpressionImpl extends AstNodeImpl, TExpressionNode {
   predicate hasLocationInfo(string path, int sl, int sc, int el, int ec) {
     path = value.getFile().getAbsolutePath() and
     this.expressionLocation(sl, sc, el, ec)
+  }
+
+  private predicate hasLosslessSingleLineSourceMapping() {
+    exists(Location loc, string style |
+      loc = value.getLocation() and
+      style = value.getStyle() and
+      loc.getStartLine() = loc.getEndLine() and
+      (
+        style = "" and
+        loc.getEndColumn() - loc.getStartColumn() + 1 = value.getValue().length()
+        or
+        style = ["\"", "'"] and
+        loc.getEndColumn() - loc.getStartColumn() + 1 = value.getValue().length() + 2
+      )
+    )
+  }
+
+  predicate expressionNodeLocationIsExact() { this.hasLosslessSingleLineSourceMapping() }
+
+  bindingset[startOffset, endOffset]
+  predicate expressionNodeLocation(
+    int startOffset, int endOffset, string path, int sl, int sc, int el, int ec
+  ) {
+    startOffset >= 0 and
+    endOffset > startOffset and
+    endOffset <= fullExpression.length() and
+    this.hasLosslessSingleLineSourceMapping() and
+    exists(int expressionStart, int expressionEnd, int expressionLine, int fullExpressionOffset |
+      this.hasLocationInfo(path, expressionLine, expressionStart, expressionLine, expressionEnd) and
+      fullExpressionOffset = rawExpression.indexOf(fullExpression)
+    |
+      sl = expressionLine and
+      el = expressionLine and
+      sc = expressionStart + fullExpressionOffset + startOffset and
+      ec = expressionStart + fullExpressionOffset + endOffset - 1
+    )
+    or
+    startOffset >= 0 and
+    endOffset > startOffset and
+    endOffset <= fullExpression.length() and
+    not this.hasLosslessSingleLineSourceMapping() and
+    exists(Location loc |
+      loc = value.getLocation() and
+      path = loc.getFile().getAbsolutePath()
+    |
+      sl = loc.getStartLine() and
+      sc = loc.getStartColumn() and
+      el = loc.getEndLine() and
+      ec = loc.getEndColumn()
+    )
   }
 }
 

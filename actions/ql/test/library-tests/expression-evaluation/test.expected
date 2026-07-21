@@ -32,6 +32,12 @@ feasibleConditions
 | .github/workflows/test.yml:71:9:71:63 | "succes ... patch'" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
 | .github/workflows/test.yml:77:9:77:20 | "!success()" | .github/workflows/test.yml:2:3:2:14 | pull_request |
 | .github/workflows/test.yml:77:9:77:20 | "!success()" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+| .github/workflows/test.yml:83:9:83:19 | "failure()" | .github/workflows/test.yml:2:3:2:14 | pull_request |
+| .github/workflows/test.yml:83:9:83:19 | "failure()" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+| .github/workflows/test.yml:89:9:89:21 | "cancelled()" | .github/workflows/test.yml:2:3:2:14 | pull_request |
+| .github/workflows/test.yml:89:9:89:21 | "cancelled()" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+| .github/workflows/test.yml:95:9:95:34 | "failur ... lled()" | .github/workflows/test.yml:2:3:2:14 | pull_request |
+| .github/workflows/test.yml:95:9:95:34 | "failur ... lled()" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
 literalSubexpressionValues
 | AndExpression(!(false \|\| 2 < 1) && contains('CodeQL', 'deq')) | true |
 | BooleanLiteral(false) | false |
@@ -55,3 +61,48 @@ statusCheckConditions
 | .github/workflows/test.yml:65:9:65:19 | "success()" |
 | .github/workflows/test.yml:71:9:71:63 | "succes ... patch'" |
 | .github/workflows/test.yml:77:9:77:20 | "!success()" |
+| .github/workflows/test.yml:83:9:83:19 | "failure()" |
+| .github/workflows/test.yml:89:9:89:21 | "cancelled()" |
+| .github/workflows/test.yml:95:9:95:34 | "failur ... lled()" |
+knownNeedsStatusValues
+| cancelled-status | cancelled | true |
+| cancelled-status | failure | false |
+| cancelled-status | skipped | false |
+| cancelled-status | success | false |
+| failure-status | cancelled | false |
+| failure-status | failure | true |
+| failure-status | skipped | false |
+| failure-status | success | false |
+| not-success-status | cancelled | true |
+| not-success-status | failure | true |
+| not-success-status | skipped | true |
+| not-success-status | success | false |
+| success-status | cancelled | false |
+| success-status | failure | false |
+| success-status | skipped | false |
+| success-status | success | true |
+knownNeedsStateValues
+| cancelled-status | false | false | false | false |
+| cancelled-status | false | false | true | false |
+| cancelled-status | false | true | false | true |
+| cancelled-status | false | true | true | true |
+| cancelled-status | true | false | false | false |
+| cancelled-status | true | false | true | false |
+| cancelled-status | true | true | false | true |
+| cancelled-status | true | true | true | true |
+| combined-status | false | false | false | false |
+| combined-status | false | false | true | false |
+| combined-status | false | true | false | false |
+| combined-status | false | true | true | false |
+| combined-status | true | false | false | false |
+| combined-status | true | false | true | false |
+| combined-status | true | true | false | true |
+| combined-status | true | true | true | true |
+| failure-status | false | false | false | false |
+| failure-status | false | false | true | false |
+| failure-status | false | true | false | false |
+| failure-status | false | true | true | false |
+| failure-status | true | false | false | true |
+| failure-status | true | false | true | true |
+| failure-status | true | true | false | true |
+| failure-status | true | true | true | true |

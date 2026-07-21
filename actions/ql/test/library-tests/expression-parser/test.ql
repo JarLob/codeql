@@ -13,3 +13,31 @@ where
     not exists(node.getParent()) and parentKind = "<none>"
   )
 select guard, line, kind, parentKind, node.getText(), start, end order by line, start, end, kind
+
+query predicate nodeLocations(
+  ExpressionNode node, string text, int startLine, int startColumn, int endLine, int endColumn
+) {
+  node.getExpression().getRawExpression() =
+    [
+      "${{ github.actor }}", "${{ github.repository }}", "${{ github.ref }}",
+      "fromJSON(inputs.matrix)[0].enabled != null"
+    ] and
+  text = node.getText() and
+  startLine = node.getSourceStartLine() and
+  startColumn = node.getSourceStartColumn() and
+  endLine = node.getSourceEndLine() and
+  endColumn = node.getSourceEndColumn()
+}
+
+query predicate rootLocationPrecision(string text, string precision) {
+  exists(ExpressionRoot root |
+    root.getExpression().getRawExpression() =
+      ["${{ github.actor }}", "${{ github.repository }}", "${{ github.ref }}"] and
+    text = root.getText() and
+    (
+      root.hasExactSourceLocation() and precision = "exact"
+      or
+      not root.hasExactSourceLocation() and precision = "containing scalar"
+    )
+  )
+}

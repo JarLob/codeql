@@ -18,6 +18,13 @@ class ExpressionNodeImpl extends ItemNode {
 
   int getEndOffset() { result = this.getEnd() }
 
+  predicate hasLocationInfo(string path, int sl, int sc, int el, int ec) {
+    this.getExpression()
+        .expressionNodeLocation(this.getStartOffset(), this.getEndOffset(), path, sl, sc, el, ec)
+  }
+
+  predicate hasExactSourceLocation() { this.getExpression().expressionNodeLocationIsExact() }
+
   int getRunnerDepth() {
     result =
       max(int depth |
