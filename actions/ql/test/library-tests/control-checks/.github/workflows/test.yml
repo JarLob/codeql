@@ -63,8 +63,17 @@ jobs:
     steps:
       - run: echo association
 
-  legacy-double-quoted-label:
+  folded-label:
+    if: >-
+      ${{
+        contains(github.event.pull_request.labels.*.name, 'safe')
+      }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo folded
+
+  unparsed-double-quoted-label:
     if: 'contains(github.event.pull_request.labels.*.name, "safe")'
     runs-on: ubuntu-latest
     steps:
-      - run: echo legacy
+      - run: echo unparsed

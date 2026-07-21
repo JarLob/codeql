@@ -504,12 +504,6 @@ private predicate parsedConditionProtectsCategoryAndEvent(
   )
 }
 
-private predicate hasUnparsedConditionExpression(If condition) {
-  exists(Expression expression |
-    expression = condition.getConditionExpr() and not exists(expression.getRoot())
-  )
-}
-
 private predicate expressionTrueCanReachConditionTrue(ExpressionNode node) {
   node instanceof ExpressionRoot
   or
@@ -586,63 +580,21 @@ private predicate isParsedCheckOwner(If condition, string kind) {
   )
 }
 
-private predicate isLegacyLabelCheck(If check) {
-  exists(string condition | condition = normalizeExpr(check.getCondition()) |
-    condition.regexpMatch(".*(^|[^!])contains\\(\\s*github\\.event\\.pull_request\\.labels\\b.*")
-    or
-    condition.regexpMatch(".*\\bgithub\\.event\\.label\\.name\\s*==.*")
-  )
-}
-
 class LabelIfCheck extends LabelCheck instanceof If {
-  LabelIfCheck() {
-    exists(this.getConditionExpr().getRoot()) and isParsedCheckOwner(this, "label")
-    or
-    hasUnparsedConditionExpression(this) and isLegacyLabelCheck(this)
-  }
+  LabelIfCheck() { exists(this.getConditionExpr().getRoot()) and isParsedCheckOwner(this, "label") }
 
   override predicate protectsCategoryAndEvent(string category, string event) {
     exists(this.(If).getConditionExpr().getRoot()) and
     parsedConditionProtectsCategoryAndEvent(this.(If), category, event)
-    or
-    hasUnparsedConditionExpression(this.(If)) and
-    LabelCheck.super.protectsCategoryAndEvent(category, event)
   }
 }
 
 class ActorIfCheck extends ActorCheck instanceof If {
-  ActorIfCheck() {
-    exists(this.getConditionExpr().getRoot()) and isParsedCheckOwner(this, "actor")
-    or
-    hasUnparsedConditionExpression(this) and
-    (
-      // eg: github.event.pull_request.user.login == 'admin'
-      exists(
-        normalizeExpr(this.getCondition())
-            .regexpFind([
-                "\\bgithub\\.event\\.pull_request\\.user\\.login\\b",
-                "\\bgithub\\.event\\.head_commit\\.author\\.name\\b",
-                "\\bgithub\\.event\\.commits.*\\.author\\.name\\b",
-                "\\bgithub\\.event\\.sender\\.login\\b"
-              ], _, _)
-      )
-      or
-      // eg: github.actor == 'admin'
-      // eg: github.triggering_actor == 'admin'
-      exists(
-        normalizeExpr(this.getCondition())
-            .regexpFind(["\\bgithub\\.actor\\b", "\\bgithub\\.triggering_actor\\b",], _, _)
-      ) and
-      not normalizeExpr(this.getCondition()).matches("%[bot]%")
-    )
-  }
+  ActorIfCheck() { exists(this.getConditionExpr().getRoot()) and isParsedCheckOwner(this, "actor") }
 
   override predicate protectsCategoryAndEvent(string category, string event) {
     exists(this.(If).getConditionExpr().getRoot()) and
     parsedConditionProtectsCategoryAndEvent(this.(If), category, event)
-    or
-    hasUnparsedConditionExpression(this.(If)) and
-    ActorCheck.super.protectsCategoryAndEvent(category, event)
   }
 }
 
@@ -650,29 +602,11 @@ class PullRequestTargetRepositoryIfCheck extends RepositoryCheck instanceof If {
   PullRequestTargetRepositoryIfCheck() {
     exists(this.getConditionExpr().getRoot()) and
     isParsedCheckOwner(this, "pull-request-repository")
-    or
-    hasUnparsedConditionExpression(this) and
-    // eg: github.event.pull_request.head.repo.full_name == github.repository
-    exists(
-      normalizeExpr(this.getCondition())
-          // github.repository in a workflow_run event triggered by a pull request is the base repository
-          .regexpFind([
-              "\\bgithub\\.repository\\b", "\\bgithub\\.repository_owner\\b",
-              "\\bgithub\\.event\\.pull_request\\.head\\.repo\\.full_name\\b",
-              "\\bgithub\\.event\\.pull_request\\.head\\.repo\\.owner\\.name\\b",
-              "\\bgithub\\.event\\.workflow_run\\.head_repository\\.full_name\\b",
-              "\\bgithub\\.event\\.workflow_run\\.head_repository\\.owner\\.name\\b"
-            ], _, _)
-    )
   }
 
   override predicate protectsCategoryAndEvent(string category, string event) {
     exists(this.(If).getConditionExpr().getRoot()) and
     parsedConditionProtectsCategoryAndEvent(this.(If), category, event)
-    or
-    hasUnparsedConditionExpression(this.(If)) and
-    event = "pull_request_target" and
-    category = any_category()
   }
 }
 
@@ -680,50 +614,22 @@ class WorkflowRunRepositoryIfCheck extends RepositoryCheck instanceof If {
   WorkflowRunRepositoryIfCheck() {
     exists(this.getConditionExpr().getRoot()) and
     isParsedCheckOwner(this, "workflow-run-repository")
-    or
-    hasUnparsedConditionExpression(this) and
-    // eg: github.event.workflow_run.head_repository.full_name == github.repository
-    exists(
-      normalizeExpr(this.getCondition())
-          // github.repository in a workflow_run event triggered by a pull request is the base repository
-          .regexpFind([
-              "\\bgithub\\.event\\.workflow_run\\.head_repository\\.full_name\\b",
-              "\\bgithub\\.event\\.workflow_run\\.head_repository\\.owner\\.name\\b"
-            ], _, _)
-    )
   }
 
   override predicate protectsCategoryAndEvent(string category, string event) {
     exists(this.(If).getConditionExpr().getRoot()) and
     parsedConditionProtectsCategoryAndEvent(this.(If), category, event)
-    or
-    hasUnparsedConditionExpression(this.(If)) and
-    event = "workflow_run" and
-    category = any_category()
   }
 }
 
 class AssociationIfCheck extends AssociationCheck instanceof If {
   AssociationIfCheck() {
     exists(this.getConditionExpr().getRoot()) and isParsedCheckOwner(this, "association")
-    or
-    hasUnparsedConditionExpression(this) and
-    // eg: contains(fromJson('["MEMBER", "OWNER"]'), github.event.comment.author_association)
-    normalizeExpr(this.getCondition())
-        .splitAt("\n")
-        .regexpMatch([
-            ".*\\bgithub\\.event\\.comment\\.author_association\\b.*",
-            ".*\\bgithub\\.event\\.issue\\.author_association\\b.*",
-            ".*\\bgithub\\.event\\.pull_request\\.author_association\\b.*",
-          ])
   }
 
   override predicate protectsCategoryAndEvent(string category, string event) {
     exists(this.(If).getConditionExpr().getRoot()) and
     parsedConditionProtectsCategoryAndEvent(this.(If), category, event)
-    or
-    hasUnparsedConditionExpression(this.(If)) and
-    AssociationCheck.super.protectsCategoryAndEvent(category, event)
   }
 }
 
