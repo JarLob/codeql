@@ -14,15 +14,19 @@ callArguments
 accesses
 | AccessExpression(fromJSON(inputs.matrix)[0]) | fromJSON(inputs.matrix) | [0] |
 | AccessExpression(fromJSON(inputs.matrix)[0].enabled) | fromJSON(inputs.matrix)[0] | .enabled |
+| AccessExpression(github.actor) | github | .actor |
 | AccessExpression(github.event) | github | .event |
 | AccessExpression(github.event.pull_request) | github.event | .pull_request |
 | AccessExpression(github.event.pull_request.labels) | github.event.pull_request | .labels |
 | AccessExpression(github.event.pull_request.labels.*) | github.event.pull_request.labels | .* |
 | AccessExpression(github.event.pull_request.labels.*.name) | github.event.pull_request.labels.* | .name |
 | AccessExpression(github.event_name) | github | .event_name |
+| AccessExpression(github.ref) | github | .ref |
+| AccessExpression(github.repository) | github | .repository |
 | AccessExpression(inputs.force) | inputs | .force |
 | AccessExpression(inputs.matrix) | inputs | .matrix |
 properties
+| PropertyAccess(.actor) | actor |
 | PropertyAccess(.enabled) | enabled |
 | PropertyAccess(.event) | event |
 | PropertyAccess(.event_name) | event_name |
@@ -31,6 +35,8 @@ properties
 | PropertyAccess(.matrix) | matrix |
 | PropertyAccess(.name) | name |
 | PropertyAccess(.pull_request) | pull_request |
+| PropertyAccess(.ref) | ref |
+| PropertyAccess(.repository) | repository |
 indexes
 | IndexAccess([0]) | 0 |
 literals

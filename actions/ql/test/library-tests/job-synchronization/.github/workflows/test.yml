@@ -1,0 +1,82 @@
+"on":
+  push:
+
+jobs:
+  root-a:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo a
+
+  root-b:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo b
+
+  dependent:
+    needs: [root-a, root-b]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo dependent
+
+  always-dependent:
+    needs: root-a
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo always
+
+  success-dependent:
+    needs: root-a
+    if: success()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo success
+
+  failure-dependent:
+    needs: root-a
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo failure
+
+  cancelled-dependent:
+    needs: root-a
+    if: cancelled()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo cancelled
+
+  not-success-dependent:
+    needs: root-a
+    if: "!success()"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo not success
+
+  combined-dependent:
+    needs: [root-a, root-b]
+    if: "failure() && cancelled()"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo combined
+
+  mixed-dependent:
+    needs: [root-a, dependent]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo mixed
+
+  transitive-combined:
+    needs: combined-dependent
+    if: "failure() && cancelled()"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo transitive combined
+
+  terminal:
+    needs: dependent
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo terminal

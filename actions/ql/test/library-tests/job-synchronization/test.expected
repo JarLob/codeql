@@ -1,0 +1,252 @@
+joinRequirements
+| always-dependent | root-a |
+| cancelled-dependent | root-a |
+| combined-dependent | root-a |
+| combined-dependent | root-b |
+| dependent | root-a |
+| dependent | root-b |
+| failure-dependent | root-a |
+| mixed-dependent | dependent |
+| mixed-dependent | root-a |
+| not-success-dependent | root-a |
+| success-dependent | root-a |
+| terminal | dependent |
+| transitive-combined | combined-dependent |
+joinRequirementCompletions
+| always-dependent | root-a | cancelled |
+| always-dependent | root-a | failure |
+| always-dependent | root-a | success |
+| cancelled-dependent | root-a | cancelled |
+| cancelled-dependent | root-a | failure |
+| cancelled-dependent | root-a | success |
+| combined-dependent | root-a | cancelled |
+| combined-dependent | root-a | failure |
+| combined-dependent | root-a | success |
+| combined-dependent | root-b | cancelled |
+| combined-dependent | root-b | failure |
+| combined-dependent | root-b | success |
+| dependent | root-a | cancelled |
+| dependent | root-a | failure |
+| dependent | root-a | success |
+| dependent | root-b | cancelled |
+| dependent | root-b | failure |
+| dependent | root-b | success |
+| failure-dependent | root-a | cancelled |
+| failure-dependent | root-a | failure |
+| failure-dependent | root-a | success |
+| mixed-dependent | dependent | cancelled |
+| mixed-dependent | dependent | failure |
+| mixed-dependent | dependent | skipped |
+| mixed-dependent | dependent | success |
+| mixed-dependent | root-a | cancelled |
+| mixed-dependent | root-a | failure |
+| mixed-dependent | root-a | success |
+| not-success-dependent | root-a | cancelled |
+| not-success-dependent | root-a | failure |
+| not-success-dependent | root-a | success |
+| success-dependent | root-a | cancelled |
+| success-dependent | root-a | failure |
+| success-dependent | root-a | success |
+| terminal | dependent | cancelled |
+| terminal | dependent | failure |
+| terminal | dependent | skipped |
+| terminal | dependent | success |
+| transitive-combined | combined-dependent | cancelled |
+| transitive-combined | combined-dependent | failure |
+| transitive-combined | combined-dependent | skipped |
+| transitive-combined | combined-dependent | success |
+joinDecisionStatuses
+| always-dependent | cancelled |
+| always-dependent | failure |
+| always-dependent | success |
+| cancelled-dependent | cancelled |
+| cancelled-dependent | failure |
+| cancelled-dependent | success |
+| combined-dependent | cancelled |
+| combined-dependent | failure |
+| combined-dependent | failure+cancelled |
+| combined-dependent | success |
+| dependent | cancelled |
+| dependent | failure |
+| dependent | failure+cancelled |
+| dependent | success |
+| failure-dependent | cancelled |
+| failure-dependent | failure |
+| failure-dependent | success |
+| mixed-dependent | cancelled |
+| mixed-dependent | cancelled+skipped |
+| mixed-dependent | failure |
+| mixed-dependent | failure+cancelled |
+| mixed-dependent | failure+cancelled+skipped |
+| mixed-dependent | failure+skipped |
+| mixed-dependent | skipped |
+| mixed-dependent | success |
+| not-success-dependent | cancelled |
+| not-success-dependent | failure |
+| not-success-dependent | success |
+| success-dependent | cancelled |
+| success-dependent | failure |
+| success-dependent | success |
+| terminal | cancelled |
+| terminal | cancelled+skipped |
+| terminal | failure |
+| terminal | failure+cancelled |
+| terminal | failure+cancelled+skipped |
+| terminal | failure+skipped |
+| terminal | skipped |
+| terminal | success |
+| transitive-combined | cancelled |
+| transitive-combined | cancelled+skipped |
+| transitive-combined | failure |
+| transitive-combined | failure+cancelled |
+| transitive-combined | failure+cancelled+skipped |
+| transitive-combined | failure+skipped |
+| transitive-combined | skipped |
+| transitive-combined | success |
+decisionEdges
+| always-dependent | complete always-dependent as skipped |
+| always-dependent | execute always-dependent |
+| cancelled-dependent | complete cancelled-dependent as skipped |
+| cancelled-dependent | execute cancelled-dependent |
+| combined-dependent | complete combined-dependent as skipped |
+| combined-dependent | execute combined-dependent |
+| dependent | complete dependent as skipped |
+| dependent | execute dependent |
+| failure-dependent | complete failure-dependent as skipped |
+| failure-dependent | execute failure-dependent |
+| mixed-dependent | complete mixed-dependent as skipped |
+| mixed-dependent | execute mixed-dependent |
+| not-success-dependent | complete not-success-dependent as skipped |
+| not-success-dependent | execute not-success-dependent |
+| root-a | execute root-a |
+| root-b | execute root-b |
+| success-dependent | complete success-dependent as skipped |
+| success-dependent | execute success-dependent |
+| terminal | complete terminal as skipped |
+| terminal | execute terminal |
+| transitive-combined | complete transitive-combined as skipped |
+| transitive-combined | execute transitive-combined |
+pushDecisionEdges
+| always-dependent | execute always-dependent |
+| cancelled-dependent | complete cancelled-dependent as skipped |
+| cancelled-dependent | execute cancelled-dependent |
+| combined-dependent | complete combined-dependent as skipped |
+| combined-dependent | execute combined-dependent |
+| dependent | complete dependent as skipped |
+| dependent | execute dependent |
+| failure-dependent | complete failure-dependent as skipped |
+| failure-dependent | execute failure-dependent |
+| mixed-dependent | execute mixed-dependent |
+| not-success-dependent | complete not-success-dependent as skipped |
+| not-success-dependent | execute not-success-dependent |
+| root-a | execute root-a |
+| root-b | execute root-b |
+| success-dependent | complete success-dependent as skipped |
+| success-dependent | execute success-dependent |
+| terminal | complete terminal as skipped |
+| terminal | execute terminal |
+| transitive-combined | complete transitive-combined as skipped |
+| transitive-combined | execute transitive-combined |
+knownStatusDecisionEdges
+| always-dependent | cancelled | execute always-dependent |
+| always-dependent | failure | execute always-dependent |
+| always-dependent | success | execute always-dependent |
+| cancelled-dependent | cancelled | execute cancelled-dependent |
+| cancelled-dependent | failure | complete cancelled-dependent as skipped |
+| cancelled-dependent | success | complete cancelled-dependent as skipped |
+| combined-dependent | cancelled | complete combined-dependent as skipped |
+| combined-dependent | failure | complete combined-dependent as skipped |
+| combined-dependent | failure+cancelled | execute combined-dependent |
+| combined-dependent | success | complete combined-dependent as skipped |
+| dependent | cancelled | complete dependent as skipped |
+| dependent | failure | complete dependent as skipped |
+| dependent | failure+cancelled | complete dependent as skipped |
+| dependent | success | execute dependent |
+| failure-dependent | cancelled | complete failure-dependent as skipped |
+| failure-dependent | failure | execute failure-dependent |
+| failure-dependent | success | complete failure-dependent as skipped |
+| not-success-dependent | cancelled | execute not-success-dependent |
+| not-success-dependent | failure | execute not-success-dependent |
+| not-success-dependent | success | complete not-success-dependent as skipped |
+| success-dependent | cancelled | complete success-dependent as skipped |
+| success-dependent | failure | complete success-dependent as skipped |
+| success-dependent | success | execute success-dependent |
+| terminal | cancelled | complete terminal as skipped |
+| terminal | cancelled+skipped | complete terminal as skipped |
+| terminal | failure | complete terminal as skipped |
+| terminal | failure+cancelled | complete terminal as skipped |
+| terminal | failure+cancelled+skipped | complete terminal as skipped |
+| terminal | failure+skipped | complete terminal as skipped |
+| terminal | skipped | complete terminal as skipped |
+| terminal | success | execute terminal |
+| transitive-combined | cancelled | complete transitive-combined as skipped |
+| transitive-combined | cancelled+skipped | complete transitive-combined as skipped |
+| transitive-combined | failure | complete transitive-combined as skipped |
+| transitive-combined | failure+cancelled | execute transitive-combined |
+| transitive-combined | failure+cancelled+skipped | execute transitive-combined |
+| transitive-combined | failure+skipped | complete transitive-combined as skipped |
+| transitive-combined | skipped | complete transitive-combined as skipped |
+| transitive-combined | success | complete transitive-combined as skipped |
+executionCompletions
+| always-dependent | cancelled |
+| always-dependent | failure |
+| always-dependent | success |
+| cancelled-dependent | cancelled |
+| cancelled-dependent | failure |
+| cancelled-dependent | success |
+| combined-dependent | cancelled |
+| combined-dependent | failure |
+| combined-dependent | success |
+| dependent | cancelled |
+| dependent | failure |
+| dependent | success |
+| failure-dependent | cancelled |
+| failure-dependent | failure |
+| failure-dependent | success |
+| mixed-dependent | cancelled |
+| mixed-dependent | failure |
+| mixed-dependent | success |
+| not-success-dependent | cancelled |
+| not-success-dependent | failure |
+| not-success-dependent | success |
+| root-a | cancelled |
+| root-a | failure |
+| root-a | success |
+| root-b | cancelled |
+| root-b | failure |
+| root-b | success |
+| success-dependent | cancelled |
+| success-dependent | failure |
+| success-dependent | success |
+| terminal | cancelled |
+| terminal | failure |
+| terminal | success |
+| transitive-combined | cancelled |
+| transitive-combined | failure |
+| transitive-combined | success |
+executionCfgNodes
+| always-dependent | .github/workflows/test.yml:23:5:29:2 | Job: always-dependent |
+| cancelled-dependent | .github/workflows/test.yml:44:5:50:2 | Job: cancelled-dependent |
+| combined-dependent | .github/workflows/test.yml:58:5:64:2 | Job: combined-dependent |
+| dependent | .github/workflows/test.yml:16:5:22:2 | Job: dependent |
+| failure-dependent | .github/workflows/test.yml:37:5:43:2 | Job: failure-dependent |
+| mixed-dependent | .github/workflows/test.yml:65:5:71:2 | Job: mixed-dependent |
+| not-success-dependent | .github/workflows/test.yml:51:5:57:2 | Job: not-success-dependent |
+| root-a | .github/workflows/test.yml:6:5:10:2 | Job: root-a |
+| root-b | .github/workflows/test.yml:11:5:15:2 | Job: root-b |
+| success-dependent | .github/workflows/test.yml:30:5:36:2 | Job: success-dependent |
+| terminal | .github/workflows/test.yml:79:5:82:26 | Job: terminal |
+| transitive-combined | .github/workflows/test.yml:72:5:78:2 | Job: transitive-combined |
+workflowBoundaries
+| entry | root-a |
+| entry | root-b |
+| exit | always-dependent |
+| exit | cancelled-dependent |
+| exit | failure-dependent |
+| exit | mixed-dependent |
+| exit | not-success-dependent |
+| exit | success-dependent |
+| exit | terminal |
+| exit | transitive-combined |
+synchronizationCycles
+impossibleStatusSummaries

@@ -51,11 +51,37 @@ private predicate isKnownNullValue(ExpressionNode node, Event event) {
 
 private newtype TStatusMode =
   TUnknownStatusMode() or
-  TSkippedNeedsStatusMode()
+  TKnownNeedsStatusMode(boolean hasFailure, boolean hasCancellation, boolean hasSkip) {
+    hasFailure in [false, true] and
+    hasCancellation in [false, true] and
+    hasSkip in [false, true]
+  }
 
 private TStatusMode unknownStatusMode() { result = TUnknownStatusMode() }
 
-private TStatusMode skippedNeedsStatusMode() { result = TSkippedNeedsStatusMode() }
+bindingset[status]
+private TStatusMode knownNeedsStatusMode(string status) {
+  status = "success" and result = TKnownNeedsStatusMode(false, false, false)
+  or
+  status = "failure" and result = TKnownNeedsStatusMode(true, false, false)
+  or
+  status = "cancelled" and result = TKnownNeedsStatusMode(false, true, false)
+  or
+  status = "skipped" and result = TKnownNeedsStatusMode(false, false, true)
+}
+
+bindingset[hasFailure, hasCancellation, hasSkip]
+private TStatusMode knownNeedsStatusMode(
+  boolean hasFailure, boolean hasCancellation, boolean hasSkip
+) {
+  result = TKnownNeedsStatusMode(hasFailure, hasCancellation, hasSkip)
+}
+
+private predicate getKnownNeedsState(
+  TStatusMode statusMode, boolean hasFailure, boolean hasCancellation, boolean hasSkip
+) {
+  statusMode = TKnownNeedsStatusMode(hasFailure, hasCancellation, hasSkip)
+}
 
 private predicate getBooleanValue(
   ExpressionNode node, Event event, TStatusMode statusMode, boolean outcome
@@ -215,10 +241,26 @@ private predicate evaluateFunctionCall(
   not exists(call.getArgument(_)) and
   outcome = true
   or
-  statusMode = skippedNeedsStatusMode() and
-  call.getCallee().getName().toLowerCase() = "success" and
-  not exists(call.getArgument(_)) and
-  outcome = false
+  exists(boolean hasFailure, boolean hasCancellation, boolean hasSkip |
+    getKnownNeedsState(statusMode, hasFailure, hasCancellation, hasSkip) and
+    call.getCallee().getName().toLowerCase() = ["success", "failure", "cancelled"] and
+    not exists(call.getArgument(_)) and
+    (
+      call.getCallee().getName().toLowerCase() = "success" and
+      hasFailure = false and
+      hasCancellation = false and
+      hasSkip = false and
+      outcome = true
+      or
+      call.getCallee().getName().toLowerCase() = "success" and
+      (hasFailure = true or hasCancellation = true or hasSkip = true) and
+      outcome = false
+      or
+      call.getCallee().getName().toLowerCase() = "failure" and outcome = hasFailure
+      or
+      call.getCallee().getName().toLowerCase() = "cancelled" and outcome = hasCancellation
+    )
+  )
   or
   exists(string left, string right |
     getStringValue(call.getArgument(0), event, left) and
@@ -282,8 +324,54 @@ predicate isConditionFeasible(If condition, Event event) {
 
 /** Holds if the condition may permit execution after a prerequisite job was skipped. */
 predicate isConditionFeasibleAfterSkippedNeeds(If condition, Event event) {
-  mayEvaluateToBooleanWithStatus(condition.getConditionExpr().getRoot(), event,
-    skippedNeedsStatusMode(), true)
+  isConditionFeasibleAfterNeedsStatus(condition, event, "skipped")
+}
+
+/**
+ * Holds if `node` is known to evaluate to `outcome` for a prerequisite-status summary.
+ */
+bindingset[hasFailure, hasCancellation, hasSkip]
+predicate evaluatesToBooleanAfterNeedsState(
+  ExpressionNode node, Event event, boolean hasFailure, boolean hasCancellation, boolean hasSkip,
+  boolean outcome
+) {
+  evaluatesToBooleanWithStatus(node, event,
+    knownNeedsStatusMode(hasFailure, hasCancellation, hasSkip), outcome)
+}
+
+/** Holds if `node` may evaluate to `outcome` for a prerequisite-status summary. */
+bindingset[hasFailure, hasCancellation, hasSkip]
+predicate mayEvaluateToBooleanAfterNeedsState(
+  ExpressionNode node, Event event, boolean hasFailure, boolean hasCancellation, boolean hasSkip,
+  boolean outcome
+) {
+  mayEvaluateToBooleanWithStatus(node, event,
+    knownNeedsStatusMode(hasFailure, hasCancellation, hasSkip), outcome)
+}
+
+/**
+ * Holds if `node` is known to evaluate to `outcome` for `event` after prerequisite jobs have the
+ * aggregate conclusion `status`.
+ */
+bindingset[status]
+predicate evaluatesToBooleanAfterNeedsStatus(
+  ExpressionNode node, Event event, string status, boolean outcome
+) {
+  evaluatesToBooleanWithStatus(node, event, knownNeedsStatusMode(status), outcome)
+}
+
+/** Holds if `node` may evaluate to `outcome` for a known aggregate prerequisite conclusion. */
+bindingset[status]
+predicate mayEvaluateToBooleanAfterNeedsStatus(
+  ExpressionNode node, Event event, string status, boolean outcome
+) {
+  mayEvaluateToBooleanWithStatus(node, event, knownNeedsStatusMode(status), outcome)
+}
+
+/** Holds if the condition may permit execution for a known aggregate prerequisite conclusion. */
+bindingset[status]
+predicate isConditionFeasibleAfterNeedsStatus(If condition, Event event, string status) {
+  mayEvaluateToBooleanAfterNeedsStatus(condition.getConditionExpr().getRoot(), event, status, true)
 }
 
 /** Holds if the condition contains a status-check function. */

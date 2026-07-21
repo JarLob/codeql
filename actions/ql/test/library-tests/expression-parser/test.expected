@@ -1,3 +1,4 @@
+#select
 | .github/workflows/test.yml:12:9:12:66 | "github ... lled()" | 12 | Identifier | AccessExpression | github | 0 | 6 |
 | .github/workflows/test.yml:12:9:12:66 | "github ... lled()" | 12 | AccessExpression | EqualityExpression | github.event_name | 0 | 17 |
 | .github/workflows/test.yml:12:9:12:66 | "github ... lled()" | 12 | EqualityExpression | AndExpression | github.event_name == 'workflow_dispatch' | 0 | 40 |
@@ -9,44 +10,79 @@
 | .github/workflows/test.yml:12:9:12:66 | "github ... lled()" | 12 | NotExpression | AndExpression | !cancelled() | 44 | 56 |
 | .github/workflows/test.yml:12:9:12:66 | "github ... lled()" | 12 | Identifier | FunctionCall | cancelled | 45 | 54 |
 | .github/workflows/test.yml:12:9:12:66 | "github ... lled()" | 12 | FunctionCall | NotExpression | cancelled() | 45 | 56 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | Identifier | FunctionCall | contains | 0 | 8 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | FunctionCall | OrExpression | contains(github.event.pull_request.labels.*.name, 'safe') | 0 | 57 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | OrExpression | root | contains(github.event.pull_request.labels.*.name, 'safe') \|\| inputs.force == true | 0 | 81 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | root | <none> | contains(github.event.pull_request.labels.*.name, 'safe') \|\| inputs.force == true | 0 | 81 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | Identifier | AccessExpression | github | 9 | 15 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | AccessExpression | AccessExpression | github.event | 9 | 21 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | AccessExpression | AccessExpression | github.event.pull_request | 9 | 34 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | AccessExpression | AccessExpression | github.event.pull_request.labels | 9 | 41 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | AccessExpression | AccessExpression | github.event.pull_request.labels.* | 9 | 43 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | AccessExpression | FunctionCall | github.event.pull_request.labels.*.name | 9 | 48 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | PropertyAccess | AccessExpression | .event | 15 | 21 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | Identifier | PropertyAccess | event | 16 | 21 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | PropertyAccess | AccessExpression | .pull_request | 21 | 34 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | Identifier | PropertyAccess | pull_request | 22 | 34 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | PropertyAccess | AccessExpression | .labels | 34 | 41 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | Identifier | PropertyAccess | labels | 35 | 41 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | WildcardAccess | AccessExpression | .* | 41 | 43 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | PropertyAccess | AccessExpression | .name | 43 | 48 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | Identifier | PropertyAccess | name | 44 | 48 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | StringLiteral | FunctionCall | 'safe' | 50 | 56 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | Identifier | AccessExpression | inputs | 61 | 67 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | AccessExpression | EqualityExpression | inputs.force | 61 | 73 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | EqualityExpression | OrExpression | inputs.force == true | 61 | 81 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | PropertyAccess | AccessExpression | .force | 67 | 73 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | Identifier | PropertyAccess | force | 68 | 73 |
-| .github/workflows/test.yml:15:13:15:95 | "contai ... = true" | 15 | BooleanLiteral | EqualityExpression | true | 77 | 81 |
-| .github/workflows/test.yml:17:13:17:56 | "fromJS ... = null" | 17 | Identifier | FunctionCall | fromJSON | 0 | 8 |
-| .github/workflows/test.yml:17:13:17:56 | "fromJS ... = null" | 17 | FunctionCall | AccessExpression | fromJSON(inputs.matrix) | 0 | 23 |
-| .github/workflows/test.yml:17:13:17:56 | "fromJS ... = null" | 17 | AccessExpression | AccessExpression | fromJSON(inputs.matrix)[0] | 0 | 26 |
-| .github/workflows/test.yml:17:13:17:56 | "fromJS ... = null" | 17 | AccessExpression | EqualityExpression | fromJSON(inputs.matrix)[0].enabled | 0 | 34 |
-| .github/workflows/test.yml:17:13:17:56 | "fromJS ... = null" | 17 | EqualityExpression | root | fromJSON(inputs.matrix)[0].enabled != null | 0 | 42 |
-| .github/workflows/test.yml:17:13:17:56 | "fromJS ... = null" | 17 | root | <none> | fromJSON(inputs.matrix)[0].enabled != null | 0 | 42 |
-| .github/workflows/test.yml:17:13:17:56 | "fromJS ... = null" | 17 | Identifier | AccessExpression | inputs | 9 | 15 |
-| .github/workflows/test.yml:17:13:17:56 | "fromJS ... = null" | 17 | AccessExpression | FunctionCall | inputs.matrix | 9 | 22 |
-| .github/workflows/test.yml:17:13:17:56 | "fromJS ... = null" | 17 | PropertyAccess | AccessExpression | .matrix | 15 | 22 |
-| .github/workflows/test.yml:17:13:17:56 | "fromJS ... = null" | 17 | Identifier | PropertyAccess | matrix | 16 | 22 |
-| .github/workflows/test.yml:17:13:17:56 | "fromJS ... = null" | 17 | IndexAccess | AccessExpression | [0] | 23 | 26 |
-| .github/workflows/test.yml:17:13:17:56 | "fromJS ... = null" | 17 | NumberLiteral | IndexAccess | 0 | 24 | 25 |
-| .github/workflows/test.yml:17:13:17:56 | "fromJS ... = null" | 17 | PropertyAccess | AccessExpression | .enabled | 26 | 34 |
-| .github/workflows/test.yml:17:13:17:56 | "fromJS ... = null" | 17 | Identifier | PropertyAccess | enabled | 27 | 34 |
-| .github/workflows/test.yml:17:13:17:56 | "fromJS ... = null" | 17 | NullLiteral | EqualityExpression | null | 38 | 42 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | Identifier | FunctionCall | contains | 0 | 8 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | FunctionCall | OrExpression | contains(github.event.pull_request.labels.*.name, 'safe') | 0 | 57 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | OrExpression | root | contains(github.event.pull_request.labels.*.name, 'safe') \|\| inputs.force == true | 0 | 81 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | root | <none> | contains(github.event.pull_request.labels.*.name, 'safe') \|\| inputs.force == true | 0 | 81 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | Identifier | AccessExpression | github | 9 | 15 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | AccessExpression | AccessExpression | github.event | 9 | 21 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | AccessExpression | AccessExpression | github.event.pull_request | 9 | 34 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | AccessExpression | AccessExpression | github.event.pull_request.labels | 9 | 41 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | AccessExpression | AccessExpression | github.event.pull_request.labels.* | 9 | 43 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | AccessExpression | FunctionCall | github.event.pull_request.labels.*.name | 9 | 48 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | PropertyAccess | AccessExpression | .event | 15 | 21 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | Identifier | PropertyAccess | event | 16 | 21 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | PropertyAccess | AccessExpression | .pull_request | 21 | 34 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | Identifier | PropertyAccess | pull_request | 22 | 34 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | PropertyAccess | AccessExpression | .labels | 34 | 41 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | Identifier | PropertyAccess | labels | 35 | 41 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | WildcardAccess | AccessExpression | .* | 41 | 43 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | PropertyAccess | AccessExpression | .name | 43 | 48 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | Identifier | PropertyAccess | name | 44 | 48 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | StringLiteral | FunctionCall | 'safe' | 50 | 56 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | Identifier | AccessExpression | inputs | 61 | 67 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | AccessExpression | EqualityExpression | inputs.force | 61 | 73 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | EqualityExpression | OrExpression | inputs.force == true | 61 | 81 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | PropertyAccess | AccessExpression | .force | 67 | 73 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | Identifier | PropertyAccess | force | 68 | 73 |
+| .github/workflows/test.yml:21:13:21:95 | "contai ... = true" | 21 | BooleanLiteral | EqualityExpression | true | 77 | 81 |
+| .github/workflows/test.yml:23:13:23:56 | "fromJS ... = null" | 23 | Identifier | FunctionCall | fromJSON | 0 | 8 |
+| .github/workflows/test.yml:23:13:23:56 | "fromJS ... = null" | 23 | FunctionCall | AccessExpression | fromJSON(inputs.matrix) | 0 | 23 |
+| .github/workflows/test.yml:23:13:23:56 | "fromJS ... = null" | 23 | AccessExpression | AccessExpression | fromJSON(inputs.matrix)[0] | 0 | 26 |
+| .github/workflows/test.yml:23:13:23:56 | "fromJS ... = null" | 23 | AccessExpression | EqualityExpression | fromJSON(inputs.matrix)[0].enabled | 0 | 34 |
+| .github/workflows/test.yml:23:13:23:56 | "fromJS ... = null" | 23 | EqualityExpression | root | fromJSON(inputs.matrix)[0].enabled != null | 0 | 42 |
+| .github/workflows/test.yml:23:13:23:56 | "fromJS ... = null" | 23 | root | <none> | fromJSON(inputs.matrix)[0].enabled != null | 0 | 42 |
+| .github/workflows/test.yml:23:13:23:56 | "fromJS ... = null" | 23 | Identifier | AccessExpression | inputs | 9 | 15 |
+| .github/workflows/test.yml:23:13:23:56 | "fromJS ... = null" | 23 | AccessExpression | FunctionCall | inputs.matrix | 9 | 22 |
+| .github/workflows/test.yml:23:13:23:56 | "fromJS ... = null" | 23 | PropertyAccess | AccessExpression | .matrix | 15 | 22 |
+| .github/workflows/test.yml:23:13:23:56 | "fromJS ... = null" | 23 | Identifier | PropertyAccess | matrix | 16 | 22 |
+| .github/workflows/test.yml:23:13:23:56 | "fromJS ... = null" | 23 | IndexAccess | AccessExpression | [0] | 23 | 26 |
+| .github/workflows/test.yml:23:13:23:56 | "fromJS ... = null" | 23 | NumberLiteral | IndexAccess | 0 | 24 | 25 |
+| .github/workflows/test.yml:23:13:23:56 | "fromJS ... = null" | 23 | PropertyAccess | AccessExpression | .enabled | 26 | 34 |
+| .github/workflows/test.yml:23:13:23:56 | "fromJS ... = null" | 23 | Identifier | PropertyAccess | enabled | 27 | 34 |
+| .github/workflows/test.yml:23:13:23:56 | "fromJS ... = null" | 23 | NullLiteral | EqualityExpression | null | 38 | 42 |
+nodeLocations
+| AccessExpression(fromJSON(inputs.matrix)[0]) | fromJSON(inputs.matrix)[0] | 23 | 14 | 23 | 39 |
+| AccessExpression(fromJSON(inputs.matrix)[0].enabled) | fromJSON(inputs.matrix)[0].enabled | 23 | 14 | 23 | 47 |
+| AccessExpression(github.actor) | github.actor | 15 | 28 | 15 | 39 |
+| AccessExpression(github.ref) | github.ref | 19 | 16 | 19 | 49 |
+| AccessExpression(github.repository) | github.repository | 16 | 15 | 18 | 15 |
+| AccessExpression(inputs.matrix) | inputs.matrix | 23 | 23 | 23 | 35 |
+| EqualityExpression(fromJSON(inputs.matrix)[0].enabled != null) | fromJSON(inputs.matrix)[0].enabled != null | 23 | 14 | 23 | 55 |
+| FunctionCall(fromJSON(inputs.matrix)) | fromJSON(inputs.matrix) | 23 | 14 | 23 | 36 |
+| Identifier(actor) | actor | 15 | 35 | 15 | 39 |
+| Identifier(enabled) | enabled | 23 | 41 | 23 | 47 |
+| Identifier(fromJSON) | fromJSON | 23 | 14 | 23 | 21 |
+| Identifier(github) | github | 15 | 28 | 15 | 33 |
+| Identifier(github) | github | 16 | 15 | 18 | 15 |
+| Identifier(github) | github | 19 | 16 | 19 | 49 |
+| Identifier(inputs) | inputs | 23 | 23 | 23 | 28 |
+| Identifier(matrix) | matrix | 23 | 30 | 23 | 35 |
+| Identifier(ref) | ref | 19 | 16 | 19 | 49 |
+| Identifier(repository) | repository | 16 | 15 | 18 | 15 |
+| IndexAccess([0]) | [0] | 23 | 37 | 23 | 39 |
+| NullLiteral(null) | null | 23 | 52 | 23 | 55 |
+| NumberLiteral(0) | 0 | 23 | 38 | 23 | 38 |
+| PropertyAccess(.actor) | .actor | 15 | 34 | 15 | 39 |
+| PropertyAccess(.enabled) | .enabled | 23 | 40 | 23 | 47 |
+| PropertyAccess(.matrix) | .matrix | 23 | 29 | 23 | 35 |
+| PropertyAccess(.ref) | .ref | 19 | 16 | 19 | 49 |
+| PropertyAccess(.repository) | .repository | 16 | 15 | 18 | 15 |
+| root(fromJSON(inputs.matrix)[0].enabled != null) | fromJSON(inputs.matrix)[0].enabled != null | 23 | 14 | 23 | 55 |
+| root(github.actor) | github.actor | 15 | 28 | 15 | 39 |
+| root(github.ref) | github.ref | 19 | 16 | 19 | 49 |
+| root(github.repository) | github.repository | 16 | 15 | 18 | 15 |
+rootLocationPrecision
+| github.actor | exact |
+| github.ref | containing scalar |
+| github.repository | containing scalar |

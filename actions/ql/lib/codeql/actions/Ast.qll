@@ -72,6 +72,27 @@ abstract class ExpressionNode instanceof ExpressionNodeImpl {
 
   int getEndOffset() { result = super.getEndOffset() }
 
+  /**
+   * Holds if this node has the specified source span. For YAML scalars whose decoded value cannot
+   * be mapped losslessly, this is the span of the containing scalar.
+   */
+  predicate hasSourceLocation(string path, int sl, int sc, int el, int ec) {
+    super.hasLocationInfo(path, sl, sc, el, ec)
+  }
+
+  /** Holds if this node's source span is exact rather than a containing scalar span. */
+  predicate hasExactSourceLocation() { super.hasExactSourceLocation() }
+
+  string getSourceFilePath() { this.hasSourceLocation(result, _, _, _, _) }
+
+  int getSourceStartLine() { this.hasSourceLocation(_, result, _, _, _) }
+
+  int getSourceStartColumn() { this.hasSourceLocation(_, _, result, _, _) }
+
+  int getSourceEndLine() { this.hasSourceLocation(_, _, _, result, _) }
+
+  int getSourceEndColumn() { this.hasSourceLocation(_, _, _, _, result) }
+
   string toString() { result = super.toString() }
 }
 

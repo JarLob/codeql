@@ -43,6 +43,14 @@ abstract class Node extends TNode {
   /** Gets the location of the containing workflow expression. */
   Location getLocation() { result = this.getExpression().getLocation() }
 
+  /** Holds if this node has the specified parsed-expression source span. */
+  predicate hasSourceLocation(string path, int sl, int sc, int el, int ec) {
+    this.getExpressionNode().hasSourceLocation(path, sl, sc, el, ec)
+  }
+
+  /** Holds if the parsed-expression source span is exact. */
+  predicate hasExactSourceLocation() { this.getExpressionNode().hasExactSourceLocation() }
+
   /** Gets a context-independent successor. */
   Node getASuccessor() { expressionSuccessor(this, result) }
 
