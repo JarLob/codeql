@@ -1116,6 +1116,7 @@ cfgNodes
 | .github/workflows/test.yml:29:14:29:54 | ${{ github.event.pull_request.head.ref }} |
 | .github/workflows/test.yml:29:15:29:55 | github.event.pull_request.head.ref |
 | .github/workflows/test.yml:32:5:40:53 | Job: job2 |
+| .github/workflows/test.yml:34:9:34:23 | ${{ always() }} |
 | .github/workflows/test.yml:39:9:40:53 | Run Step: sink |
 | .github/workflows/test.yml:40:14:40:52 | echo ${{needs.job1.outputs.job_output}} |
 | .github/workflows/test.yml:40:20:40:53 | needs.job1.outputs.job_output |

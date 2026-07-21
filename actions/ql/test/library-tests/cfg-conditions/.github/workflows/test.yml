@@ -1,0 +1,17 @@
+"on": push
+
+jobs:
+  guarded:
+    if: github.actor == 'octocat'
+    runs-on: ubuntu-latest
+    steps:
+      - id: guarded-step
+        if: github.event_name == 'push'
+        run: echo guarded
+      - id: next-step
+        run: echo next
+
+  next-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo next job

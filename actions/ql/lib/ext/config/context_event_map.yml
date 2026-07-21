@@ -42,6 +42,7 @@ extensions:
       - ["workflow_run", "github.event.workflow"]
       - ["workflow_run", "github.event.workflow_run"]
       - ["workflow_run", "github.event.changes"] 
+      - ["workflow_dispatch", "github.event.inputs"]
       # workflow_call receives the same event payload as the calling workflow
       - ["workflow_call", "github.event.comment"] 
       - ["workflow_call", "github.event.discussion"]

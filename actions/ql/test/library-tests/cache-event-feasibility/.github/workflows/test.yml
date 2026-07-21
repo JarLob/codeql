@@ -1,0 +1,87 @@
+"on":
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+
+jobs:
+  pr-only:
+    if: "github.event_name == 'pull_request' && github.event.action == 'labeled'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo pr
+
+  pr-label-only:
+    if: "contains(github.event.pull_request.labels.*.name, 'poetry downstream tests')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo label
+
+  unknown:
+    if: "github.actor == 'octocat'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo unknown
+
+  dispatch-only:
+    if: "github.event_name == 'workflow_dispatch'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo dispatch
+
+  unguarded:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo unguarded
+
+  prerequisite-pr-only:
+    if: "github.event_name == 'pull_request'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo prerequisite
+
+  needs-default:
+    needs: prerequisite-pr-only
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo default
+
+  needs-ordinary-condition:
+    needs: prerequisite-pr-only
+    if: "github.actor == 'octocat'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ordinary
+
+  needs-always:
+    needs: prerequisite-pr-only
+    if: "always()"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo always
+
+  needs-success:
+    needs: prerequisite-pr-only
+    if: "success()"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo success
+
+  needs-success-or-dispatch:
+    needs: prerequisite-pr-only
+    if: "success() || github.event_name == 'workflow_dispatch'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo status or dispatch
+
+  needs-not-success:
+    needs: prerequisite-pr-only
+    if: "!success()"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo not success
+
+  needs-transitive:
+    needs: needs-default
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo transitive

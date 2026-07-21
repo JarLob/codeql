@@ -1,0 +1,22 @@
+"on":
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  partial-and:
+    if: "github.event_name == 'workflow_dispatch' && github.actor == 'octocat'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo and
+
+  partial-or:
+    if: "github.event_name == 'workflow_dispatch' || github.actor == 'octocat'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo or
+
+  nested:
+    if: "!(github.event_name == 'workflow_dispatch' || false) && true"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo nested

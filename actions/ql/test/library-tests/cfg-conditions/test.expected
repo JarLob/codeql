@@ -1,0 +1,14 @@
+conditionEdges
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:5:5:14:2 | Job: guarded | true |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:15:5:17:26 | Job: next-job | false |
+| .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | .github/workflows/test.yml:8:9:11:6 | Run Step: guarded-step | true |
+| .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | .github/workflows/test.yml:11:9:14:2 | Run Step: next-step | false |
+controlledBlocks
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:5:5:14:2 | Job: guarded | true |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:8:9:11:6 | Run Step: guarded-step | true |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | true |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:10:14:10:25 | echo guarded | true |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:11:9:14:2 | Run Step: next-step | true |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:12:14:12:22 | echo next | true |
+| .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | .github/workflows/test.yml:8:9:11:6 | Run Step: guarded-step | true |
+| .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | .github/workflows/test.yml:10:14:10:25 | echo guarded | true |

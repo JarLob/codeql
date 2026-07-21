@@ -1,0 +1,41 @@
+parseFailures
+binaryOperands
+| AndExpression(github.event_name == 'workflow_dispatch' && !cancelled()) | && | github.event_name == 'workflow_dispatch' | !cancelled() |
+| EqualityExpression(fromJSON(inputs.matrix)[0].enabled != null) | != | fromJSON(inputs.matrix)[0].enabled | null |
+| EqualityExpression(github.event_name == 'workflow_dispatch') | == | github.event_name | 'workflow_dispatch' |
+| EqualityExpression(inputs.force == true) | == | inputs.force | true |
+| OrExpression(contains(github.event.pull_request.labels.*.name, 'safe') \|\| inputs.force == true) | \|\| | contains(github.event.pull_request.labels.*.name, 'safe') | inputs.force == true |
+unaryOperands
+| NotExpression(!cancelled()) | ! | cancelled() |
+callArguments
+| FunctionCall(contains(github.event.pull_request.labels.*.name, 'safe')) | contains | 0 | github.event.pull_request.labels.*.name |
+| FunctionCall(contains(github.event.pull_request.labels.*.name, 'safe')) | contains | 1 | 'safe' |
+| FunctionCall(fromJSON(inputs.matrix)) | fromJSON | 0 | inputs.matrix |
+accesses
+| AccessExpression(fromJSON(inputs.matrix)[0]) | fromJSON(inputs.matrix) | [0] |
+| AccessExpression(fromJSON(inputs.matrix)[0].enabled) | fromJSON(inputs.matrix)[0] | .enabled |
+| AccessExpression(github.event) | github | .event |
+| AccessExpression(github.event.pull_request) | github.event | .pull_request |
+| AccessExpression(github.event.pull_request.labels) | github.event.pull_request | .labels |
+| AccessExpression(github.event.pull_request.labels.*) | github.event.pull_request.labels | .* |
+| AccessExpression(github.event.pull_request.labels.*.name) | github.event.pull_request.labels.* | .name |
+| AccessExpression(github.event_name) | github | .event_name |
+| AccessExpression(inputs.force) | inputs | .force |
+| AccessExpression(inputs.matrix) | inputs | .matrix |
+properties
+| PropertyAccess(.enabled) | enabled |
+| PropertyAccess(.event) | event |
+| PropertyAccess(.event_name) | event_name |
+| PropertyAccess(.force) | force |
+| PropertyAccess(.labels) | labels |
+| PropertyAccess(.matrix) | matrix |
+| PropertyAccess(.name) | name |
+| PropertyAccess(.pull_request) | pull_request |
+indexes
+| IndexAccess([0]) | 0 |
+literals
+| BooleanLiteral(true) | true |
+| NullLiteral(null) | null |
+| NumberLiteral(0) | 0 |
+| StringLiteral('safe') | 'safe' |
+| StringLiteral('workflow_dispatch') | 'workflow_dispatch' |

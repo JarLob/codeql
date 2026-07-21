@@ -23,6 +23,8 @@ module Completion {
   abstract class NormalCompletion extends Completion { }
 
   class SimpleCompletion extends NormalCompletion, TSimpleCompletion {
+    SimpleCompletion() { this = TSimpleCompletion() }
+
     override string toString() { result = "SimpleCompletion" }
 
     override predicate isValidFor(AstNode e) { not any(Completion c).isValidForSpecific(e) }
@@ -37,7 +39,7 @@ module Completion {
 
     override string toString() { result = "BooleanCompletion(" + value + ")" }
 
-    override predicate isValidForSpecific(AstNode e) { none() }
+    override predicate isValidForSpecific(AstNode e) { e instanceof If }
 
     override BooleanSuccessor getAMatchingSuccessorType() { result.getValue() = value }
 
@@ -196,14 +198,83 @@ private class StrategyTree extends StandardPreOrderTree instanceof Strategy {
   }
 }
 
-private class JobTree extends StandardPreOrderTree instanceof LocalJob {
-  override ControlFlowTree getChildNode(int i) {
+abstract private class GuardedPreOrderTree extends ControlFlowTree {
+  abstract If getGuard();
+
+  abstract AstNode getBodyChild(int i);
+
+  private ControlFlowTree getBodyChildTreeRanked(int i) {
+    result =
+      rank[i + 1](ControlFlowTree child, int j | child = this.getBodyChild(j) | child order by j)
+  }
+
+  private ControlFlowTree getFirstBodyChildTree() { result = this.getBodyChildTreeRanked(0) }
+
+  private ControlFlowTree getLastBodyChildTree() {
+    exists(int last |
+      result = this.getBodyChildTreeRanked(last) and
+      not exists(this.getBodyChildTreeRanked(last + 1))
+    )
+  }
+
+  private predicate bodyLast(AstNode last, Completion c) {
+    last(this.getLastBodyChildTree(), last, c)
+    or
+    not exists(this.getFirstBodyChildTree()) and last = this and c.isValidFor(this)
+  }
+
+  override predicate first(AstNode first) {
+    first(this.getGuard(), first)
+    or
+    not exists(this.getGuard()) and first = this
+  }
+
+  override predicate last(AstNode last, Completion c) {
+    exists(BooleanCompletion completion |
+      last(this.getGuard(), last, completion) and
+      completion.getValue() = false and
+      c = completion
+    )
+    or
+    this.bodyLast(last, c)
+  }
+
+  override predicate propagatesAbnormal(AstNode child) {
+    child = this.getGuard() or child = this.getBodyChild(_)
+  }
+
+  override predicate succ(AstNode pred, AstNode succ, Completion c) {
+    exists(BooleanCompletion completion |
+      last(this.getGuard(), pred, completion) and
+      completion.getValue() = true and
+      c = completion and
+      succ = this
+    )
+    or
+    exists(SimpleCompletion completion |
+      pred = this and
+      first(this.getFirstBodyChildTree(), succ) and
+      c = completion
+    )
+    or
+    exists(int i |
+      last(this.getBodyChildTreeRanked(i), pred, c) and
+      not c instanceof ReturnCompletion and
+      first(this.getBodyChildTreeRanked(i + 1), succ)
+    )
+  }
+}
+
+private class JobTree extends GuardedPreOrderTree instanceof LocalJob {
+  override If getGuard() { result = this.(LocalJob).getIf() }
+
+  override AstNode getBodyChild(int i) {
     result =
       rank[i](AstNode child, Location l |
         (
-          child = super.getAStep() or
-          child = super.getOutputs() or
-          child = super.getStrategy()
+          child = this.(LocalJob).getAStep() or
+          child = this.(LocalJob).getOutputs() or
+          child = this.(LocalJob).getStrategy()
         ) and
         l = child.getLocation()
       |
@@ -214,15 +285,17 @@ private class JobTree extends StandardPreOrderTree instanceof LocalJob {
   }
 }
 
-private class ExternalJobTree extends StandardPreOrderTree instanceof ExternalJob {
-  override ControlFlowTree getChildNode(int i) {
+private class ExternalJobTree extends GuardedPreOrderTree instanceof ExternalJob {
+  override If getGuard() { result = this.(ExternalJob).getIf() }
+
+  override AstNode getBodyChild(int i) {
     result =
       rank[i](AstNode child, Location l |
         (
-          child = super.getArgumentExpr(_) or
-          child = super.getInScopeEnvVarExpr(_) or
-          child = super.getOutputs() or
-          child = super.getStrategy()
+          child = this.(ExternalJob).getArgumentExpr(_) or
+          child = this.(ExternalJob).getInScopeEnvVarExpr(_) or
+          child = this.(ExternalJob).getOutputs() or
+          child = this.(ExternalJob).getStrategy()
         ) and
         l = child.getLocation()
       |
@@ -233,11 +306,16 @@ private class ExternalJobTree extends StandardPreOrderTree instanceof ExternalJo
   }
 }
 
-private class UsesTree extends StandardPreOrderTree instanceof UsesStep {
-  override ControlFlowTree getChildNode(int i) {
+private class UsesTree extends GuardedPreOrderTree instanceof UsesStep {
+  override If getGuard() { result = this.(UsesStep).getIf() }
+
+  override AstNode getBodyChild(int i) {
     result =
       rank[i](AstNode child, Location l |
-        (child = super.getArgumentExpr(_) or child = super.getInScopeEnvVarExpr(_)) and
+        (
+          child = this.(UsesStep).getArgumentExpr(_) or
+          child = this.(UsesStep).getInScopeEnvVarExpr(_)
+        ) and
         l = child.getLocation()
       |
         child
@@ -247,14 +325,16 @@ private class UsesTree extends StandardPreOrderTree instanceof UsesStep {
   }
 }
 
-private class RunTree extends StandardPreOrderTree instanceof Run {
-  override ControlFlowTree getChildNode(int i) {
+private class RunTree extends GuardedPreOrderTree instanceof Run {
+  override If getGuard() { result = this.(Run).getIf() }
+
+  override AstNode getBodyChild(int i) {
     result =
       rank[i](AstNode child, Location l |
         (
-          child = super.getInScopeEnvVarExpr(_) or
-          child = super.getAnScriptExpr() or
-          child = super.getScript()
+          child = this.(Run).getInScopeEnvVarExpr(_) or
+          child = this.(Run).getAnScriptExpr() or
+          child = this.(Run).getScript()
         ) and
         l = child.getLocation()
       |
@@ -286,3 +366,5 @@ private class InputTree extends LeafTree instanceof Input { }
 private class ScalarValueLeaf extends LeafTree instanceof ScalarValue { }
 
 private class ExpressionLeaf extends LeafTree instanceof Expression { }
+
+private class IfLeaf extends LeafTree instanceof If { }

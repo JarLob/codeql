@@ -1,0 +1,57 @@
+knownValues
+| .github/workflows/test.yml:11:9:11:50 | "github ... patch'" | .github/workflows/test.yml:2:3:2:14 | pull_request | false |
+| .github/workflows/test.yml:11:9:11:50 | "github ... patch'" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch | true |
+| .github/workflows/test.yml:17:9:17:42 | "github ... beled'" | .github/workflows/test.yml:2:3:2:14 | pull_request | true |
+| .github/workflows/test.yml:23:9:23:79 | "github ... tocat'" | .github/workflows/test.yml:2:3:2:14 | pull_request | false |
+| .github/workflows/test.yml:29:9:29:79 | "github ... tocat'" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch | true |
+| .github/workflows/test.yml:41:9:41:56 | "!(fals ... 'deq')" | .github/workflows/test.yml:2:3:2:14 | pull_request | true |
+| .github/workflows/test.yml:41:9:41:56 | "!(fals ... 'deq')" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch | true |
+| .github/workflows/test.yml:47:9:47:18 | "always()" | .github/workflows/test.yml:2:3:2:14 | pull_request | true |
+| .github/workflows/test.yml:47:9:47:18 | "always()" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch | true |
+| .github/workflows/test.yml:53:9:53:67 | "contai ... safe')" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch | false |
+| .github/workflows/test.yml:59:9:59:42 | "github ...  'bar'" | .github/workflows/test.yml:2:3:2:14 | pull_request | false |
+| .github/workflows/test.yml:71:9:71:63 | "succes ... patch'" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch | true |
+feasibleConditions
+| .github/workflows/test.yml:11:9:11:50 | "github ... patch'" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+| .github/workflows/test.yml:17:9:17:42 | "github ... beled'" | .github/workflows/test.yml:2:3:2:14 | pull_request |
+| .github/workflows/test.yml:17:9:17:42 | "github ... beled'" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+| .github/workflows/test.yml:23:9:23:79 | "github ... tocat'" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+| .github/workflows/test.yml:29:9:29:79 | "github ... tocat'" | .github/workflows/test.yml:2:3:2:14 | pull_request |
+| .github/workflows/test.yml:29:9:29:79 | "github ... tocat'" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+| .github/workflows/test.yml:35:9:35:35 | "github ... tocat'" | .github/workflows/test.yml:2:3:2:14 | pull_request |
+| .github/workflows/test.yml:35:9:35:35 | "github ... tocat'" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+| .github/workflows/test.yml:41:9:41:56 | "!(fals ... 'deq')" | .github/workflows/test.yml:2:3:2:14 | pull_request |
+| .github/workflows/test.yml:41:9:41:56 | "!(fals ... 'deq')" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+| .github/workflows/test.yml:47:9:47:18 | "always()" | .github/workflows/test.yml:2:3:2:14 | pull_request |
+| .github/workflows/test.yml:47:9:47:18 | "always()" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+| .github/workflows/test.yml:53:9:53:67 | "contai ... safe')" | .github/workflows/test.yml:2:3:2:14 | pull_request |
+| .github/workflows/test.yml:59:9:59:42 | "github ...  'bar'" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+| .github/workflows/test.yml:65:9:65:19 | "success()" | .github/workflows/test.yml:2:3:2:14 | pull_request |
+| .github/workflows/test.yml:65:9:65:19 | "success()" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+| .github/workflows/test.yml:71:9:71:63 | "succes ... patch'" | .github/workflows/test.yml:2:3:2:14 | pull_request |
+| .github/workflows/test.yml:71:9:71:63 | "succes ... patch'" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+| .github/workflows/test.yml:77:9:77:20 | "!success()" | .github/workflows/test.yml:2:3:2:14 | pull_request |
+| .github/workflows/test.yml:77:9:77:20 | "!success()" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+literalSubexpressionValues
+| AndExpression(!(false \|\| 2 < 1) && contains('CodeQL', 'deq')) | true |
+| BooleanLiteral(false) | false |
+| ComparisonExpression(2 < 1) | false |
+| FunctionCall(contains('CodeQL', 'deq')) | true |
+| NotExpression(!(false \|\| 2 < 1)) | true |
+| NumberLiteral(1) | true |
+| NumberLiteral(2) | true |
+| OrExpression(false \|\| 2 < 1) | false |
+| StringLiteral('CodeQL') | true |
+| StringLiteral('deq') | true |
+| root(!(false \|\| 2 < 1) && contains('CodeQL', 'deq')) | true |
+skippedNeedsFeasibleConditions
+| .github/workflows/test.yml:47:9:47:18 | "always()" | .github/workflows/test.yml:2:3:2:14 | pull_request |
+| .github/workflows/test.yml:47:9:47:18 | "always()" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+| .github/workflows/test.yml:71:9:71:63 | "succes ... patch'" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+| .github/workflows/test.yml:77:9:77:20 | "!success()" | .github/workflows/test.yml:2:3:2:14 | pull_request |
+| .github/workflows/test.yml:77:9:77:20 | "!success()" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
+statusCheckConditions
+| .github/workflows/test.yml:47:9:47:18 | "always()" |
+| .github/workflows/test.yml:65:9:65:19 | "success()" |
+| .github/workflows/test.yml:71:9:71:63 | "succes ... patch'" |
+| .github/workflows/test.yml:77:9:77:20 | "!success()" |
