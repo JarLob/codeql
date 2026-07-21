@@ -1,0 +1,175 @@
+mismatches
+binaryShapes
+| valid-and-before-or | AndExpression(b && c) | && | b | c |
+| valid-and-before-or | OrExpression(a \|\| b && c) | \|\| | a | b && c |
+| valid-case-call | EqualityExpression(github.event_name == 'push') | == | github.event_name | 'push' |
+| valid-comparison-associativity | ComparisonExpression(a > b >= c) | >= | a > b | c |
+| valid-comparison-associativity | ComparisonExpression(a > b) | > | a | b |
+| valid-equality-associativity | EqualityExpression(a == b != c) | != | a == b | c |
+| valid-equality-associativity | EqualityExpression(a == b) | == | a | b |
+| valid-formula-index | ComparisonExpression(1 < 2) | < | 1 | 2 |
+| valid-grouped-precedence | AndExpression((a \|\| b) && c) | && | a \|\| b | c |
+| valid-grouped-precedence | OrExpression(a \|\| b) | \|\| | a | b |
+| valid-mixed-precedence | AndExpression(a == b && c < d) | && | a == b | c < d |
+| valid-mixed-precedence | ComparisonExpression(c < d) | < | c | d |
+| valid-mixed-precedence | EqualityExpression(a == b) | == | a | b |
+| valid-mixed-precedence | OrExpression(a == b && c < d \|\| !e) | \|\| | a == b && c < d | !e |
+unaryShapes
+| valid-depth-50 | NotExpression(! !!!!!!!!! true) | !!!!!!!!! true |
+| valid-depth-50 | NotExpression(! !!!!!!!!!! !!!!!!!!! true) | !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(! true) | true |
+| valid-depth-50 | NotExpression(!! !!!!!!!!! true) | ! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!! !!!!!!!!!! !!!!!!!!! true) | ! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | ! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | ! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!! true) | ! true |
+| valid-depth-50 | NotExpression(!!! !!!!!!!!! true) | !! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!! !!!!!!!!!! !!!!!!!!! true) | !! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!! true) | !! true |
+| valid-depth-50 | NotExpression(!!!! !!!!!!!!! true) | !!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!! !!!!!!!!!! !!!!!!!!! true) | !!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!! true) | !!! true |
+| valid-depth-50 | NotExpression(!!!!! !!!!!!!!! true) | !!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!! true) | !!!! true |
+| valid-depth-50 | NotExpression(!!!!!! !!!!!!!!! true) | !!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!! true) | !!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!! !!!!!!!!! true) | !!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!! true) | !!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!!! !!!!!!!!! true) | !!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!!! true) | !!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!!!! !!!!!!!!! true) | !!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!!!! true) | !!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!!!!! !!!!!!!!! true) | !!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-depth-50 | NotExpression(!!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true) | !!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-double-not | NotExpression(!!github.actor) | !github.actor |
+| valid-double-not | NotExpression(!github.actor) | github.actor |
+| valid-mixed-precedence | NotExpression(!e) | e |
+callShapes
+| valid-case-call | FunctionCall(case(github.event_name == 'push', 'Push', 'Other')) | case | 0 | github.event_name == 'push' |
+| valid-case-call | FunctionCall(case(github.event_name == 'push', 'Push', 'Other')) | case | 1 | 'Push' |
+| valid-case-call | FunctionCall(case(github.event_name == 'push', 'Push', 'Other')) | case | 2 | 'Other' |
+| valid-function-index | FunctionCall(fromJson(inputs.matrix)) | fromJson | 0 | inputs.matrix |
+| valid-nested-calls | FunctionCall(contains(format('{0}', inputs.foo), 'x')) | contains | 0 | format('{0}', inputs.foo) |
+| valid-nested-calls | FunctionCall(contains(format('{0}', inputs.foo), 'x')) | contains | 1 | 'x' |
+| valid-nested-calls | FunctionCall(format('{0}', inputs.foo)) | format | 0 | '{0}' |
+| valid-nested-calls | FunctionCall(format('{0}', inputs.foo)) | format | 1 | inputs.foo |
+| valid-one-argument-call | FunctionCall(toJson(github)) | toJson | 0 | github |
+| valid-spaced-call | FunctionCall(contains ('abc', 'b')) | contains | 0 | 'abc' |
+| valid-spaced-call | FunctionCall(contains ('abc', 'b')) | contains | 1 | 'b' |
+zeroArgumentCalls
+| valid-empty-call | FunctionCall(always()) | always |
+accessShapes
+| valid-bracket-wildcard | AccessExpression(matrix.values) | matrix | .values |
+| valid-bracket-wildcard | AccessExpression(matrix.values[*]) | matrix.values | [*] |
+| valid-case-call | AccessExpression(github.event_name) | github | .event_name |
+| valid-dot-wildcard | AccessExpression(github.event) | github | .event |
+| valid-dot-wildcard | AccessExpression(github.event.pull_request) | github.event | .pull_request |
+| valid-dot-wildcard | AccessExpression(github.event.pull_request.labels) | github.event.pull_request | .labels |
+| valid-dot-wildcard | AccessExpression(github.event.pull_request.labels.*) | github.event.pull_request.labels | .* |
+| valid-dot-wildcard | AccessExpression(github.event.pull_request.labels.*.name) | github.event.pull_request.labels.* | .name |
+| valid-double-not | AccessExpression(github.actor) | github | .actor |
+| valid-formula-index | AccessExpression(matrix.values) | matrix | .values |
+| valid-formula-index | AccessExpression(matrix.values[1 < 2]) | matrix.values | [1 < 2] |
+| valid-function-index | AccessExpression(fromJson(inputs.matrix)[0]) | fromJson(inputs.matrix) | [0] |
+| valid-function-index | AccessExpression(fromJson(inputs.matrix)[0].enabled) | fromJson(inputs.matrix)[0] | .enabled |
+| valid-function-index | AccessExpression(inputs.matrix) | inputs | .matrix |
+| valid-group | AccessExpression(github.actor) | github | .actor |
+| valid-keyword-property | AccessExpression(github.true) | github | .true |
+| valid-nested-calls | AccessExpression(inputs.foo) | inputs | .foo |
+| valid-number-index | AccessExpression(matrix.values) | matrix | .values |
+| valid-number-index | AccessExpression(matrix.values[0]) | matrix.values | [0] |
+| valid-property | AccessExpression(github.event_name) | github | .event_name |
+| valid-string-index | AccessExpression(github['event-name']) | github | ['event-name'] |
+literalShapes
+| valid-case-call | StringLiteral('Other') | StringLiteral | 'Other' |
+| valid-case-call | StringLiteral('Push') | StringLiteral | 'Push' |
+| valid-case-call | StringLiteral('push') | StringLiteral | 'push' |
+| valid-depth-50 | BooleanLiteral(true) | BooleanLiteral | true |
+| valid-empty-string | StringLiteral('') | StringLiteral | '' |
+| valid-escaped-string | StringLiteral('It''s valid') | StringLiteral | 'It''s valid' |
+| valid-exponent | NumberLiteral(6.02e23) | NumberLiteral | 6.02e23 |
+| valid-false | BooleanLiteral(false) | BooleanLiteral | false |
+| valid-formula-index | NumberLiteral(1) | NumberLiteral | 1 |
+| valid-formula-index | NumberLiteral(2) | NumberLiteral | 2 |
+| valid-function-index | NumberLiteral(0) | NumberLiteral | 0 |
+| valid-hex | NumberLiteral(0x2A) | NumberLiteral | 0x2A |
+| valid-infinity | NumberLiteral(Infinity) | NumberLiteral | Infinity |
+| valid-integer | NumberLiteral(42) | NumberLiteral | 42 |
+| valid-nan | NumberLiteral(NaN) | NumberLiteral | NaN |
+| valid-negative-infinity | NumberLiteral(-Infinity) | NumberLiteral | -Infinity |
+| valid-nested-calls | StringLiteral('x') | StringLiteral | 'x' |
+| valid-nested-calls | StringLiteral('{0}') | StringLiteral | '{0}' |
+| valid-null | NullLiteral(null) | NullLiteral | null |
+| valid-number-index | NumberLiteral(0) | NumberLiteral | 0 |
+| valid-octal | NumberLiteral(0o52) | NumberLiteral | 0o52 |
+| valid-signed-fraction | NumberLiteral(+.5) | NumberLiteral | +.5 |
+| valid-spaced-call | StringLiteral('abc') | StringLiteral | 'abc' |
+| valid-spaced-call | StringLiteral('b') | StringLiteral | 'b' |
+| valid-string-index | StringLiteral('event-name') | StringLiteral | 'event-name' |
+| valid-trailing-decimal | NumberLiteral(-1.) | NumberLiteral | -1. |
+| valid-true | BooleanLiteral(true) | BooleanLiteral | true |
+roots
+| valid-and-before-or | OrExpression | a \|\| b && c |
+| valid-bracket-wildcard | AccessExpression | matrix.values[*] |
+| valid-case-call | FunctionCall | case(github.event_name == 'push', 'Push', 'Other') |
+| valid-case-sensitive-keyword | Identifier | True |
+| valid-comparison-associativity | ComparisonExpression | a > b >= c |
+| valid-depth-50 | NotExpression | !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true |
+| valid-dot-wildcard | AccessExpression | github.event.pull_request.labels.*.name |
+| valid-double-not | NotExpression | !!github.actor |
+| valid-empty-call | FunctionCall | always() |
+| valid-empty-string | StringLiteral | '' |
+| valid-equality-associativity | EqualityExpression | a == b != c |
+| valid-escaped-string | StringLiteral | 'It''s valid' |
+| valid-exponent | NumberLiteral | 6.02e23 |
+| valid-false | BooleanLiteral | false |
+| valid-formula-index | AccessExpression | matrix.values[1 < 2] |
+| valid-function-index | AccessExpression | fromJson(inputs.matrix)[0].enabled |
+| valid-group | AccessExpression | github.actor |
+| valid-grouped-precedence | AndExpression | (a \|\| b) && c |
+| valid-hex | NumberLiteral | 0x2A |
+| valid-hyphen-identifier | Identifier | foo-bar |
+| valid-identifier | Identifier | github |
+| valid-infinity | NumberLiteral | Infinity |
+| valid-integer | NumberLiteral | 42 |
+| valid-keyword-property | AccessExpression | github.true |
+| valid-mixed-precedence | OrExpression | a == b && c < d \|\| !e |
+| valid-nan | NumberLiteral | NaN |
+| valid-negative-infinity | NumberLiteral | -Infinity |
+| valid-nested-calls | FunctionCall | contains(format('{0}', inputs.foo), 'x') |
+| valid-null | NullLiteral | null |
+| valid-number-index | AccessExpression | matrix.values[0] |
+| valid-octal | NumberLiteral | 0o52 |
+| valid-one-argument-call | FunctionCall | toJson(github) |
+| valid-property | AccessExpression | github.event_name |
+| valid-signed-fraction | NumberLiteral | +.5 |
+| valid-spaced-call | FunctionCall | contains ('abc', 'b') |
+| valid-string-index | AccessExpression | github['event-name'] |
+| valid-trailing-decimal | NumberLiteral | -1. |
+| valid-true | BooleanLiteral | true |
+lengthLimits
+| 21000 | accepted |
+| 21001 | rejected |

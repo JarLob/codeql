@@ -1,0 +1,247 @@
+"on": workflow_dispatch
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - id: valid-null
+        if: "null"
+        run: "true"
+      - id: valid-true
+        if: "true"
+        run: "true"
+      - id: valid-false
+        if: "false"
+        run: "true"
+      - id: valid-nan
+        if: "NaN"
+        run: "true"
+      - id: valid-infinity
+        if: "Infinity"
+        run: "true"
+      - id: valid-negative-infinity
+        if: "-Infinity"
+        run: "true"
+      - id: valid-integer
+        if: "42"
+        run: "true"
+      - id: valid-signed-fraction
+        if: "+.5"
+        run: "true"
+      - id: valid-trailing-decimal
+        if: "-1."
+        run: "true"
+      - id: valid-exponent
+        if: "6.02e23"
+        run: "true"
+      - id: valid-hex
+        if: "0x2A"
+        run: "true"
+      - id: valid-octal
+        if: "0o52"
+        run: "true"
+      - id: valid-empty-string
+        if: "''"
+        run: "true"
+      - id: valid-escaped-string
+        if: "'It''s valid'"
+        run: "true"
+      - id: valid-identifier
+        if: "github"
+        run: "true"
+      - id: valid-hyphen-identifier
+        if: "foo-bar"
+        run: "true"
+      - id: valid-case-sensitive-keyword
+        if: "True"
+        run: "true"
+      - id: valid-property
+        if: "github.event_name"
+        run: "true"
+      - id: valid-keyword-property
+        if: "github.true"
+        run: "true"
+      - id: valid-dot-wildcard
+        if: "github.event.pull_request.labels.*.name"
+        run: "true"
+      - id: valid-string-index
+        if: "github['event-name']"
+        run: "true"
+      - id: valid-number-index
+        if: "matrix.values[0]"
+        run: "true"
+      - id: valid-bracket-wildcard
+        if: "matrix.values[*]"
+        run: "true"
+      - id: valid-function-index
+        if: "fromJson(inputs.matrix)[0].enabled"
+        run: "true"
+      - id: valid-empty-call
+        if: "always()"
+        run: "true"
+      - id: valid-one-argument-call
+        if: "toJson(github)"
+        run: "true"
+      - id: valid-case-call
+        if: "case(github.event_name == 'push', 'Push', 'Other')"
+        run: "true"
+      - id: valid-spaced-call
+        if: "contains ('abc', 'b')"
+        run: "true"
+      - id: valid-group
+        if: "(github.actor)"
+        run: "true"
+      - id: valid-double-not
+        if: "!!github.actor"
+        run: "true"
+      - id: valid-comparison-associativity
+        if: "a > b >= c"
+        run: "true"
+      - id: valid-equality-associativity
+        if: "a == b != c"
+        run: "true"
+      - id: valid-and-before-or
+        if: "a || b && c"
+        run: "true"
+      - id: valid-mixed-precedence
+        if: "a == b && c < d || !e"
+        run: "true"
+      - id: valid-grouped-precedence
+        if: "(a || b) && c"
+        run: "true"
+      - id: valid-formula-index
+        if: "matrix.values[1 < 2]"
+        run: "true"
+      - id: valid-nested-calls
+        if: "contains(format('{0}', inputs.foo), 'x')"
+        run: "true"
+      - id: valid-depth-50
+        if: "!!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!! true"
+        run: "true"
+
+      - id: invalid-empty
+        if: ""
+        run: "true"
+      - id: invalid-missing-property
+        if: "github."
+        run: "true"
+      - id: invalid-leading-dot
+        if: ".github"
+        run: "true"
+      - id: invalid-unclosed-group
+        if: "(github.actor"
+        run: "true"
+      - id: invalid-extra-group
+        if: "github.actor)"
+        run: "true"
+      - id: invalid-unclosed-index
+        if: "matrix[0"
+        run: "true"
+      - id: invalid-empty-index
+        if: "matrix[]"
+        run: "true"
+      - id: invalid-trailing-comma
+        if: "contains('a',)"
+        run: "true"
+      - id: invalid-leading-comma
+        if: "contains(,'a')"
+        run: "true"
+      - id: invalid-double-comma
+        if: "contains('a',,'b')"
+        run: "true"
+      - id: invalid-unclosed-call
+        if: "contains('a', 'b'"
+        run: "true"
+      - id: invalid-case-too-few
+        if: "case(true, 'yes')"
+        run: "true"
+      - id: invalid-case-even
+        if: "case(true, 'yes', false, 'no')"
+        run: "true"
+      - id: invalid-contains-too-few
+        if: "contains('a')"
+        run: "true"
+      - id: invalid-contains-too-many
+        if: "contains('a', 'b', 'c')"
+        run: "true"
+      - id: invalid-from-json-arity
+        if: "fromJson('[]', 'extra')"
+        run: "true"
+      - id: invalid-to-json-arity
+        if: "toJson()"
+        run: "true"
+      - id: invalid-join-arity
+        if: "join('a', ',', 'extra')"
+        run: "true"
+      - id: invalid-format-arity
+        if: "format()"
+        run: "true"
+      - id: invalid-unclosed-string
+        if: "'abc"
+        run: "true"
+      - id: invalid-double-quoted-string
+        if: '"abc"'
+        run: "true"
+      - id: invalid-single-and
+        if: "a & b"
+        run: "true"
+      - id: invalid-single-or
+        if: "a | b"
+        run: "true"
+      - id: invalid-single-equals
+        if: "a = b"
+        run: "true"
+      - id: invalid-trailing-operator
+        if: "a &&"
+        run: "true"
+      - id: invalid-leading-operator
+        if: "&& a"
+        run: "true"
+      - id: invalid-consecutive-operators
+        if: "a && || b"
+        run: "true"
+      - id: invalid-hex
+        if: "0xG"
+        run: "true"
+      - id: invalid-octal
+        if: "0o8"
+        run: "true"
+      - id: invalid-positive-infinity
+        if: "+Infinity"
+        run: "true"
+      - id: invalid-number-keyword
+        if: "1abc"
+        run: "true"
+      - id: invalid-keyword-character
+        if: "github.event$name"
+        run: "true"
+      - id: invalid-root-wildcard
+        if: "*"
+        run: "true"
+      - id: invalid-comma-outside-call
+        if: "a, b"
+        run: "true"
+      - id: invalid-empty-group
+        if: "()"
+        run: "true"
+      - id: invalid-string-dereference
+        if: "'abc'.length"
+        run: "true"
+      - id: invalid-number-dereference
+        if: "1.value"
+        run: "true"
+      - id: invalid-boolean-index
+        if: "true[0]"
+        run: "true"
+      - id: invalid-null-index
+        if: "null[0]"
+        run: "true"
+      - id: invalid-boolean-dereference
+        if: "false.value"
+        run: "true"
+      - id: invalid-nan-call
+        if: "NaN()"
+        run: "true"
+      - id: invalid-depth-51
+        if: "!!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! !!!!!!!!!! true"
+        run: "true"
