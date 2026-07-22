@@ -17,6 +17,7 @@ import actions
 import codeql.actions.security.UntrustedCheckoutQuery
 import codeql.actions.security.PoisonableSteps
 import codeql.actions.security.ControlChecks
+import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 
 query predicate edges(AstNode predecessor, AstNode successor) {
   exists(Step previous, Step next |
@@ -36,6 +37,7 @@ where
   checkoutReferenceText = getCheckoutReferenceText(checkoutReference) and
   // the checkout is followed by a known poisonable step
   checkout.getAFollowingStep() = poisonable and
+  IntegratedCfg::mayReachForEvent(checkout, poisonable, event) and
   (
     poisonable instanceof Run and
     (

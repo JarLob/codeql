@@ -286,20 +286,27 @@ predicate evaluatesToBoolean(ExpressionNode node, Event event, boolean outcome) 
 private predicate evaluatesToBooleanWithStatus(
   ExpressionNode node, Event event, TStatusMode statusMode, boolean outcome
 ) {
-  getBooleanValue(node, event, statusMode, outcome)
-  or
-  isKnownNullValue(node, event) and outcome = false
-  or
-  exists(string value | getStringValue(node, event, value) |
-    value = "" and outcome = false
+  (
+    node.getExpression().getATriggerEvent() = event
     or
-    value != "" and outcome = true
-  )
-  or
-  exists(float value | getNumberValue(node, value) |
-    value = 0 and outcome = false
+    not exists(node.getExpression().getATriggerEvent())
+  ) and
+  (
+    getBooleanValue(node, event, statusMode, outcome)
     or
-    value != 0 and outcome = true
+    isKnownNullValue(node, event) and outcome = false
+    or
+    exists(string value | getStringValue(node, event, value) |
+      value = "" and outcome = false
+      or
+      value != "" and outcome = true
+    )
+    or
+    exists(float value | getNumberValue(node, value) |
+      value = 0 and outcome = false
+      or
+      value != 0 and outcome = true
+    )
   )
 }
 
@@ -311,15 +318,22 @@ predicate mayEvaluateToBoolean(ExpressionNode node, Event event, boolean outcome
 private predicate mayEvaluateToBooleanWithStatus(
   ExpressionNode node, Event event, TStatusMode statusMode, boolean outcome
 ) {
-  evaluatesToBooleanWithStatus(node, event, statusMode, outcome)
-  or
-  outcome in [false, true] and
-  not exists(boolean known | evaluatesToBooleanWithStatus(node, event, statusMode, known))
+  (
+    node.getExpression().getATriggerEvent() = event
+    or
+    not exists(node.getExpression().getATriggerEvent())
+  ) and
+  (
+    evaluatesToBooleanWithStatus(node, event, statusMode, outcome)
+    or
+    outcome in [false, true] and
+    not exists(boolean known | evaluatesToBooleanWithStatus(node, event, statusMode, known))
+  )
 }
 
 /** Holds if the condition may permit execution for `event`. */
 predicate isConditionFeasible(If condition, Event event) {
-  mayEvaluateToBoolean(condition.getConditionExpr().getRoot(), event, true)
+  not evaluatesToBoolean(condition.getConditionExpr().getRoot(), event, false)
 }
 
 /** Holds if the condition may permit execution after a prerequisite job was skipped. */

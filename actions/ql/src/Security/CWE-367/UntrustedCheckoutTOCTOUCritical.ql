@@ -15,6 +15,7 @@ import actions
 import codeql.actions.security.UntrustedCheckoutQuery
 import codeql.actions.security.PoisonableSteps
 import codeql.actions.security.ControlChecks
+import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 
 query predicate edges(Step a, Step b) { a.getNextStep() = b }
 
@@ -22,6 +23,7 @@ from MutableRefCheckoutStep checkout, PoisonableStep step, Event event
 where
   // the checked-out code may lead to arbitrary code execution
   checkout.getAFollowingStep() = step and
+  IntegratedCfg::mayReachForEvent(checkout, step, event) and
   // the checkout occurs in a privileged context
   inPrivilegedContext(checkout, event) and
   // the mutable checkout step is protected by an Insufficient access check

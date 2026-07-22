@@ -17,11 +17,16 @@ import actions
 import codeql.actions.security.UntrustedCheckoutQuery
 import codeql.actions.security.PoisonableSteps
 import codeql.actions.security.ControlChecks
+import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 
 from PRHeadCheckoutStep checkout, Event event
 where
+  IntegratedCfg::mayExecuteForEvent(checkout, event) and
   // the checkout is NOT followed by a known poisonable step
-  not checkout.getAFollowingStep() instanceof PoisonableStep and
+  not exists(PoisonableStep poisonable |
+    checkout.getAFollowingStep() = poisonable and
+    IntegratedCfg::mayReachForEvent(checkout, poisonable, event)
+  ) and
   // the checkout occurs in a privileged context
   inPrivilegedContext(checkout, event) and
   event.getName() = checkoutTriggers() and

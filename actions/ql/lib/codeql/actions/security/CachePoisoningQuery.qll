@@ -1,5 +1,5 @@
 import actions
-import codeql.actions.ExpressionEvaluation
+import codeql.actions.JobSynchronization
 
 string defaultBranchTriggerEvent() {
   result =
@@ -55,40 +55,10 @@ private predicate eventHasDefaultBranchCacheWriteAccess(Event event) {
   runsOnDefaultBranch(event) and event.getName() = defaultBranchCacheWriteEvent()
 }
 
-private predicate ownConditionMayRunForEvent(Job job, Event event) {
-  not exists(job.getIf())
-  or
-  isConditionFeasible(job.getIf(), event)
-}
-
-private predicate conditionMayOverrideSkippedNeeds(Job job, Event event) {
-  exists(If condition |
-    condition = job.getIf() and
-    (
-      not exists(condition.getConditionExpr().getRoot())
-      or
-      hasStatusCheckFunction(condition) and
-      isConditionFeasibleAfterSkippedNeeds(condition, event)
-    )
-  )
-}
-
-private predicate jobCannotRunForEvent(Job job, Event event) {
-  not ownConditionMayRunForEvent(job, event)
-  or
-  exists(Job neededJob |
-    neededJob = job.getANeededJob() and
-    jobCannotRunForEvent(neededJob, event) and
-    not conditionMayOverrideSkippedNeeds(job, event)
-  )
-}
-
-private predicate jobMayRunForEvent(Job job, Event event) { not jobCannotRunForEvent(job, event) }
-
 /** Holds if `job` can write to the cache scope of the default branch for `event`. */
 predicate hasDefaultBranchCacheWriteAccess(LocalJob job, Event event) {
   job.getATriggerEvent() = event and
-  jobMayRunForEvent(job, event) and
+  jobMayExecuteForEvent(job, event) and
   (
     eventHasDefaultBranchCacheWriteAccess(event)
     or
@@ -97,7 +67,7 @@ predicate hasDefaultBranchCacheWriteAccess(LocalJob job, Event event) {
     exists(ExternalJob caller |
       job.getEnclosingWorkflow().(ReusableWorkflow).getACaller() = caller and
       eventHasDefaultBranchCacheWriteAccess(caller.getATriggerEvent()) and
-      jobMayRunForEvent(caller, caller.getATriggerEvent())
+      jobMayExecuteForEvent(caller, caller.getATriggerEvent())
     )
   )
 }

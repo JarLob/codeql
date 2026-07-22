@@ -75,3 +75,44 @@ query predicate integratedConditionCompletions(If condition, boolean outcome, As
     successor = successorNode.getCfgNode().getAstNode()
   )
 }
+
+query predicate pushStepReachability(string source, string target) {
+  exists(Step sourceStep, Step targetStep, Event event |
+    sourceStep.getEnclosingJob().getId() = "guarded" and
+    targetStep.getEnclosingJob() = sourceStep.getEnclosingJob() and
+    source = sourceStep.getId() and
+    source = "guarded-step" and
+    target = targetStep.getId() and
+    event = sourceStep.getEnclosingWorkflow().getOn().getAnEvent() and
+    event.getName() = "push" and
+    IntegratedCfg::mayReachForEvent(sourceStep, targetStep, event)
+  )
+}
+
+query predicate pushStepCoExecution(string left, string right) {
+  exists(Step leftStep, Step rightStep, Event event |
+    leftStep.getEnclosingJob().getId() = "guarded" and
+    rightStep.getEnclosingJob() = leftStep.getEnclosingJob() and
+    left = leftStep.getId() and
+    left = "guarded-step" and
+    right = rightStep.getId() and
+    event = leftStep.getEnclosingWorkflow().getOn().getAnEvent() and
+    event.getName() = "push" and
+    IntegratedCfg::mayCoExecuteForEvent(leftStep, rightStep, event)
+  )
+}
+
+query predicate publicConditionDominance(If condition, AstNode controlled) {
+  (
+    controlled = condition.getEnclosingJob()
+    or
+    exists(Step step | step.getIf() = condition | controlled = step)
+  ) and
+  IntegratedBlocks::conditionTrueDominates(condition, controlled)
+}
+
+query predicate publicAstDominance(Step dominator, Step controlled) {
+  dominator.getId() = "guarded-step" and
+  controlled.getId() = "next-step" and
+  IntegratedBlocks::astNodeDominates(dominator, controlled)
+}

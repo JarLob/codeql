@@ -8,6 +8,9 @@ jobs:
       - id: guarded-step
         if: github.event_name == 'push'
         run: echo guarded
+      - id: impossible-step
+        if: github.event_name != 'push'
+        run: echo impossible
       - id: next-step
         run: echo next
 

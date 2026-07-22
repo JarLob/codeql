@@ -75,6 +75,24 @@ jobs:
     steps:
       - run: echo transitive combined
 
+  named-results:
+    needs: [root-a, root-b]
+    if: >-
+      always() &&
+      needs.root-a.result == 'success' &&
+      needs.root-b.result != 'failure' &&
+      needs.root-b.result != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo named results
+
+  unknown-named-result:
+    needs: root-a
+    if: "always() && needs.root-a.result == github.ref"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo unknown named result
+
   terminal:
     needs: dependent
     runs-on: ubuntu-latest

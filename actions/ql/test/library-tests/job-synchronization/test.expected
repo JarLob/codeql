@@ -8,10 +8,13 @@ joinRequirements
 | failure-dependent | root-a |
 | mixed-dependent | dependent |
 | mixed-dependent | root-a |
+| named-results | root-a |
+| named-results | root-b |
 | not-success-dependent | root-a |
 | success-dependent | root-a |
 | terminal | dependent |
 | transitive-combined | combined-dependent |
+| unknown-named-result | root-a |
 joinRequirementCompletions
 | always-dependent | root-a | cancelled |
 | always-dependent | root-a | failure |
@@ -41,6 +44,12 @@ joinRequirementCompletions
 | mixed-dependent | root-a | cancelled |
 | mixed-dependent | root-a | failure |
 | mixed-dependent | root-a | success |
+| named-results | root-a | cancelled |
+| named-results | root-a | failure |
+| named-results | root-a | success |
+| named-results | root-b | cancelled |
+| named-results | root-b | failure |
+| named-results | root-b | success |
 | not-success-dependent | root-a | cancelled |
 | not-success-dependent | root-a | failure |
 | not-success-dependent | root-a | success |
@@ -55,6 +64,9 @@ joinRequirementCompletions
 | transitive-combined | combined-dependent | failure |
 | transitive-combined | combined-dependent | skipped |
 | transitive-combined | combined-dependent | success |
+| unknown-named-result | root-a | cancelled |
+| unknown-named-result | root-a | failure |
+| unknown-named-result | root-a | success |
 joinDecisionStatuses
 | always-dependent | cancelled |
 | always-dependent | failure |
@@ -81,6 +93,10 @@ joinDecisionStatuses
 | mixed-dependent | failure+skipped |
 | mixed-dependent | skipped |
 | mixed-dependent | success |
+| named-results | cancelled |
+| named-results | failure |
+| named-results | failure+cancelled |
+| named-results | success |
 | not-success-dependent | cancelled |
 | not-success-dependent | failure |
 | not-success-dependent | success |
@@ -103,6 +119,9 @@ joinDecisionStatuses
 | transitive-combined | failure+skipped |
 | transitive-combined | skipped |
 | transitive-combined | success |
+| unknown-named-result | cancelled |
+| unknown-named-result | failure |
+| unknown-named-result | success |
 decisionEdges
 | always-dependent | complete always-dependent as skipped |
 | always-dependent | execute always-dependent |
@@ -116,6 +135,8 @@ decisionEdges
 | failure-dependent | execute failure-dependent |
 | mixed-dependent | complete mixed-dependent as skipped |
 | mixed-dependent | execute mixed-dependent |
+| named-results | complete named-results as skipped |
+| named-results | execute named-results |
 | not-success-dependent | complete not-success-dependent as skipped |
 | not-success-dependent | execute not-success-dependent |
 | root-a | execute root-a |
@@ -126,6 +147,8 @@ decisionEdges
 | terminal | execute terminal |
 | transitive-combined | complete transitive-combined as skipped |
 | transitive-combined | execute transitive-combined |
+| unknown-named-result | complete unknown-named-result as skipped |
+| unknown-named-result | execute unknown-named-result |
 pushDecisionEdges
 | always-dependent | execute always-dependent |
 | cancelled-dependent | complete cancelled-dependent as skipped |
@@ -137,6 +160,8 @@ pushDecisionEdges
 | failure-dependent | complete failure-dependent as skipped |
 | failure-dependent | execute failure-dependent |
 | mixed-dependent | execute mixed-dependent |
+| named-results | complete named-results as skipped |
+| named-results | execute named-results |
 | not-success-dependent | complete not-success-dependent as skipped |
 | not-success-dependent | execute not-success-dependent |
 | root-a | execute root-a |
@@ -147,6 +172,8 @@ pushDecisionEdges
 | terminal | execute terminal |
 | transitive-combined | complete transitive-combined as skipped |
 | transitive-combined | execute transitive-combined |
+| unknown-named-result | complete unknown-named-result as skipped |
+| unknown-named-result | execute unknown-named-result |
 knownStatusDecisionEdges
 | always-dependent | cancelled | execute always-dependent |
 | always-dependent | failure | execute always-dependent |
@@ -165,6 +192,14 @@ knownStatusDecisionEdges
 | failure-dependent | cancelled | complete failure-dependent as skipped |
 | failure-dependent | failure | execute failure-dependent |
 | failure-dependent | success | complete failure-dependent as skipped |
+| named-results | cancelled | complete named-results as skipped |
+| named-results | cancelled | execute named-results |
+| named-results | failure | complete named-results as skipped |
+| named-results | failure | execute named-results |
+| named-results | failure+cancelled | complete named-results as skipped |
+| named-results | failure+cancelled | execute named-results |
+| named-results | success | complete named-results as skipped |
+| named-results | success | execute named-results |
 | not-success-dependent | cancelled | execute not-success-dependent |
 | not-success-dependent | failure | execute not-success-dependent |
 | not-success-dependent | success | complete not-success-dependent as skipped |
@@ -187,6 +222,12 @@ knownStatusDecisionEdges
 | transitive-combined | failure+skipped | complete transitive-combined as skipped |
 | transitive-combined | skipped | complete transitive-combined as skipped |
 | transitive-combined | success | complete transitive-combined as skipped |
+| unknown-named-result | cancelled | complete unknown-named-result as skipped |
+| unknown-named-result | cancelled | execute unknown-named-result |
+| unknown-named-result | failure | complete unknown-named-result as skipped |
+| unknown-named-result | failure | execute unknown-named-result |
+| unknown-named-result | success | complete unknown-named-result as skipped |
+| unknown-named-result | success | execute unknown-named-result |
 executionCompletions
 | always-dependent | cancelled |
 | always-dependent | failure |
@@ -206,6 +247,9 @@ executionCompletions
 | mixed-dependent | cancelled |
 | mixed-dependent | failure |
 | mixed-dependent | success |
+| named-results | cancelled |
+| named-results | failure |
+| named-results | success |
 | not-success-dependent | cancelled |
 | not-success-dependent | failure |
 | not-success-dependent | success |
@@ -224,6 +268,9 @@ executionCompletions
 | transitive-combined | cancelled |
 | transitive-combined | failure |
 | transitive-combined | success |
+| unknown-named-result | cancelled |
+| unknown-named-result | failure |
+| unknown-named-result | success |
 executionCfgNodes
 | always-dependent | .github/workflows/test.yml:23:5:29:2 | Job: always-dependent |
 | cancelled-dependent | .github/workflows/test.yml:44:5:50:2 | Job: cancelled-dependent |
@@ -231,12 +278,14 @@ executionCfgNodes
 | dependent | .github/workflows/test.yml:16:5:22:2 | Job: dependent |
 | failure-dependent | .github/workflows/test.yml:37:5:43:2 | Job: failure-dependent |
 | mixed-dependent | .github/workflows/test.yml:65:5:71:2 | Job: mixed-dependent |
+| named-results | .github/workflows/test.yml:79:5:89:2 | Job: named-results |
 | not-success-dependent | .github/workflows/test.yml:51:5:57:2 | Job: not-success-dependent |
 | root-a | .github/workflows/test.yml:6:5:10:2 | Job: root-a |
 | root-b | .github/workflows/test.yml:11:5:15:2 | Job: root-b |
 | success-dependent | .github/workflows/test.yml:30:5:36:2 | Job: success-dependent |
-| terminal | .github/workflows/test.yml:79:5:82:26 | Job: terminal |
+| terminal | .github/workflows/test.yml:97:5:100:26 | Job: terminal |
 | transitive-combined | .github/workflows/test.yml:72:5:78:2 | Job: transitive-combined |
+| unknown-named-result | .github/workflows/test.yml:90:5:96:2 | Job: unknown-named-result |
 workflowBoundaries
 | entry | root-a |
 | entry | root-b |
@@ -244,9 +293,20 @@ workflowBoundaries
 | exit | cancelled-dependent |
 | exit | failure-dependent |
 | exit | mixed-dependent |
+| exit | named-results |
 | exit | not-success-dependent |
 | exit | success-dependent |
 | exit | terminal |
 | exit | transitive-combined |
+| exit | unknown-named-result |
 synchronizationCycles
 impossibleStatusSummaries
+requiredSuccessfulJobs
+| dependent | root-a |
+| dependent | root-b |
+| named-results | root-a |
+| named-results | root-b |
+| success-dependent | root-a |
+| terminal | dependent |
+| terminal | root-a |
+| terminal | root-b |

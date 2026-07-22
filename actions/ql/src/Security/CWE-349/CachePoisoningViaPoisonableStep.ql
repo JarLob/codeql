@@ -17,6 +17,7 @@ import codeql.actions.security.UntrustedCheckoutQuery
 import codeql.actions.security.CachePoisoningQuery
 import codeql.actions.security.PoisonableSteps
 import codeql.actions.security.ControlChecks
+import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 
 query predicate edges(AstNode predecessor, AstNode successor) {
   exists(Step previous, Step next |
@@ -59,6 +60,7 @@ where
   // the job executes checked-out code
   // (The cache specific token can be leaked even for non-privileged workflows)
   source.getAFollowingStep() = step and
+  IntegratedCfg::mayReachForEvent(source, step, event) and
   step instanceof PoisonableStep and
   // excluding privileged workflows since they can be exploited in easier circumstances
   not job.isPrivileged()

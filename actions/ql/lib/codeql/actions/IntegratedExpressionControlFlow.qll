@@ -2,7 +2,9 @@
 
 import codeql.actions.Ast
 import codeql.actions.Cfg as Cfg
+import codeql.actions.ExpressionEvaluation
 import codeql.actions.ExpressionControlFlow as ExpressionCfg
+import codeql.actions.JobSynchronization as JobSync
 import codeql.Locations
 import codeql.controlflow.SuccessorType
 
@@ -95,6 +97,7 @@ private predicate isRootCompletion(ExpressionCfg::Node node) {
   node.getExpressionNode() instanceof ExpressionRoot
 }
 
+bindingset[predecessor, successor]
 private predicate expressionEdgeType(
   ExpressionCfg::Node predecessor, ExpressionCfg::Node successor, SuccessorType type
 ) {
@@ -195,4 +198,160 @@ private predicate integratedReachableForEvent(Node source, Node target, Event ev
     integratedReachableForEvent(source, predecessor, event) and
     integratedSuccessorForEvent(predecessor, target, event, _)
   )
+}
+
+private predicate hasModeledCommonScope(AstNode source, AstNode target) {
+  exists(ActionsNode sourceNode, ActionsNode targetNode |
+    sourceNode.getCfgNode().getAstNode() = source and
+    targetNode.getCfgNode().getAstNode() = target and
+    sourceNode.getScope() = targetNode.getScope()
+  )
+}
+
+private predicate enclosingJobMayExecuteForEvent(AstNode node, Event event) {
+  not exists(node.getEnclosingJob())
+  or
+  exists(Job job |
+    job = node.getEnclosingJob() and
+    job.getATriggerEvent() = event and
+    (
+      not exists(job.getANeededJob()) and
+      (
+        not exists(job.getIf())
+        or
+        exists(If condition |
+          condition = job.getIf() and
+          (
+            exists(condition.getConditionExpr().getRoot()) and
+            isConditionFeasible(condition, event)
+            or
+            not exists(condition.getConditionExpr().getRoot())
+          )
+        )
+      )
+      or
+      exists(job.getANeededJob()) and JobSync::jobMayExecuteForEvent(job, event)
+    )
+  )
+}
+
+private predicate ownStepConditionMayPermitExecution(Step step, Event event) {
+  not exists(step.getIf())
+  or
+  exists(If condition |
+    condition = step.getIf() and
+    (
+      exists(condition.getConditionExpr().getRoot()) and isConditionFeasible(condition, event)
+      or
+      not exists(condition.getConditionExpr().getRoot())
+    )
+  )
+}
+
+private predicate stepAndCallerMayExecuteForEvent(Step step, Event event) {
+  step.getATriggerEvent() = event and
+  ownStepConditionMayPermitExecution(step, event) and
+  (
+    not exists(step.getEnclosingCompositeAction())
+    or
+    stepAndCallerMayExecuteForEvent(step.getEnclosingCompositeAction().getACallerStep(), event)
+  )
+}
+
+private predicate stepMayExecuteForEvent(Step step, Event event) {
+  enclosingJobMayExecuteForEvent(step, event) and stepAndCallerMayExecuteForEvent(step, event)
+}
+
+private predicate stepPrecedes(Step source, Step target) {
+  target = source.getNextStep+() or target = source.getAFollowingStep()
+}
+
+/** Holds if `node` may execute for `event` in its Actions CFG scope. */
+predicate mayExecuteForEvent(AstNode node, Event event) {
+  exists(Step step | step = node.getEnclosingStep() | stepMayExecuteForEvent(step, event))
+  or
+  not exists(node.getEnclosingStep()) and
+  node.getATriggerEvent() = event and
+  enclosingJobMayExecuteForEvent(node, event) and
+  (
+    not exists(ActionsNode nodeCfg | nodeCfg.getCfgNode().getAstNode() = node)
+    or
+    exists(ActionsNode entry, ActionsNode nodeCfg |
+      entry.getCfgNode() instanceof Cfg::EntryNode and
+      entry.getScope() = nodeCfg.getScope() and
+      nodeCfg.getCfgNode().getAstNode() = node and
+      nodeCfg = entry.getAReachableNode(event)
+    )
+  )
+}
+
+/**
+ * Holds if `target` may execute after `source` for `event` in the same Actions CFG scope.
+ * Reachability of `source` from the scope entry is also required, so its own guards are honored.
+ */
+predicate mayReachForEvent(AstNode source, AstNode target, Event event) {
+  source != target and
+  (
+    exists(Step sourceStep, Step targetStep |
+      source = sourceStep and
+      target = targetStep and
+      sourceStep.getEnclosingJob() = targetStep.getEnclosingJob() and
+      stepPrecedes(sourceStep, targetStep) and
+      stepMayExecuteForEvent(sourceStep, event) and
+      stepMayExecuteForEvent(targetStep, event)
+    )
+    or
+    not (
+      source instanceof Step and
+      target instanceof Step and
+      source.getEnclosingJob() = target.getEnclosingJob()
+    ) and
+    source.getATriggerEvent() = event and
+    enclosingJobMayExecuteForEvent(source, event) and
+    enclosingJobMayExecuteForEvent(target, event) and
+    (
+      not hasModeledCommonScope(source, target)
+      or
+      source.getEnclosingWorkflow() = target.getEnclosingWorkflow() and
+      exists(ActionsNode entry, ActionsNode sourceNode, ActionsNode targetNode |
+        entry.getCfgNode() instanceof Cfg::EntryNode and
+        entry.getScope() = sourceNode.getScope() and
+        sourceNode.getScope() = targetNode.getScope() and
+        sourceNode.getCfgNode().getAstNode() = source and
+        targetNode.getCfgNode().getAstNode() = target and
+        sourceNode = entry.getAReachableNode(event) and
+        targetNode = sourceNode.getAReachableNode(event)
+      )
+    )
+  )
+}
+
+/** Holds if `left` and `right` may both execute in one run for `event`. */
+predicate mayCoExecuteForEvent(AstNode left, AstNode right, Event event) {
+  left = right and mayExecuteForEvent(left, event)
+  or
+  mayReachForEvent(left, right, event)
+  or
+  mayReachForEvent(right, left, event)
+}
+
+/** Holds if `node` may execute for at least one statically known trigger event. */
+predicate mayExecuteForAnyEvent(AstNode node) {
+  exists(Event event | node.getATriggerEvent() = event | mayExecuteForEvent(node, event))
+  or
+  not exists(node.getATriggerEvent())
+}
+
+/** Holds if `target` may execute after `source` for at least one shared trigger event. */
+predicate mayReachForAnyEvent(AstNode source, AstNode target) {
+  exists(Event event | source.getATriggerEvent() = event | mayReachForEvent(source, target, event))
+  or
+  not exists(source.getATriggerEvent())
+}
+
+/** Holds if both nodes may execute for at least one shared trigger event. */
+predicate mayCoExecuteForAnyEvent(AstNode left, AstNode right) {
+  exists(Event event | left.getATriggerEvent() = event | mayCoExecuteForEvent(left, right, event))
+  or
+  not exists(left.getATriggerEvent())
 }
