@@ -3,6 +3,7 @@ private import codeql.actions.TaintTracking
 private import codeql.actions.dataflow.ExternalFlow
 private import codeql.actions.security.ArtifactPoisoningQuery
 private import codeql.actions.security.UntrustedCheckoutQuery
+private import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 
 abstract class OutputClobberingSink extends DataFlow::Node { }
 
@@ -23,6 +24,7 @@ class OutputClobberingFromFileReadSink extends OutputClobberingSink {
         step instanceof SimplePRHeadCheckoutStep
       ) and
       step.getAFollowingStep() = run and
+      IntegratedCfg::mayReachForAnyEvent(step, run) and
       this.asExpr() = run.getScript() and
       // A write to GITHUB_OUTPUT that is not attacker-controlled
       exists(string str |

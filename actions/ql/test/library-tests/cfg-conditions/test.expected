@@ -1,32 +1,55 @@
 conditionEdges
-| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:5:5:14:2 | Job: guarded | true |
-| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:15:5:17:26 | Job: next-job | false |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:5:5:17:2 | Job: guarded | true |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:18:5:20:26 | Job: next-job | false |
 | .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | .github/workflows/test.yml:8:9:11:6 | Run Step: guarded-step | true |
-| .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | .github/workflows/test.yml:11:9:14:2 | Run Step: next-step | false |
+| .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | .github/workflows/test.yml:12:13:12:39 | github. ...  'push' | false |
+| .github/workflows/test.yml:12:13:12:39 | github. ...  'push' | .github/workflows/test.yml:11:9:14:6 | Run Step: impossible-step | true |
+| .github/workflows/test.yml:12:13:12:39 | github. ...  'push' | .github/workflows/test.yml:14:9:17:2 | Run Step: next-step | false |
 integratedBasicBlockBranches
 | evaluate EqualityExpression(github.actor == 'octocat') | false | complete EqualityExpression(github.actor == 'octocat') as false |
 | evaluate EqualityExpression(github.actor == 'octocat') | true | complete EqualityExpression(github.actor == 'octocat') as true |
+| evaluate EqualityExpression(github.event_name != 'push') | false | complete EqualityExpression(github.event_name != 'push') as false |
+| evaluate EqualityExpression(github.event_name != 'push') | true | complete EqualityExpression(github.event_name != 'push') as true |
 | evaluate EqualityExpression(github.event_name == 'push') | false | complete EqualityExpression(github.event_name == 'push') as false |
 | evaluate EqualityExpression(github.event_name == 'push') | true | complete EqualityExpression(github.event_name == 'push') as true |
 integratedBasicBlockBranchDominance
-| evaluate EqualityExpression(github.actor == 'octocat') | true | .github/workflows/test.yml:5:5:14:2 | Job: guarded |
+| evaluate EqualityExpression(github.actor == 'octocat') | true | .github/workflows/test.yml:5:5:17:2 | Job: guarded |
 | evaluate EqualityExpression(github.actor == 'octocat') | true | .github/workflows/test.yml:8:9:11:6 | Run Step: guarded-step |
-| evaluate EqualityExpression(github.actor == 'octocat') | true | .github/workflows/test.yml:11:9:14:2 | Run Step: next-step |
+| evaluate EqualityExpression(github.actor == 'octocat') | true | .github/workflows/test.yml:11:9:14:6 | Run Step: impossible-step |
+| evaluate EqualityExpression(github.actor == 'octocat') | true | .github/workflows/test.yml:14:9:17:2 | Run Step: next-step |
+| evaluate EqualityExpression(github.event_name != 'push') | true | .github/workflows/test.yml:11:9:14:6 | Run Step: impossible-step |
 | evaluate EqualityExpression(github.event_name == 'push') | true | .github/workflows/test.yml:8:9:11:6 | Run Step: guarded-step |
 controlledBlocks
-| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:5:5:14:2 | Job: guarded | true |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:5:5:17:2 | Job: guarded | true |
 | .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:8:9:11:6 | Run Step: guarded-step | true |
 | .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | true |
 | .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:10:14:10:25 | echo guarded | true |
-| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:11:9:14:2 | Run Step: next-step | true |
-| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:12:14:12:22 | echo next | true |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:11:9:14:6 | Run Step: impossible-step | true |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:12:13:12:39 | github. ...  'push' | true |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:13:14:13:28 | echo impossible | true |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:14:9:17:2 | Run Step: next-step | true |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | .github/workflows/test.yml:15:14:15:22 | echo next | true |
 | .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | .github/workflows/test.yml:8:9:11:6 | Run Step: guarded-step | true |
 | .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | .github/workflows/test.yml:10:14:10:25 | echo guarded | true |
+| .github/workflows/test.yml:12:13:12:39 | github. ...  'push' | .github/workflows/test.yml:11:9:14:6 | Run Step: impossible-step | true |
+| .github/workflows/test.yml:12:13:12:39 | github. ...  'push' | .github/workflows/test.yml:13:14:13:28 | echo impossible | true |
 integratedConditionEntries
 | .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | root(github.actor == 'octocat') |
 | .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | root(github.event_name == 'push') |
+| .github/workflows/test.yml:12:13:12:39 | github. ...  'push' | root(github.event_name != 'push') |
 integratedConditionCompletions
-| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | false | .github/workflows/test.yml:15:5:17:26 | Job: next-job |
-| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | true | .github/workflows/test.yml:5:5:14:2 | Job: guarded |
-| .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | false | .github/workflows/test.yml:11:9:14:2 | Run Step: next-step |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | false | .github/workflows/test.yml:18:5:20:26 | Job: next-job |
+| .github/workflows/test.yml:5:9:5:33 | github. ... ctocat' | true | .github/workflows/test.yml:5:5:17:2 | Job: guarded |
+| .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | false | .github/workflows/test.yml:12:13:12:39 | github. ...  'push' |
 | .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | true | .github/workflows/test.yml:8:9:11:6 | Run Step: guarded-step |
+| .github/workflows/test.yml:12:13:12:39 | github. ...  'push' | false | .github/workflows/test.yml:14:9:17:2 | Run Step: next-step |
+| .github/workflows/test.yml:12:13:12:39 | github. ...  'push' | true | .github/workflows/test.yml:11:9:14:6 | Run Step: impossible-step |
+pushStepReachability
+| guarded-step | next-step |
+pushStepCoExecution
+| guarded-step | guarded-step |
+| guarded-step | next-step |
+publicConditionDominance
+| .github/workflows/test.yml:9:13:9:39 | github. ...  'push' | .github/workflows/test.yml:8:9:11:6 | Run Step: guarded-step |
+| .github/workflows/test.yml:12:13:12:39 | github. ...  'push' | .github/workflows/test.yml:11:9:14:6 | Run Step: impossible-step |
+publicAstDominance

@@ -3,6 +3,7 @@ private import codeql.actions.TaintTracking
 private import codeql.actions.dataflow.ExternalFlow
 private import codeql.actions.security.ArtifactPoisoningQuery
 private import codeql.actions.security.UntrustedCheckoutQuery
+private import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 
 abstract class EnvVarInjectionSink extends DataFlow::Node { }
 
@@ -28,6 +29,7 @@ class EnvVarInjectionFromFileReadSink extends EnvVarInjectionSink {
       ) and
       this.asExpr() = run.getScript() and
       step.getAFollowingStep() = run and
+      IntegratedCfg::mayReachForAnyEvent(step, run) and
       (
         // eg:
         // echo "SHA=$(cat test-results/sha-number)" >> $GITHUB_ENV

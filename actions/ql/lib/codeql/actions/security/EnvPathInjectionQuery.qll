@@ -3,6 +3,7 @@ private import codeql.actions.TaintTracking
 private import codeql.actions.dataflow.ExternalFlow
 private import codeql.actions.security.ArtifactPoisoningQuery
 private import codeql.actions.security.UntrustedCheckoutQuery
+private import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 
 abstract class EnvPathInjectionSink extends DataFlow::Node { }
 
@@ -19,6 +20,7 @@ class EnvPathInjectionFromFileReadSink extends EnvPathInjectionSink {
       ) and
       this.asExpr() = run.getScript() and
       step.getAFollowingStep() = run and
+      IntegratedCfg::mayReachForAnyEvent(step, run) and
       (
         // echo "$(cat foo.txt)" >> $GITHUB_PATH
         // FOO=$(cat foo.txt)

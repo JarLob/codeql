@@ -1,4 +1,6 @@
 import actions
+private import codeql.actions.IntegratedExpressionBasicBlocks as IntegratedBlocks
+private import codeql.actions.JobSynchronization as JobSync
 
 string any_category() {
   result =
@@ -60,6 +62,31 @@ abstract class ControlCheck extends AstNode {
     this instanceof Run
   }
 
+  private Job getProtectedJob(AstNode node) {
+    node instanceof Job and result = node
+    or
+    not node instanceof Job and result = node.getEnclosingJob()
+  }
+
+  private predicate dominatesThroughSuccessfulNeededJob(AstNode node, Event event) {
+    exists(Job checkedJob, Job protectedJob |
+      checkedJob = this.getEnclosingJob() and
+      protectedJob = this.getProtectedJob(node) and
+      checkedJob != protectedJob and
+      JobSync::jobExecutionRequiresSuccessfulCompletionOf(protectedJob, checkedJob, event) and
+      (
+        this instanceof If and checkedJob.getIf() = this
+        or
+        this instanceof Environment and checkedJob.getEnvironment() = this
+        or
+        (this instanceof Run or this instanceof UsesStep) and
+        checkedJob instanceof LocalJob and
+        checkedJob.(LocalJob).getAStep() = this and
+        not exists(this.(Step).getIf())
+      )
+    )
+  }
+
   predicate protects(AstNode node, Event event, string category) {
     // The check dominates the step it should protect
     this.dominates(node, event) and
@@ -103,16 +130,15 @@ abstract class ControlCheck extends AstNode {
       (
         node.getEnclosingStep().getIf() = this or
         node.getEnclosingJob().getIf() = this or
-        node.getEnclosingJob().getANeededJob().(LocalJob).getAStep().getIf() = this or
-        node.getEnclosingJob().getANeededJob().(LocalJob).getIf() = this
+        IntegratedBlocks::conditionTrueDominates(this, node) or
+        this.dominatesThroughSuccessfulNeededJob(node, event)
       )
       or
       // Job-level: the check is an environment on the enclosing job or a needed job.
       this instanceof Environment and
       (
-        node.getEnclosingJob().getEnvironment() = this
-        or
-        node.getEnclosingJob().getANeededJob().getEnvironment() = this
+        node.getEnclosingJob().getEnvironment() = this or
+        this.dominatesThroughSuccessfulNeededJob(node, event)
       )
       or
       // Step-level: the check is a Run/UsesStep that precedes `node`'s step
@@ -122,9 +148,8 @@ abstract class ControlCheck extends AstNode {
         this instanceof UsesStep
       ) and
       (
-        this.(Step).getAFollowingStep() = node.getEnclosingStep()
-        or
-        node.getEnclosingJob().getANeededJob().(LocalJob).getAStep() = this
+        IntegratedBlocks::astNodeDominates(this, node) or
+        this.dominatesThroughSuccessfulNeededJob(node, event)
       )
     )
   }
@@ -149,18 +174,17 @@ abstract class ControlCheck extends AstNode {
     this instanceof If and
     (
       caller.getIf() = this or
-      caller.getANeededJob().(LocalJob).getIf() = this or
-      caller.getANeededJob().(LocalJob).getAStep().getIf() = this
+      this.dominatesThroughSuccessfulNeededJob(caller, caller.getATriggerEvent())
     )
     or
     this instanceof Environment and
     (
       caller.getEnvironment() = this or
-      caller.getANeededJob().getEnvironment() = this
+      this.dominatesThroughSuccessfulNeededJob(caller, caller.getATriggerEvent())
     )
     or
     (this instanceof Run or this instanceof UsesStep) and
-    caller.getANeededJob().(LocalJob).getAStep() = this
+    this.dominatesThroughSuccessfulNeededJob(caller, caller.getATriggerEvent())
   }
 
   abstract predicate protectsCategoryAndEvent(string category, string event);

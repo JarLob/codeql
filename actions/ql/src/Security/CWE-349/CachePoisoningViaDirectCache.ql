@@ -17,6 +17,7 @@ import codeql.actions.security.UntrustedCheckoutQuery
 import codeql.actions.security.CachePoisoningQuery
 import codeql.actions.security.PoisonableSteps
 import codeql.actions.security.ControlChecks
+import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 
 query predicate edges(Step a, Step b) { a.getNextStep() = b }
 
@@ -56,6 +57,7 @@ where
     // the cache writing step reads from a path the attacker can control
     not path = "?" and isSubpath(step.(CacheWritingStep).getPath(), path)
   ) and
+  IntegratedCfg::mayCoExecuteForEvent(source, step, event) and
   not step instanceof PoisonableStep
 select step, source, step,
   "Potential cache poisoning in the context of the default branch " + message + " ($@).", event,

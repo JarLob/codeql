@@ -47,7 +47,7 @@ query predicate knownStatusDecisionEdges(string job, string status, string succe
       [
         "dependent", "always-dependent", "success-dependent", "failure-dependent",
         "cancelled-dependent", "not-success-dependent", "combined-dependent", "transitive-combined",
-        "terminal"
+        "named-results", "unknown-named-result", "terminal"
       ] and
     status = decision.getNeedsStatus().getName() and
     successor = decision.getASuccessor(event).toString()
@@ -87,5 +87,15 @@ query predicate impossibleStatusSummaries(string job, string status) {
     decision.getNeedsStatus().getNonSuccessKindCount() > count(decision.getJob().getANeededJob+()) and
     job = decision.getJob().getId() and
     status = decision.getNeedsStatus().getName()
+  )
+}
+
+query predicate requiredSuccessfulJobs(string job, string requiredJob) {
+  exists(Job dependent, Job required, Event event |
+    dependent.getId() = job and
+    required.getId() = requiredJob and
+    event = dependent.getEnclosingWorkflow().getOn().getAnEvent() and
+    event.getName() = "push" and
+    jobExecutionRequiresSuccessfulCompletionOf(dependent, required, event)
   )
 }

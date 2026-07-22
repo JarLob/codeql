@@ -13,12 +13,14 @@
  */
 
 import actions
+import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 
 from UsesStep checkout, UsesStep upload
 where
   checkout.getCallee() = "actions/checkout" and
   upload.getCallee() = "actions/upload-artifact" and
   checkout.getAFollowingStep() = upload and
+  IntegratedCfg::mayReachForAnyEvent(checkout, upload) and
   (
     not exists(checkout.getArgument("persist-credentials")) or
     checkout.getArgument("persist-credentials") = "true"
