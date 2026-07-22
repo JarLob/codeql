@@ -20,7 +20,7 @@ where
   checkout.getCallee() = "actions/checkout" and
   upload.getCallee() = "actions/upload-artifact" and
   checkout.getAFollowingStep() = upload and
-  IntegratedCfg::mayReachForAnyEvent(checkout, upload) and
+  IntegratedCfg::orderedStepsMayReachForAnyEvent(checkout, upload) and
   (
     not exists(checkout.getArgument("persist-credentials")) or
     checkout.getArgument("persist-credentials") = "true"

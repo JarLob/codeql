@@ -33,9 +33,9 @@ where
       download.getEnclosingJob().isPrivilegedExternallyTriggerable(event) and
       checkout.getCallee() = "actions/checkout" and
       checkout.getAFollowingStep() = poison and
-      IntegratedCfg::mayReachForAnyEvent(checkout, poison) and
+      IntegratedCfg::orderedStepsMayReachForAnyEvent(checkout, poison) and
       poison.getAFollowingStep() = upload and
-      IntegratedCfg::mayReachForAnyEvent(poison, upload) and
+      IntegratedCfg::orderedStepsMayReachForAnyEvent(poison, upload) and
       upload.getCallee() = "actions/upload-artifact"
     )
     or

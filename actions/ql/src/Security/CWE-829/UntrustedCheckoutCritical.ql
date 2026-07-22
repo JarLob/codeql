@@ -37,7 +37,7 @@ where
   checkoutReferenceText = getCheckoutReferenceText(checkoutReference) and
   // the checkout is followed by a known poisonable step
   checkout.getAFollowingStep() = poisonable and
-  IntegratedCfg::mayReachForEvent(checkout, poisonable, event) and
+  IntegratedCfg::orderedStepsMayReachForEvent(checkout, poisonable, event) and
   (
     poisonable instanceof Run and
     (

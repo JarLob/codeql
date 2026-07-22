@@ -57,7 +57,13 @@ where
     // the cache writing step reads from a path the attacker can control
     not path = "?" and isSubpath(step.(CacheWritingStep).getPath(), path)
   ) and
-  IntegratedCfg::mayCoExecuteForEvent(source, step, event) and
+  (
+    source = step and IntegratedCfg::mayExecuteForEvent(source, event)
+    or
+    IntegratedCfg::orderedStepsMayReachForEvent(source, step, event)
+    or
+    IntegratedCfg::orderedStepsMayReachForEvent(step, source, event)
+  ) and
   not step instanceof PoisonableStep
 select step, source, step,
   "Potential cache poisoning in the context of the default branch " + message + " ($@).", event,

@@ -29,7 +29,7 @@ class EnvVarInjectionFromFileReadSink extends EnvVarInjectionSink {
       ) and
       this.asExpr() = run.getScript() and
       step.getAFollowingStep() = run and
-      IntegratedCfg::mayReachForAnyEvent(step, run) and
+      IntegratedCfg::orderedStepsMayReachForAnyEvent(step, run) and
       (
         // eg:
         // echo "SHA=$(cat test-results/sha-number)" >> $GITHUB_ENV

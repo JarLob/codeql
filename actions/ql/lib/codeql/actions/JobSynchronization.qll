@@ -243,7 +243,8 @@ private predicate ownConditionMayHaveOutcome(Job job, Event event, boolean outco
     condition = job.getIf() and
     (
       exists(condition.getConditionExpr().getRoot()) and
-      mayEvaluateToBoolean(condition.getConditionExpr().getRoot(), event, outcome)
+      mayEvaluateConditionToBoolean(condition, condition.getConditionExpr().getRoot(), event,
+        outcome)
       or
       not exists(condition.getConditionExpr().getRoot()) and outcome in [false, true]
     )
@@ -270,14 +271,16 @@ private predicate decisionMayHaveOutcome(
     (
       exists(condition.getConditionExpr().getRoot()) and
       hasStatusCheckFunction(condition) and
-      mayEvaluateToBooleanAfterNeedsState(condition.getConditionExpr().getRoot(), event,
-        needsStatus.hasFailure(), needsStatus.hasCancellation(), needsStatus.hasSkip(), outcome)
+      mayEvaluateConditionToBooleanAfterNeedsState(condition,
+        condition.getConditionExpr().getRoot(), event, needsStatus.hasFailure(),
+        needsStatus.hasCancellation(), needsStatus.hasSkip(), outcome)
       or
       exists(condition.getConditionExpr().getRoot()) and
       not hasStatusCheckFunction(condition) and
       (
         needsStatus.isSuccess() and
-        mayEvaluateToBoolean(condition.getConditionExpr().getRoot(), event, outcome)
+        mayEvaluateConditionToBoolean(condition, condition.getConditionExpr().getRoot(), event,
+          outcome)
         or
         not needsStatus.isSuccess() and outcome = false
       )
@@ -472,78 +475,89 @@ private predicate jobConditionContainsAssignedNeedsResult(Job job) {
   )
 }
 
+private predicate belongsToAssignedNeedsResultCondition(ExpressionNode node) {
+  exists(Job job, If condition |
+    condition = job.getIf() and
+    node.getExpression() = condition.getConditionExpr() and
+    jobConditionContainsAssignedNeedsResult(job)
+  )
+}
+
 private predicate mayEvaluateForNeedsStatus(ExpressionNode node, NeedsStatus status, boolean outcome) {
-  node instanceof ExpressionRoot and
-  mayEvaluateForNeedsStatus(node.getChild(0), status, outcome)
-  or
-  node instanceof LiteralExpression and
-  node.getKind() = "BooleanLiteral" and
-  node.(LiteralExpression).getValue().toLowerCase() = outcome.toString()
-  or
-  node instanceof UnaryExpression and
-  node.(UnaryExpression).getOperator() = "!" and
-  mayEvaluateForNeedsStatus(node.(UnaryExpression).getOperand(), status, outcome.booleanNot())
-  or
-  node instanceof BinaryExpression and
-  node.(BinaryExpression).getOperator() = "&&" and
+  belongsToAssignedNeedsResultCondition(node) and
   (
-    outcome = false and
-    mayEvaluateForNeedsStatus([
-        node.(BinaryExpression).getLeftOperand(), node.(BinaryExpression).getRightOperand()
-      ], status, false)
+    node instanceof ExpressionRoot and
+    mayEvaluateForNeedsStatus(node.getChild(0), status, outcome)
     or
-    outcome = true and
-    mayEvaluateForNeedsStatus(node.(BinaryExpression).getLeftOperand(), status, true) and
-    mayEvaluateForNeedsStatus(node.(BinaryExpression).getRightOperand(), status, true)
-  )
-  or
-  node instanceof BinaryExpression and
-  node.(BinaryExpression).getOperator() = "||" and
-  (
-    outcome = true and
-    mayEvaluateForNeedsStatus([
-        node.(BinaryExpression).getLeftOperand(), node.(BinaryExpression).getRightOperand()
-      ], status, true)
+    node instanceof LiteralExpression and
+    node.getKind() = "BooleanLiteral" and
+    node.(LiteralExpression).getValue().toLowerCase() = outcome.toString()
     or
-    outcome = false and
-    mayEvaluateForNeedsStatus(node.(BinaryExpression).getLeftOperand(), status, false) and
-    mayEvaluateForNeedsStatus(node.(BinaryExpression).getRightOperand(), status, false)
-  )
-  or
-  node instanceof FunctionCallExpression and
-  not exists(node.(FunctionCallExpression).getArgument(_)) and
-  (
-    node.(FunctionCallExpression).getCallee().getName().toLowerCase() = "always" and
-    outcome = true
+    node instanceof UnaryExpression and
+    node.(UnaryExpression).getOperator() = "!" and
+    mayEvaluateForNeedsStatus(node.(UnaryExpression).getOperand(), status, outcome.booleanNot())
     or
-    node.(FunctionCallExpression).getCallee().getName().toLowerCase() = "success" and
+    node instanceof BinaryExpression and
+    node.(BinaryExpression).getOperator() = "&&" and
     (
-      status.isSuccess() and outcome = true
+      outcome = false and
+      mayEvaluateForNeedsStatus([
+          node.(BinaryExpression).getLeftOperand(), node.(BinaryExpression).getRightOperand()
+        ], status, false)
       or
-      not status.isSuccess() and outcome = false
+      outcome = true and
+      mayEvaluateForNeedsStatus(node.(BinaryExpression).getLeftOperand(), status, true) and
+      mayEvaluateForNeedsStatus(node.(BinaryExpression).getRightOperand(), status, true)
     )
     or
-    node.(FunctionCallExpression).getCallee().getName().toLowerCase() = "failure" and
-    outcome = status.hasFailure()
-    or
-    node.(FunctionCallExpression).getCallee().getName().toLowerCase() = "cancelled" and
-    outcome = status.hasCancellation()
-  )
-  or
-  not node instanceof ExpressionRoot and
-  not node instanceof UnaryExpression and
-  not (
     node instanceof BinaryExpression and
-    node.(BinaryExpression).getOperator() = ["&&", "||"]
-  ) and
-  not (node instanceof LiteralExpression and node.getKind() = "BooleanLiteral") and
-  not (
+    node.(BinaryExpression).getOperator() = "||" and
+    (
+      outcome = true and
+      mayEvaluateForNeedsStatus([
+          node.(BinaryExpression).getLeftOperand(), node.(BinaryExpression).getRightOperand()
+        ], status, true)
+      or
+      outcome = false and
+      mayEvaluateForNeedsStatus(node.(BinaryExpression).getLeftOperand(), status, false) and
+      mayEvaluateForNeedsStatus(node.(BinaryExpression).getRightOperand(), status, false)
+    )
+    or
     node instanceof FunctionCallExpression and
     not exists(node.(FunctionCallExpression).getArgument(_)) and
-    node.(FunctionCallExpression).getCallee().getName().toLowerCase() =
-      ["always", "success", "failure", "cancelled"]
-  ) and
-  outcome in [false, true]
+    (
+      node.(FunctionCallExpression).getCallee().getName().toLowerCase() = "always" and
+      outcome = true
+      or
+      node.(FunctionCallExpression).getCallee().getName().toLowerCase() = "success" and
+      (
+        status.isSuccess() and outcome = true
+        or
+        not status.isSuccess() and outcome = false
+      )
+      or
+      node.(FunctionCallExpression).getCallee().getName().toLowerCase() = "failure" and
+      outcome = status.hasFailure()
+      or
+      node.(FunctionCallExpression).getCallee().getName().toLowerCase() = "cancelled" and
+      outcome = status.hasCancellation()
+    )
+    or
+    not node instanceof ExpressionRoot and
+    not node instanceof UnaryExpression and
+    not (
+      node instanceof BinaryExpression and
+      node.(BinaryExpression).getOperator() = ["&&", "||"]
+    ) and
+    not (node instanceof LiteralExpression and node.getKind() = "BooleanLiteral") and
+    not (
+      node instanceof FunctionCallExpression and
+      not exists(node.(FunctionCallExpression).getArgument(_)) and
+      node.(FunctionCallExpression).getCallee().getName().toLowerCase() =
+        ["always", "success", "failure", "cancelled"]
+    ) and
+    outcome in [false, true]
+  )
 }
 
 private predicate mayEvaluateForAssignment(

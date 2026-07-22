@@ -20,7 +20,7 @@ class EnvPathInjectionFromFileReadSink extends EnvPathInjectionSink {
       ) and
       this.asExpr() = run.getScript() and
       step.getAFollowingStep() = run and
-      IntegratedCfg::mayReachForAnyEvent(step, run) and
+      IntegratedCfg::orderedStepsMayReachForAnyEvent(step, run) and
       (
         // echo "$(cat foo.txt)" >> $GITHUB_PATH
         // FOO=$(cat foo.txt)
