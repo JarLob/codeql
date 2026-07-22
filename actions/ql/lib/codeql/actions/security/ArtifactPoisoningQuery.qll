@@ -30,7 +30,7 @@ class GitHubDownloadArtifactActionStep extends UntrustedArtifactDownloadStep, Us
         job.getAStep() = checkout and
         checkout.getATriggerEvent().getName() = "pull_request_target" and
         checkout.getAFollowingStep() = upload and
-        IntegratedCfg::mayReachForAnyEvent(checkout, upload) and
+        IntegratedCfg::orderedStepsMayReachForAnyEvent(checkout, upload) and
         upload.getCallee() = "actions/upload-artifact"
       )
     )
@@ -266,7 +266,7 @@ class ArtifactPoisoningSink extends DataFlow::Node {
   ArtifactPoisoningSink() {
     exists(PoisonableStep poisonable |
       download.getAFollowingStep() = poisonable and
-      IntegratedCfg::mayReachForAnyEvent(download, poisonable) and
+      IntegratedCfg::orderedStepsMayReachForAnyEvent(download, poisonable) and
       // excluding artifacts downloaded to the temporary directory
       not download.getPath().regexpMatch("^/tmp.*") and
       not download.getPath().regexpMatch("^\\$\\{\\{\\s*runner\\.temp\\s*}}.*") and

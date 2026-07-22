@@ -23,7 +23,7 @@ from MutableRefCheckoutStep checkout, PoisonableStep step, Event event
 where
   // the checked-out code may lead to arbitrary code execution
   checkout.getAFollowingStep() = step and
-  IntegratedCfg::mayReachForEvent(checkout, step, event) and
+  IntegratedCfg::orderedStepsMayReachForEvent(checkout, step, event) and
   // the checkout occurs in a privileged context
   inPrivilegedContext(checkout, event) and
   // the mutable checkout step is protected by an Insufficient access check

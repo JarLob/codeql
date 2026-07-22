@@ -266,6 +266,30 @@ private predicate stepPrecedes(Step source, Step target) {
   target = source.getNextStep+() or target = source.getAFollowingStep()
 }
 
+/** Holds if `target` is ordered after `source` and both may execute for `event`. */
+bindingset[source, target, event]
+predicate orderedStepsMayReachForEvent(Step source, Step target, Event event) {
+  source != target and
+  source.getEnclosingJob() = target.getEnclosingJob() and
+  stepPrecedes(source, target) and
+  source.getATriggerEvent() = event and
+  stepMayExecuteForEvent(source, event) and
+  stepMayExecuteForEvent(target, event)
+}
+
+/** Holds if `target` is ordered after `source` and both may execute for a shared event. */
+bindingset[source, target]
+predicate orderedStepsMayReachForAnyEvent(Step source, Step target) {
+  (
+    exists(Event event |
+      source.getATriggerEvent() = event and
+      orderedStepsMayReachForEvent(source, target, event)
+    )
+    or
+    not exists(source.getATriggerEvent())
+  )
+}
+
 /** Holds if `node` may execute for `event` in its Actions CFG scope. */
 predicate mayExecuteForEvent(AstNode node, Event event) {
   exists(Step step | step = node.getEnclosingStep() | stepMayExecuteForEvent(step, event))

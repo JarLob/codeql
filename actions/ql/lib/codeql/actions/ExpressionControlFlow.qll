@@ -183,7 +183,10 @@ private predicate expressionSuccessorForEvent(Node predecessor, Node successor, 
   exists(EvaluationNode evaluation, boolean outcome |
     predecessor = evaluation and
     isAtomicCondition(evaluation.getExpressionNode()) and
-    mayEvaluateToBoolean(evaluation.getExpressionNode(), event, outcome) and
+    exists(If condition |
+      condition.getConditionExpr() = evaluation.getExpressionNode().getExpression() and
+      mayEvaluateConditionToBoolean(condition, evaluation.getExpressionNode(), event, outcome)
+    ) and
     successor = TCompletionNode(evaluation.getExpressionNode(), outcome)
   )
 }

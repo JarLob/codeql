@@ -24,7 +24,7 @@ class OutputClobberingFromFileReadSink extends OutputClobberingSink {
         step instanceof SimplePRHeadCheckoutStep
       ) and
       step.getAFollowingStep() = run and
-      IntegratedCfg::mayReachForAnyEvent(step, run) and
+      IntegratedCfg::orderedStepsMayReachForAnyEvent(step, run) and
       this.asExpr() = run.getScript() and
       // A write to GITHUB_OUTPUT that is not attacker-controlled
       exists(string str |

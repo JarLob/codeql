@@ -23,7 +23,7 @@ where
   // there are no evidences that the checked-out gets executed
   not exists(PoisonableStep poisonable |
     checkout.getAFollowingStep() = poisonable and
-    IntegratedCfg::mayReachForEvent(checkout, poisonable, event)
+    IntegratedCfg::orderedStepsMayReachForEvent(checkout, poisonable, event)
   ) and
   // the checkout occurs in a privileged context
   inPrivilegedContext(checkout, event) and
