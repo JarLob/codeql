@@ -91,3 +91,8 @@ jobs:
           # VULNERABLE: the file name contains regex metacharacters
           echo "VALUE=$(cat 'pr[number](final).txt')"
           echo "::set-output name=OUTPUT::SAFE"
+      - id: clob12
+        run: |
+          # VULNERABLE: echo is invoked through env
+          env echo "VALUE=$(cat 'pr[number](final).txt')"
+          echo "::set-output name=OUTPUT::SAFE"
