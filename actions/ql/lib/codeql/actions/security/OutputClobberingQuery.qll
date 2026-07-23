@@ -178,7 +178,7 @@ class WorkflowCommandClobberingFromFileReadSink extends OutputClobberingSink {
           // - run: echo "foo=$(<pr-id.txt)"
           exists(string echo, int echoOffset |
             echo = clobbering_stmt.regexpFind("\\becho\\s+", _, echoOffset) and
-            clobbering_stmt.suffix(echoOffset + echo.length()).indexOf(clobbering_cmd) >= 0
+            clobbering_stmt.indexOf(clobbering_cmd, 0, echoOffset + echo.length()) >= 0
           )
           or
           // A file content is printed to stdout
