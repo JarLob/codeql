@@ -261,6 +261,10 @@ class Strategy extends AstNode instanceof StrategyImpl {
     result = super.getMatrixDimensionValueCount(name)
   }
 
+  string getMatrixDimensionValue(string name, int index) {
+    result = super.getMatrixDimensionValue(name, index)
+  }
+
   predicate hasStaticCartesianMatrix() { super.hasStaticCartesianMatrix() }
 
   Expression getMatrixVarExpr(string varName) { result = super.getMatrixVarExpr(varName) }

@@ -1,0 +1,67 @@
+on:
+  pull_request_target:
+
+jobs:
+  job-all-continued:
+    strategy:
+      matrix:
+        experimental: [true, true]
+    continue-on-error: "${{ matrix.experimental }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 1
+
+  job-all-continued-failure-sink:
+    needs: job-all-continued
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"
+
+  job-mixed:
+    strategy:
+      matrix:
+        experimental: [true, false]
+    continue-on-error: "${{ matrix.experimental }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 1
+
+  job-mixed-failure-sink:
+    needs: job-mixed
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"
+
+  step-all-continued:
+    strategy:
+      matrix:
+        experimental: [true, true]
+    runs-on: ubuntu-latest
+    steps:
+      - continue-on-error: "${{ matrix.experimental }}"
+        run: exit 1
+
+  step-all-continued-failure-sink:
+    needs: step-all-continued
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"
+
+  step-mixed:
+    strategy:
+      matrix:
+        experimental: [true, false]
+    runs-on: ubuntu-latest
+    steps:
+      - continue-on-error: "${{ matrix.experimental }}"
+        run: exit 1
+
+  step-mixed-failure-sink:
+    needs: step-mixed
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"
