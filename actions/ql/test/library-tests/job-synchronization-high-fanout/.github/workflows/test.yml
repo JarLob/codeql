@@ -1,0 +1,55 @@
+on:
+  push:
+
+jobs:
+  root-0:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo root 0
+
+  root-1:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo root 1
+
+  root-2:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo root 2
+
+  root-3:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo root 3
+
+  root-4:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo root 4
+
+  root-5:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo root 5
+
+  root-6:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo root 6
+
+  root-7:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo root 7
+
+  root-8:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo root 8
+
+  high-fanout:
+    needs: [root-0, root-1, root-2, root-3, root-4, root-5, root-6, root-7, root-8]
+    if: always() && needs.root-0.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo high fanout
