@@ -1,5 +1,14 @@
 "on":
   workflow_call:
+    outputs:
+      decision:
+        value: "${{ jobs.reusable-terminal.outputs.decision }}"
+      blocked:
+        value: "${{ jobs.reusable-terminal.outputs.blocked }}"
+      direct:
+        value: "${{ 'direct-run' }}"
+      dynamic:
+        value: "${{ jobs.reusable-terminal.outputs.dynamic }}"
 
 jobs:
   reusable-root:
@@ -7,8 +16,19 @@ jobs:
     steps:
       - run: echo reusable root
 
+  reusable-skipped-terminal:
+    if: "${{ false }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo skipped terminal
+
   reusable-terminal:
     needs: reusable-root
+    continue-on-error: true
+    outputs:
+      decision: "${{ 'run' }}"
+      blocked: "${{ 'stop' }}"
+      dynamic: "${{ steps.missing.outputs.value }}"
     runs-on: ubuntu-latest
     steps:
       - run: echo reusable terminal

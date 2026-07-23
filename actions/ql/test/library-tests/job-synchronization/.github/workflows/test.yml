@@ -141,9 +141,41 @@ jobs:
 
   after-reusable:
     needs: call-reusable
+    if: needs.call-reusable.outputs.decision == 'run'
     runs-on: ubuntu-latest
     steps:
       - run: echo after reusable
+
+  after-reusable-blocked:
+    needs: call-reusable
+    if: needs.call-reusable.outputs.blocked == 'run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo blocked reusable output
+
+  after-reusable-direct:
+    needs: call-reusable
+    if: needs.call-reusable.outputs.direct == 'direct-run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo direct reusable output
+
+  after-reusable-dynamic:
+    needs: call-reusable
+    if: always() && needs.call-reusable.outputs.dynamic == 'run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo dynamic reusable output
+
+  call-nested-reusable:
+    uses: ./.github/workflows/nested-reusable.yml
+
+  after-nested-reusable:
+    needs: call-nested-reusable
+    if: needs.call-nested-reusable.outputs.decision == 'run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo nested reusable output
 
   correlated-gate:
     needs: root-a

@@ -47,7 +47,9 @@ query predicate knownStatusDecisionEdges(string job, string status, string succe
       [
         "dependent", "always-dependent", "success-dependent", "failure-dependent",
         "cancelled-dependent", "not-success-dependent", "combined-dependent", "transitive-combined",
-        "named-results", "unknown-named-result", "output-default-dependent",
+        "named-results", "unknown-named-result", "after-reusable", "after-reusable-blocked",
+        "after-reusable-direct", "after-reusable-dynamic", "after-nested-reusable",
+        "output-default-dependent",
         "output-always-dependent", "output-blocked-dependent", "output-dynamic-dependent",
         "terminal", "output-empty-dependent", "output-boolean-dependent", "output-skipped-dependent",
         "continue-true-success-dependent", "continue-true-failure-dependent",
@@ -142,6 +144,26 @@ query predicate reusableWorkflowBoundaryEdges(string caller, string boundary, st
     caller = external.getId() and
     boundary = "caller-completion" and
     successor = completion.toString()
+  )
+}
+
+query predicate reusableCallerCompletionStatuses(string caller, string status) {
+  exists(ExternalJob external, Event event, JobStatus completionStatus |
+    external.getId() = ["call-reusable", "call-nested-reusable"] and
+    event.getName() = "push" and
+    jobMayCompleteForEvent(external, event, completionStatus) and
+    caller = external.getId() and
+    status = completionStatus.getName()
+  )
+}
+
+query predicate reusableTerminalCompletionStatuses(string job, string status) {
+  exists(Job terminal, Event event, JobStatus completionStatus |
+    terminal.getId() = ["reusable-terminal", "reusable-skipped-terminal"] and
+    event.getName() = "push" and
+    jobMayCompleteForEvent(terminal, event, completionStatus) and
+    job = terminal.getId() and
+    status = completionStatus.getName()
   )
 }
 
