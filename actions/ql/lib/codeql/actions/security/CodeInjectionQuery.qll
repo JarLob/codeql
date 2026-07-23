@@ -18,11 +18,14 @@ private predicate sinkMayExecuteForEvent(DataFlow::Node sink, Event event) {
   JobSync::jobMayExecuteForEvent(sink.asExpr().getEnclosingJob(), event)
 }
 
-private predicate sinkMayExecuteForAnyEvent(DataFlow::Node sink) {
+private predicate sinkMayExecuteWithoutProtectionForAnyEvent(DataFlow::Node sink) {
   not exists(sink.asExpr().getEnclosingJob().getATriggerEvent())
   or
-  JobSync::jobMayExecuteForEvent(sink.asExpr().getEnclosingJob(),
-    sink.asExpr().getEnclosingJob().getATriggerEvent())
+  exists(Event event |
+    sink.asExpr().getEnclosingJob().getATriggerEvent() = event and
+    sinkMayExecuteForEvent(sink, event) and
+    not exists(ControlCheck check | check.protects(sink.asExpr(), event, "code-injection"))
+  )
 }
 
 /**
@@ -107,7 +110,7 @@ predicate mediumSeverityCodeInjection(
   CodeInjectionFlow::PathNode source, CodeInjectionFlow::PathNode sink
 ) {
   CodeInjectionFlow::flowPath(source, sink) and
-  sinkMayExecuteForAnyEvent(sink.getNode()) and
+  sinkMayExecuteWithoutProtectionForAnyEvent(sink.getNode()) and
   not criticalSeverityCodeInjection(source, sink, _) and
   not isGithubScriptUsingToJson(sink.getNode().asExpr())
 }

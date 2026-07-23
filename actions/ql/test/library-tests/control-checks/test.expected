@@ -19,4 +19,5 @@ parsedChecks
 | .github/workflows/test.yml:82:9:82:67 | "contai ... safe')" |
 neededJobProtection
 | explicit-success-dependent |
+| output-protected-dependent |
 | protected-dependent |

@@ -1,0 +1,25 @@
+on:
+  pull_request_target:
+
+jobs:
+  authorize:
+    if: contains(github.event.pull_request.labels.*.name, 'safe')
+    runs-on: ubuntu-latest
+    outputs:
+      allow: "${{ 'run' }}"
+    steps:
+      - run: echo authorized
+
+  vulnerable:
+    needs: authorize
+    if: always() && needs.authorize.outputs.allow != 'deny'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"
+
+  protected:
+    needs: authorize
+    if: success() && needs.authorize.outputs.allow == 'run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"
