@@ -782,6 +782,13 @@ class OutputsImpl extends AstNodeImpl, TOutputsNode {
     )
   }
 
+  /** Gets a specific output value by name. */
+  string getOutputValue(string name) {
+    result = n.lookup(name).(YamlMapping).lookup("value").(YamlString).getValue()
+    or
+    result = n.lookup(name).(YamlString).getValue()
+  }
+
   string getAnOutputName() { n.maps(any(YamlString s | s.getValue() = result), _) }
 }
 
@@ -855,6 +862,32 @@ class StrategyImpl extends AstNodeImpl, TStrategyNode {
   override YamlMapping getNode() { result = n }
 
   YamlMapping getMatrix() { result = n.lookup("matrix") }
+
+  predicate hasMatrix() { exists(n.lookup("matrix")) }
+
+  string getAMatrixDimensionName() {
+    exists(YamlScalar key |
+      n.lookup("matrix").(YamlMapping).maps(key, _) and
+      not key.getValue().toLowerCase() = ["include", "exclude"] and
+      result = key.getValue()
+    )
+  }
+
+  int getMatrixDimensionValueCount(string name) {
+    name = this.getAMatrixDimensionName() and
+    result = count(n.lookup("matrix").(YamlMapping).lookup(name).(YamlSequence).getElementNode(_))
+  }
+
+  predicate hasStaticCartesianMatrix() {
+    exists(this.getAMatrixDimensionName()) and
+    not exists(n.lookup("matrix").(YamlMapping).lookup(["include", "exclude"])) and
+    forall(string name |
+      name = this.getAMatrixDimensionName()
+    |
+      exists(n.lookup("matrix").(YamlMapping).lookup(name).(YamlSequence)) and
+      this.getMatrixDimensionValueCount(name) > 0
+    )
+  }
 
   /** Gets a specific matrix expression (YamlMapping) by name. */
   ExpressionImpl getMatrixVarExpr(string accessPath) {
@@ -1048,6 +1081,14 @@ class JobImpl extends AstNodeImpl, TJobNode {
 
   /** Gets the condition that must be satisfied for this job to run. */
   IfImpl getIf() { result.getNode() = n.lookup("if") }
+
+  string getContinueOnErrorValue() {
+    result = n.lookup("continue-on-error").(YamlScalar).getValue()
+  }
+
+  ExpressionImpl getContinueOnErrorExpr() {
+    result.getParentNode().getNode() = n.lookup("continue-on-error")
+  }
 
   /** Gets the deployment environment to run the job on. */
   EnvironmentImpl getEnvironment() { result.getNode() = n.lookup("environment") }
@@ -1324,6 +1365,14 @@ class StepImpl extends AstNodeImpl, TStepNode {
 
   /** Gets the value of the `if` field in this step, if any. */
   IfImpl getIf() { result.getNode() = n.lookup("if") }
+
+  string getContinueOnErrorValue() {
+    result = n.lookup("continue-on-error").(YamlScalar).getValue()
+  }
+
+  ExpressionImpl getContinueOnErrorExpr() {
+    result.getParentNode().getNode() = n.lookup("continue-on-error")
+  }
 
   /** Gets the Runs or LocalJob that this step is in. */
   StepsContainerImpl getContainer() {

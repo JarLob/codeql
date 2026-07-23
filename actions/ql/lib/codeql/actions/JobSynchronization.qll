@@ -33,6 +33,95 @@ class SkippedStatus extends JobStatus, TSkippedStatus {
   override string getName() { result = "skipped" }
 }
 
+bindingset[expression]
+private predicate getStaticContinueOnErrorValue(Expression expression, boolean outcome) {
+  exists(LiteralExpression literal |
+    literal = expression.getRoot().getChild(0) and
+    literal.getKind() = "BooleanLiteral" and
+    literal.getValue().toLowerCase() = outcome.toString()
+  )
+}
+
+private predicate jobContinueOnErrorMayEvaluateTo(Job job, Event event, boolean outcome) {
+  job.getATriggerEvent() = event and
+  exists(string value |
+    value = job.getContinueOnErrorValue() and
+    (
+      value.toLowerCase() = "true" and outcome = true
+      or
+      value.toLowerCase() = "false" and outcome = false
+      or
+      not value.toLowerCase() = ["true", "false"] and
+      getStaticContinueOnErrorValue(job.getContinueOnErrorExpr(), outcome)
+      or
+      not value.toLowerCase() = ["true", "false"] and
+      not exists(boolean known |
+        getStaticContinueOnErrorValue(job.getContinueOnErrorExpr(), known)
+      ) and
+      outcome in [false, true]
+    )
+  )
+  or
+  not exists(job.getContinueOnErrorValue()) and outcome = false
+}
+
+private predicate stepContinueOnErrorMayEvaluateTo(Step step, Event event, boolean outcome) {
+  step.getATriggerEvent() = event and
+  exists(string value |
+    value = step.getContinueOnErrorValue() and
+    (
+      value.toLowerCase() = "true" and outcome = true
+      or
+      value.toLowerCase() = "false" and outcome = false
+      or
+      not value.toLowerCase() = ["true", "false"] and
+      getStaticContinueOnErrorValue(step.getContinueOnErrorExpr(), outcome)
+      or
+      not value.toLowerCase() = ["true", "false"] and
+      not exists(boolean known |
+        getStaticContinueOnErrorValue(step.getContinueOnErrorExpr(), known)
+      ) and
+      outcome in [false, true]
+    )
+  )
+  or
+  not exists(step.getContinueOnErrorValue()) and outcome = false
+}
+
+private predicate jobAlwaysContinuesOnError(Job job) {
+  job.getContinueOnErrorValue().toLowerCase() = "true"
+  or
+  getStaticContinueOnErrorValue(job.getContinueOnErrorExpr(), true)
+}
+
+/** Gets a possible effective conclusion after applying a job's `continue-on-error`. */
+bindingset[job, event, outcome]
+JobStatus getAJobConclusionForOutcome(Job job, Event event, JobStatus outcome) {
+  not outcome instanceof FailureStatus and result = outcome
+  or
+  outcome instanceof FailureStatus and
+  jobContinueOnErrorMayEvaluateTo(job, event, false) and
+  result instanceof FailureStatus
+  or
+  outcome instanceof FailureStatus and
+  jobContinueOnErrorMayEvaluateTo(job, event, true) and
+  result instanceof SuccessStatus
+}
+
+/** Gets a possible effective conclusion after applying a step's `continue-on-error`. */
+bindingset[step, event, outcome]
+JobStatus getAStepConclusionForOutcome(Step step, Event event, JobStatus outcome) {
+  not outcome instanceof FailureStatus and result = outcome
+  or
+  outcome instanceof FailureStatus and
+  stepContinueOnErrorMayEvaluateTo(step, event, false) and
+  result instanceof FailureStatus
+  or
+  outcome instanceof FailureStatus and
+  stepContinueOnErrorMayEvaluateTo(step, event, true) and
+  result instanceof SuccessStatus
+}
+
 private newtype TNeedsStatus =
   TNeedsStatusSummary(boolean hasFailure, boolean hasCancellation, boolean hasSkip) {
     hasFailure in [false, true] and
@@ -85,6 +174,12 @@ private predicate jobMayBeSkipped(Job job) { exists(job.getIf()) or exists(job.g
 
 private predicate isRootJob(Job job) { not exists(job.getANeededJob()) }
 
+private ReusableWorkflow getCalledReusableWorkflow(Job job) {
+  exists(ExternalJob caller |
+    caller = job and result.getACaller() = caller
+  )
+}
+
 private Job getANeededAncestor(Job job) { result = job.getANeededJob+() }
 
 private predicate needsStatusMayOccur(Job job, NeedsStatus status) {
@@ -100,13 +195,89 @@ private predicate needsStatusMayOccur(Job job, NeedsStatus status) {
   )
 }
 
+private string getMatrixDimensionAt(Job job, int index) {
+  result =
+    rank[index + 1](string name | name = job.getStrategy().getAMatrixDimensionName() |
+      name order by name
+    )
+}
+
+private int getStaticMatrixInstanceCountPrefix(Job job, int length) {
+  length = 0 and result = 1
+  or
+  exists(int previous, string dimension |
+    length > 0 and
+    dimension = getMatrixDimensionAt(job, length - 1) and
+    previous = getStaticMatrixInstanceCountPrefix(job, length - 1) and
+    result = previous * job.getStrategy().getMatrixDimensionValueCount(dimension)
+  )
+}
+
+private int getStaticMatrixInstanceCount(Job job) {
+  job.getStrategy().hasStaticCartesianMatrix() and
+  result =
+    getStaticMatrixInstanceCountPrefix(job, count(job.getStrategy().getAMatrixDimensionName()))
+}
+
+private string getAStaticMatrixAssignmentPrefix(Job job, int length) {
+  length = 0 and result = ""
+  or
+  exists(string prefix, string dimension, int valueIndex |
+    length > 0 and
+    dimension = getMatrixDimensionAt(job, length - 1) and
+    valueIndex in [0 .. job.getStrategy().getMatrixDimensionValueCount(dimension) - 1] and
+    prefix = getAStaticMatrixAssignmentPrefix(job, length - 1) and
+    (
+      prefix = "" and result = dimension + "=" + valueIndex.toString()
+      or
+      prefix != "" and result = prefix + "," + dimension + "=" + valueIndex.toString()
+    )
+  )
+}
+
+private string getAMatrixAssignment(Job job) {
+  getStaticMatrixInstanceCount(job) <= 256 and
+  result =
+    getAStaticMatrixAssignmentPrefix(job, count(job.getStrategy().getAMatrixDimensionName()))
+  or
+  job.getStrategy().hasMatrix() and
+  not getStaticMatrixInstanceCount(job) <= 256 and
+  result = "*"
+}
+
+private newtype TMatrixJobInstance =
+  TConcreteMatrixJobInstance(Job job, string assignment) { assignment = getAMatrixAssignment(job) }
+
+/** A concrete bounded expansion, or conservative wildcard expansion, of a matrix job. */
+class MatrixJobInstance extends TMatrixJobInstance {
+  Job getJob() { this = TConcreteMatrixJobInstance(result, _) }
+
+  string getAssignment() { this = TConcreteMatrixJobInstance(_, result) }
+
+  string toString() { result = this.getJob().getId() + "[" + this.getAssignment() + "]" }
+}
+
 private newtype TNode =
   TWorkflowEntryNode(Workflow workflow) or
   TNeedsJoinNode(Job job) { exists(job.getANeededJob()) } or
   TJobDecisionNode(Job job, NeedsStatus needsStatus) { needsStatusMayOccur(job, needsStatus) } or
-  TJobExecutionNode(Job job) or
+  TJobExecutionNode(Job job) {
+    not job.getStrategy().hasMatrix() and not exists(getCalledReusableWorkflow(job))
+  } or
   TJobCompletionNode(Job job, JobStatus status) {
-    not status instanceof SkippedStatus or jobMayBeSkipped(job)
+    (not job.getStrategy().hasMatrix() or status instanceof SkippedStatus) and
+    not (status instanceof FailureStatus and jobAlwaysContinuesOnError(job)) and
+    (not status instanceof SkippedStatus or jobMayBeSkipped(job))
+  } or
+  TMatrixJobExecutionNode(MatrixJobInstance instance) or
+  TMatrixJobCompletionNode(MatrixJobInstance instance, JobStatus status) {
+    not status instanceof SkippedStatus and
+    not (status instanceof FailureStatus and jobAlwaysContinuesOnError(instance.getJob()))
+  } or
+  TMatrixJobFanInNode(Job job, JobStatus status) {
+    job.getStrategy().hasMatrix() and
+    not status instanceof SkippedStatus and
+    not (status instanceof FailureStatus and jobAlwaysContinuesOnError(job))
   } or
   TWorkflowExitNode(Workflow workflow)
 
@@ -162,6 +333,8 @@ class NeedsJoinNode extends Node, TNeedsJoinNode {
 
   JobCompletionNode getARequiredCompletion() { result.getJob() = this.getARequiredJob() }
 
+  MatrixJobFanInNode getARequiredMatrixFanIn() { result.getJob() = this.getARequiredJob() }
+
   override string toString() { result = "join needs for " + job.getId() }
 }
 
@@ -209,6 +382,53 @@ class JobCompletionNode extends Node, TJobCompletionNode {
   override string toString() { result = "complete " + job.getId() + " as " + status.toString() }
 }
 
+/** Execution of one expansion of a matrix job. */
+class MatrixJobExecutionNode extends Node, TMatrixJobExecutionNode {
+  MatrixJobInstance instance;
+
+  MatrixJobExecutionNode() { this = TMatrixJobExecutionNode(instance) }
+
+  MatrixJobInstance getInstance() { result = instance }
+
+  Job getJob() { result = instance.getJob() }
+
+  Cfg::Node getCfgNode() { result.getAstNode() = this.getJob() }
+
+  override string toString() { result = "execute " + instance.toString() }
+}
+
+/** Completion of one expansion of a matrix job. */
+class MatrixJobCompletionNode extends Node, TMatrixJobCompletionNode {
+  MatrixJobInstance instance;
+  JobStatus status;
+
+  MatrixJobCompletionNode() { this = TMatrixJobCompletionNode(instance, status) }
+
+  MatrixJobInstance getInstance() { result = instance }
+
+  Job getJob() { result = instance.getJob() }
+
+  JobStatus getStatus() { result = status }
+
+  override string toString() {
+    result = "complete " + instance.toString() + " as " + status.toString()
+  }
+}
+
+/** A conjunctive fan-in that exposes one aggregate conclusion for a matrix job. */
+class MatrixJobFanInNode extends Node, TMatrixJobFanInNode {
+  Job job;
+  JobStatus status;
+
+  MatrixJobFanInNode() { this = TMatrixJobFanInNode(job, status) }
+
+  Job getJob() { result = job }
+
+  JobStatus getStatus() { result = status }
+
+  override string toString() { result = "fan in " + job.getId() + " as " + status.toString() }
+}
+
 /** A conjunctive exit join reached after every terminal job in a workflow completes. */
 class WorkflowExitNode extends Node, TWorkflowExitNode {
   Workflow workflow;
@@ -254,42 +474,53 @@ private predicate ownConditionMayHaveOutcome(Job job, Event event, boolean outco
 private predicate decisionMayHaveOutcome(
   Job job, Event event, NeedsStatus needsStatus, boolean outcome
 ) {
-  isRootJob(job) and
-  ownConditionMayHaveOutcome(job, event, outcome)
-  or
   not isRootJob(job) and
-  not exists(job.getIf()) and
-  (
-    needsStatus.isSuccess() and outcome = true
-    or
-    not needsStatus.isSuccess() and outcome = false
+  jobConditionContainsAssignedNeedsValue(job) and
+  exists(string assignment |
+    assignment = getANeededStatusAssignment(job, event) and
+    getAssignmentSummary(assignment) = needsStatus and
+    decisionMayHaveOutcomeForAssignment(job, event, assignment, outcome)
   )
   or
-  not isRootJob(job) and
-  exists(If condition |
-    condition = job.getIf() and
+  not jobConditionContainsAssignedNeedsValue(job) and
+  (
+    isRootJob(job) and
+    ownConditionMayHaveOutcome(job, event, outcome)
+    or
+    not isRootJob(job) and
+    not exists(job.getIf()) and
     (
-      exists(condition.getConditionExpr().getRoot()) and
-      hasStatusCheckFunction(condition) and
-      mayEvaluateConditionToBooleanAfterNeedsState(condition,
-        condition.getConditionExpr().getRoot(), event, needsStatus.hasFailure(),
-        needsStatus.hasCancellation(), needsStatus.hasSkip(), outcome)
+      needsStatus.isSuccess() and outcome = true
       or
-      exists(condition.getConditionExpr().getRoot()) and
-      not hasStatusCheckFunction(condition) and
+      not needsStatus.isSuccess() and outcome = false
+    )
+    or
+    not isRootJob(job) and
+    exists(If condition |
+      condition = job.getIf() and
       (
-        needsStatus.isSuccess() and
-        mayEvaluateConditionToBoolean(condition, condition.getConditionExpr().getRoot(), event,
-          outcome)
+        exists(condition.getConditionExpr().getRoot()) and
+        hasStatusCheckFunction(condition) and
+        mayEvaluateConditionToBooleanAfterNeedsState(condition,
+          condition.getConditionExpr().getRoot(), event, needsStatus.hasFailure(),
+          needsStatus.hasCancellation(), needsStatus.hasSkip(), outcome)
         or
-        not needsStatus.isSuccess() and outcome = false
-      )
-      or
-      not exists(condition.getConditionExpr().getRoot()) and
-      (
-        needsStatus.isSuccess() and outcome in [false, true]
+        exists(condition.getConditionExpr().getRoot()) and
+        not hasStatusCheckFunction(condition) and
+        (
+          needsStatus.isSuccess() and
+          mayEvaluateConditionToBoolean(condition, condition.getConditionExpr().getRoot(), event,
+            outcome)
+          or
+          not needsStatus.isSuccess() and outcome = false
+        )
         or
-        not needsStatus.isSuccess() and outcome = false
+        not exists(condition.getConditionExpr().getRoot()) and
+        (
+          needsStatus.isSuccess() and outcome in [false, true]
+          or
+          not needsStatus.isSuccess() and outcome = false
+        )
       )
     )
   )
@@ -321,22 +552,6 @@ private JobStatus getStatusForCode(string code) {
   code = "k" and result instanceof SkippedStatus
 }
 
-private string getANeededStatusAssignmentPrefix(Job job, Event event, int length) {
-  length = 0 and result = ""
-  or
-  exists(string prefix, Job needed, JobStatus status |
-    length > 0 and
-    needed = getNeededJobAt(job, length - 1) and
-    jobMayCompleteForEvent(needed, event, status) and
-    prefix = getANeededStatusAssignmentPrefix(job, event, length - 1) and
-    result = prefix + getStatusCode(status)
-  )
-}
-
-private string getANeededStatusAssignment(Job job, Event event) {
-  result = getANeededStatusAssignmentPrefix(job, event, count(job.getANeededJob()))
-}
-
 bindingset[job, assignment, needed]
 private JobStatus getAssignedStatus(Job job, string assignment, Job needed) {
   exists(int index |
@@ -345,36 +560,94 @@ private JobStatus getAssignedStatus(Job job, string assignment, Job needed) {
   )
 }
 
-private predicate statusFlags(
-  JobStatus status, boolean hasFailure, boolean hasCancellation, boolean hasSkip
-) {
-  status instanceof SuccessStatus and
-  hasFailure = false and
-  hasCancellation = false and
-  hasSkip = false
-  or
-  status instanceof FailureStatus and
-  hasFailure = true and
-  hasCancellation = false and
-  hasSkip = false
-  or
-  status instanceof CancelledStatus and
-  hasFailure = false and
-  hasCancellation = true and
-  hasSkip = false
-  or
-  status instanceof SkippedStatus and
-  hasFailure = false and
-  hasCancellation = false and
-  hasSkip = true
+private Job getPrerequisiteAt(Job job, int index) {
+  result =
+    rank[index + 1](Job prerequisite, int depth |
+      prerequisite = getANeededAncestor(job) and
+      depth = count(prerequisite.getANeededJob+())
+    |
+      prerequisite order by depth, prerequisite.getId()
+    )
 }
 
-bindingset[before, added]
-private predicate mergeFlag(boolean before, boolean added, boolean after) {
-  after = true and
-  (before = true or added = true)
+bindingset[job, assignment, prerequisite]
+private JobStatus getAssignedPrerequisiteStatus(
+  Job job, string assignment, Job prerequisite
+) {
+  exists(int index |
+    prerequisite = getPrerequisiteAt(job, index) and
+    result = getStatusForCode(assignment.charAt(index))
+  )
+}
+
+bindingset[job, prerequisite, prerequisiteAssignment]
+private string getDirectAssignmentFromPrerequisites(
+  Job job, Job prerequisite, string prerequisiteAssignment
+) {
+  result = concat(int index |
+      index in [0 .. count(prerequisite.getANeededJob()) - 1]
+    |
+      getStatusCode(
+        getAssignedPrerequisiteStatus(job, prerequisiteAssignment,
+          getNeededJobAt(prerequisite, index))
+      ), "" order by index
+    )
+}
+
+bindingset[job, event, assignment]
+private predicate decisionMayHaveOutcomeForExactAssignment(
+  Job job, Event event, string assignment, boolean outcome
+) {
+  jobConditionContainsAssignedNeedsValue(job) and
+  decisionMayHaveOutcomeForAssignment(job, event, assignment, outcome)
   or
-  after = false and before = false and added = false
+  not jobConditionContainsAssignedNeedsValue(job) and
+  decisionMayHaveOutcome(job, event, getAssignmentSummary(assignment), outcome)
+}
+
+bindingset[job, event, assignment]
+private predicate jobMayCompleteForDirectAssignment(
+  Job job, Event event, string assignment, JobStatus status
+) {
+  job.getATriggerEvent() = event and
+  (
+    status instanceof SkippedStatus and
+    decisionMayHaveOutcomeForExactAssignment(job, event, assignment, false)
+    or
+    not status instanceof SkippedStatus and
+    decisionMayHaveOutcomeForExactAssignment(job, event, assignment, true) and
+    exists(JobStatus outcome |
+      not outcome instanceof SkippedStatus and
+      status = getAJobConclusionForOutcome(job, event, outcome)
+    )
+  )
+}
+
+private string getAReachablePrerequisiteAssignmentPrefix(Job job, Event event, int length) {
+  length = 0 and result = ""
+  or
+  exists(string prefix, string directAssignment, Job prerequisite, JobStatus status |
+    length > 0 and
+    prerequisite = getPrerequisiteAt(job, length - 1) and
+    prefix = getAReachablePrerequisiteAssignmentPrefix(job, event, length - 1) and
+    directAssignment = getDirectAssignmentFromPrerequisites(job, prerequisite, prefix) and
+    jobMayCompleteForDirectAssignment(prerequisite, event, directAssignment, status) and
+    result = prefix + getStatusCode(status)
+  )
+}
+
+private string getANeededStatusAssignment(Job job, Event event) {
+  exists(string prerequisiteAssignment |
+    prerequisiteAssignment =
+      getAReachablePrerequisiteAssignmentPrefix(job, event, count(getANeededAncestor(job))) and
+    result = concat(int index |
+        index in [0 .. count(job.getANeededJob()) - 1]
+      |
+        getStatusCode(
+          getAssignedPrerequisiteStatus(job, prerequisiteAssignment, getNeededJobAt(job, index))
+        ), "" order by index
+      )
+  )
 }
 
 bindingset[assignment, code]
@@ -394,35 +667,10 @@ private NeedsStatus getAssignmentSummary(string assignment) {
   )
 }
 
-private predicate neededStatusSummaryPrefix(
-  Job job, Event event, int length, boolean hasFailure, boolean hasCancellation, boolean hasSkip
-) {
-  length = 0 and
-  hasFailure = false and
-  hasCancellation = false and
-  hasSkip = false
-  or
-  exists(
-    boolean previousFailure, boolean previousCancellation, boolean previousSkip,
-    boolean addedFailure, boolean addedCancellation, boolean addedSkip, Job needed, JobStatus status
-  |
-    length > 0 and
-    needed = getNeededJobAt(job, length - 1) and
-    jobMayCompleteForEvent(needed, event, status) and
-    statusFlags(status, addedFailure, addedCancellation, addedSkip) and
-    neededStatusSummaryPrefix(job, event, length - 1, previousFailure, previousCancellation,
-      previousSkip) and
-    mergeFlag(previousFailure, addedFailure, hasFailure) and
-    mergeFlag(previousCancellation, addedCancellation, hasCancellation) and
-    mergeFlag(previousSkip, addedSkip, hasSkip)
-  )
-}
-
 private predicate needsStatusMayOccurForEvent(Job job, Event event, NeedsStatus status) {
-  exists(boolean hasFailure, boolean hasCancellation, boolean hasSkip |
-    neededStatusSummaryPrefix(job, event, count(job.getANeededJob()), hasFailure, hasCancellation,
-      hasSkip) and
-    status = TNeedsStatusSummary(hasFailure, hasCancellation, hasSkip)
+  exists(string assignment |
+    assignment = getANeededStatusAssignment(job, event) and
+    status = getAssignmentSummary(assignment)
   )
 }
 
@@ -436,6 +684,61 @@ private string getStringLiteralValue(ExpressionNode node) {
         .regexpReplaceAll("''", "'")
 }
 
+private string getStaticExpressionOutputStringValue(Expression output) {
+  result = getStringLiteralValue(output.getRoot().getChild(0))
+  or
+  output.getRoot().getChild(0) instanceof LiteralExpression and
+  output.getRoot().getChild(0).getKind() = "BooleanLiteral" and
+  result = output.getRoot().getChild(0).(LiteralExpression).getValue().toLowerCase()
+  or
+  output.getRoot().getChild(0) instanceof LiteralExpression and
+  output.getRoot().getChild(0).getKind() = "NullLiteral" and
+  result = ""
+}
+
+private string getStaticOutputStringValue(Job needed, string outputName) {
+  result = getStaticExpressionOutputStringValue(needed.getOutputExpr(outputName))
+  or
+  not exists(needed.getOutputExpr(outputName)) and
+  result = needed.getOutputs().getOutputValue(outputName)
+}
+
+bindingset[access, needed, outputName]
+private predicate accessesNeededOutput(AccessExpression access, Job needed, string outputName) {
+  access.getAccessPath().toLowerCase() =
+    ("needs." + needed.getId() + ".outputs." + outputName).toLowerCase()
+  or
+  access.getAccessPath().toLowerCase() =
+    ("needs." + needed.getId() + ".outputs['" + outputName + "']").toLowerCase()
+}
+
+private string getReferencedStaticOutputStringValue(ExpressionNode node, Job job, Job needed) {
+  exists(AccessExpression access, string outputName |
+    access = node and
+    needed = job.getANeededJob() and
+    outputName = needed.getOutputs().getAnOutputName() and
+    accessesNeededOutput(access, needed, outputName) and
+    result = getStaticOutputStringValue(needed, outputName)
+  )
+}
+
+bindingset[node, job, assignment]
+private string getAssignedOutputStringValue(ExpressionNode node, Job job, string assignment) {
+  exists(Job needed, JobStatus status, string staticValue |
+    staticValue = getReferencedStaticOutputStringValue(node, job, needed) and
+    status = getAssignedStatus(job, assignment, needed) and
+    (
+      status instanceof SuccessStatus and result = staticValue
+      or
+      status instanceof FailureStatus and result = [staticValue, ""]
+      or
+      status instanceof CancelledStatus and result = [staticValue, ""]
+      or
+      status instanceof SkippedStatus and result = ""
+    )
+  )
+}
+
 bindingset[node, job, assignment]
 private string getAssignedStringValue(ExpressionNode node, Job job, string assignment) {
   result = getStringLiteralValue(node)
@@ -446,6 +749,8 @@ private string getAssignedStringValue(ExpressionNode node, Job job, string assig
     access.getAccessPath() = "needs." + needed.getId() + ".result" and
     result = getAssignedStatus(job, assignment, needed).getName()
   )
+  or
+  result = getAssignedOutputStringValue(node, job, assignment)
 }
 
 bindingset[left, operator, right]
@@ -459,32 +764,36 @@ private predicate compareAssignedStrings(string left, string operator, string ri
   operator = "!=" and left.toLowerCase() = right.toLowerCase() and outcome = false
 }
 
-private predicate containsAssignedNeedsResult(ExpressionNode node, Job job) {
+private predicate containsAssignedNeedsValue(ExpressionNode node, Job job) {
   exists(AccessExpression access, Job needed |
     access = node.getAChild*() and
     needed = job.getANeededJob() and
     access.getAccessPath() = "needs." + needed.getId() + ".result"
   )
-}
-
-private predicate jobConditionContainsAssignedNeedsResult(Job job) {
-  exists(If condition |
-    condition = job.getIf() and
-    exists(condition.getConditionExpr().getRoot()) and
-    containsAssignedNeedsResult(condition.getConditionExpr().getRoot(), job)
+  or
+  exists(ExpressionNode child, Job needed |
+    child = node.getAChild*() and exists(getReferencedStaticOutputStringValue(child, job, needed))
   )
 }
 
-private predicate belongsToAssignedNeedsResultCondition(ExpressionNode node) {
+private predicate jobConditionContainsAssignedNeedsValue(Job job) {
+  exists(If condition |
+    condition = job.getIf() and
+    exists(condition.getConditionExpr().getRoot()) and
+    containsAssignedNeedsValue(condition.getConditionExpr().getRoot(), job)
+  )
+}
+
+private predicate belongsToAssignedNeedsValueCondition(ExpressionNode node) {
   exists(Job job, If condition |
     condition = job.getIf() and
     node.getExpression() = condition.getConditionExpr() and
-    jobConditionContainsAssignedNeedsResult(job)
+    jobConditionContainsAssignedNeedsValue(job)
   )
 }
 
 private predicate mayEvaluateForNeedsStatus(ExpressionNode node, NeedsStatus status, boolean outcome) {
-  belongsToAssignedNeedsResultCondition(node) and
+  belongsToAssignedNeedsValueCondition(node) and
   (
     node instanceof ExpressionRoot and
     mayEvaluateForNeedsStatus(node.getChild(0), status, outcome)
@@ -570,7 +879,7 @@ private predicate mayEvaluateForAssignment(
   ) and
   assignment = getAConservativeNeededStatusAssignment(job) and
   (
-    not containsAssignedNeedsResult(node, job) and
+    not containsAssignedNeedsValue(node, job) and
     exists(NeedsStatus status |
       status = getAssignmentSummary(assignment) and
       mayEvaluateForNeedsStatus(node, status, outcome)
@@ -629,10 +938,17 @@ private predicate mayEvaluateForAssignment(
     outcome in [false, true]
     or
     node instanceof AccessExpression and
-    exists(getAssignedStringValue(node, job, assignment)) and
-    outcome = true
+    exists(string value | value = getAssignedStringValue(node, job, assignment) |
+      value = "" and outcome = false
+      or
+      value != "" and outcome = true
+    )
     or
-    containsAssignedNeedsResult(node, job) and
+    node instanceof AccessExpression and
+    not exists(getAssignedStringValue(node, job, assignment)) and
+    outcome in [false, true]
+    or
+    containsAssignedNeedsValue(node, job) and
     not node instanceof ExpressionRoot and
     not node instanceof UnaryExpression and
     not node instanceof BinaryExpression and
@@ -655,16 +971,6 @@ private string getAConservativeNeededStatusAssignmentPrefix(Job job, int length)
 
 private string getAConservativeNeededStatusAssignment(Job job) {
   result = getAConservativeNeededStatusAssignmentPrefix(job, count(job.getANeededJob()))
-}
-
-private predicate summaryIncludesStatus(NeedsStatus summary, JobStatus status) {
-  status instanceof SuccessStatus
-  or
-  status instanceof FailureStatus and summary.hasFailure() = true
-  or
-  status instanceof CancelledStatus and summary.hasCancellation() = true
-  or
-  status instanceof SkippedStatus and summary.hasSkip() = true
 }
 
 bindingset[job, event, assignment]
@@ -715,13 +1021,13 @@ bindingset[job, event]
 predicate jobMayExecuteForEvent(Job job, Event event) {
   job.getATriggerEvent() = event and
   (
-    not jobConditionContainsAssignedNeedsResult(job) and
+    not jobConditionContainsAssignedNeedsValue(job) and
     exists(NeedsStatus needsStatus |
       needsStatusMayOccurForEvent(job, event, needsStatus) and
       decisionMayHaveOutcome(job, event, needsStatus, true)
     )
     or
-    jobConditionContainsAssignedNeedsResult(job) and
+    jobConditionContainsAssignedNeedsValue(job) and
     exists(string assignment |
       assignment = getANeededStatusAssignment(job, event) and
       decisionMayHaveOutcomeForAssignment(job, event, assignment, true)
@@ -734,17 +1040,21 @@ bindingset[job, event]
 predicate jobMayCompleteForEvent(Job job, Event event, JobStatus status) {
   job.getATriggerEvent() = event and
   (
-    jobMayExecuteForEvent(job, event) and not status instanceof SkippedStatus
+    jobMayExecuteForEvent(job, event) and
+    exists(JobStatus outcome |
+      not outcome instanceof SkippedStatus and
+      status = getAJobConclusionForOutcome(job, event, outcome)
+    )
     or
     status instanceof SkippedStatus and
     (
-      not jobConditionContainsAssignedNeedsResult(job) and
+      not jobConditionContainsAssignedNeedsValue(job) and
       exists(NeedsStatus needsStatus |
         needsStatusMayOccurForEvent(job, event, needsStatus) and
         decisionMayHaveOutcome(job, event, needsStatus, false)
       )
       or
-      jobConditionContainsAssignedNeedsResult(job) and
+      jobConditionContainsAssignedNeedsValue(job) and
       exists(string assignment |
         assignment = getANeededStatusAssignment(job, event) and
         decisionMayHaveOutcomeForAssignment(job, event, assignment, false)
@@ -758,19 +1068,10 @@ private predicate jobMayExecuteWithDirectNeededStatus(
 ) {
   neededJob = job.getANeededJob() and
   job.getATriggerEvent() = event and
-  (
-    not jobConditionContainsAssignedNeedsResult(job) and
-    exists(NeedsStatus status |
-      summaryIncludesStatus(status, neededStatus) and
-      decisionMayHaveOutcome(job, event, status, true)
-    )
-    or
-    jobConditionContainsAssignedNeedsResult(job) and
-    exists(string assignment |
-      assignment = getAConservativeNeededStatusAssignment(job) and
-      getAssignedStatus(job, assignment, neededJob) = neededStatus and
-      decisionMayHaveOutcomeForAssignment(job, event, assignment, true)
-    )
+  exists(string assignment |
+    assignment = getANeededStatusAssignment(job, event) and
+    getAssignedStatus(job, assignment, neededJob) = neededStatus and
+    decisionMayHaveOutcomeForExactAssignment(job, event, assignment, true)
   )
 }
 
@@ -812,11 +1113,31 @@ private predicate synchronizationSuccessor(Node predecessor, Node successor) {
     successor = join
   )
   or
+  exists(MatrixJobFanInNode fanIn, NeedsJoinNode join |
+    predecessor = fanIn and
+    fanIn.getJob() = join.getARequiredJob() and
+    successor = join
+  )
+  or
   exists(NeedsJoinNode join, JobDecisionNode decision |
     predecessor = join and decision.getJob() = join.getJob() and successor = decision
   )
   or
   exists(JobDecisionNode decision, JobExecutionNode execution |
+    predecessor = decision and
+    execution.getJob() = decision.getJob() and
+    decisionMayHaveOutcome(decision.getJob(), true) and
+    successor = execution
+  )
+  or
+  exists(JobDecisionNode decision, WorkflowEntryNode entry |
+    predecessor = decision and
+    entry.getWorkflow() = getCalledReusableWorkflow(decision.getJob()) and
+    decisionMayHaveOutcome(decision.getJob(), true) and
+    successor = entry
+  )
+  or
+  exists(JobDecisionNode decision, MatrixJobExecutionNode execution |
     predecessor = decision and
     execution.getJob() = decision.getJob() and
     decisionMayHaveOutcome(decision.getJob(), true) and
@@ -838,11 +1159,37 @@ private predicate synchronizationSuccessor(Node predecessor, Node successor) {
     successor = completion
   )
   or
+  exists(MatrixJobExecutionNode execution, MatrixJobCompletionNode completion |
+    predecessor = execution and
+    completion.getInstance() = execution.getInstance() and
+    successor = completion
+  )
+  or
+  exists(MatrixJobCompletionNode completion, MatrixJobFanInNode fanIn |
+    predecessor = completion and
+    completion.getJob() = fanIn.getJob() and
+    successor = fanIn
+  )
+  or
   exists(JobCompletionNode completion, WorkflowExitNode exit |
     predecessor = completion and
     isTerminalJob(completion.getJob()) and
     completion.getJob().getWorkflow() = exit.getWorkflow() and
     successor = exit
+  )
+  or
+  exists(MatrixJobFanInNode fanIn, WorkflowExitNode exit |
+    predecessor = fanIn and
+    isTerminalJob(fanIn.getJob()) and
+    fanIn.getJob().getWorkflow() = exit.getWorkflow() and
+    successor = exit
+  )
+  or
+  exists(WorkflowExitNode exit, JobCompletionNode completion |
+    predecessor = exit and
+    exit.getWorkflow() = getCalledReusableWorkflow(completion.getJob()) and
+    not completion.getStatus() instanceof SkippedStatus and
+    successor = completion
   )
 }
 
@@ -861,14 +1208,24 @@ private predicate synchronizationSuccessorForEvent(Node predecessor, Node succes
   exists(JobDecisionNode decision, JobExecutionNode execution |
     predecessor = decision and
     execution.getJob() = decision.getJob() and
+    needsStatusMayOccurForEvent(decision.getJob(), event, decision.getNeedsStatus()) and
     decisionMayHaveOutcome(decision.getJob(), event, decision.getNeedsStatus(), true) and
     successor = execution
+  )
+  or
+  exists(JobDecisionNode decision, WorkflowEntryNode entry |
+    predecessor = decision and
+    entry.getWorkflow() = getCalledReusableWorkflow(decision.getJob()) and
+    needsStatusMayOccurForEvent(decision.getJob(), event, decision.getNeedsStatus()) and
+    decisionMayHaveOutcome(decision.getJob(), event, decision.getNeedsStatus(), true) and
+    successor = entry
   )
   or
   exists(JobDecisionNode decision, JobCompletionNode completion |
     predecessor = decision and
     completion.getJob() = decision.getJob() and
     completion.getStatus() instanceof SkippedStatus and
+    needsStatusMayOccurForEvent(decision.getJob(), event, decision.getNeedsStatus()) and
     decisionMayHaveOutcome(decision.getJob(), event, decision.getNeedsStatus(), false) and
     successor = completion
   )

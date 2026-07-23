@@ -1,0 +1,14 @@
+"on":
+  workflow_call:
+
+jobs:
+  reusable-root:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo reusable root
+
+  reusable-terminal:
+    needs: reusable-root
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo reusable terminal

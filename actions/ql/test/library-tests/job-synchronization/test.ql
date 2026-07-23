@@ -47,7 +47,9 @@ query predicate knownStatusDecisionEdges(string job, string status, string succe
       [
         "dependent", "always-dependent", "success-dependent", "failure-dependent",
         "cancelled-dependent", "not-success-dependent", "combined-dependent", "transitive-combined",
-        "named-results", "unknown-named-result", "terminal"
+        "named-results", "unknown-named-result", "output-default-dependent",
+        "output-always-dependent", "output-blocked-dependent", "output-dynamic-dependent",
+        "terminal", "output-empty-dependent", "output-boolean-dependent", "output-skipped-dependent"
       ] and
     status = decision.getNeedsStatus().getName() and
     successor = decision.getASuccessor(event).toString()
@@ -65,6 +67,78 @@ query predicate executionCompletions(string job, string status) {
 query predicate executionCfgNodes(string job, Job cfgJob) {
   exists(JobExecutionNode execution |
     job = execution.getJob().getId() and cfgJob = execution.getCfgNode().getAstNode()
+  )
+}
+
+query predicate matrixExecutions(string job, string instance) {
+  exists(MatrixJobExecutionNode execution |
+    job = execution.getJob().getId() and instance = execution.getInstance().toString()
+  )
+}
+
+query predicate matrixFanInRequirements(string job, string requiredJob, string status) {
+  exists(NeedsJoinNode join, MatrixJobFanInNode fanIn |
+    fanIn = join.getARequiredMatrixFanIn() and
+    job = join.getJob().getId() and
+    requiredJob = fanIn.getJob().getId() and
+    status = fanIn.getStatus().getName()
+  )
+}
+
+query predicate continueOnErrorTransformations(
+  string scope, string id, string outcome, string conclusion
+) {
+  exists(Job job, Event event, FailureStatus failure |
+    event = job.getEnclosingWorkflow().getOn().getAnEvent() and
+    event.getName() = "push" and
+    job.getId() = ["continue-true", "continue-false", "continue-dynamic"] and
+    scope = "job" and
+    id = job.getId() and
+    outcome = failure.getName() and
+    conclusion = getAJobConclusionForOutcome(job, event, failure).getName()
+  )
+  or
+  exists(Step step, Event event, FailureStatus failure |
+    event = step.getEnclosingWorkflow().getOn().getAnEvent() and
+    event.getName() = "push" and
+    step.getId() = ["step-continue-true", "step-continue-false", "step-continue-dynamic"] and
+    scope = "step" and
+    id = step.getId() and
+    outcome = failure.getName() and
+    conclusion = getAStepConclusionForOutcome(step, event, failure).getName()
+  )
+}
+
+query predicate continueOnErrorCompletionStatuses(string job, string status) {
+  exists(JobCompletionNode completion |
+    completion.getJob().getId() = ["continue-true", "continue-false", "continue-dynamic"] and
+    job = completion.getJob().getId() and
+    status = completion.getStatus().getName()
+  )
+}
+
+query predicate reusableWorkflowBoundaryEdges(string caller, string boundary, string successor) {
+  exists(ExternalJob external, ReusableWorkflow callee, JobDecisionNode decision,
+    WorkflowEntryNode entry, Event event |
+    callee.getACaller() = external and
+    decision.getJob() = external and
+    entry.getWorkflow() = callee and
+    entry = decision.getASuccessor(event) and
+    event.getName() = "push" and
+    caller = external.getId() and
+    boundary = "callee-entry" and
+    successor = entry.toString()
+  )
+  or
+  exists(ExternalJob external, ReusableWorkflow callee, WorkflowExitNode exit,
+    JobCompletionNode completion |
+    callee.getACaller() = external and
+    exit.getWorkflow() = callee and
+    completion = exit.getASuccessor() and
+    completion.getJob() = external and
+    caller = external.getId() and
+    boundary = "caller-completion" and
+    successor = completion.toString()
   )
 }
 
@@ -94,6 +168,16 @@ query predicate requiredSuccessfulJobs(string job, string requiredJob) {
   exists(Job dependent, Job required, Event event |
     dependent.getId() = job and
     required.getId() = requiredJob and
+    event = dependent.getEnclosingWorkflow().getOn().getAnEvent() and
+    event.getName() = "push" and
+    jobExecutionRequiresSuccessfulCompletionOf(dependent, required, event)
+  )
+}
+
+query predicate exactCorrelatedRequiredSuccessfulJobs(string requiredJob) {
+  exists(Job dependent, Job required, Event event |
+    dependent.getId() = "correlated-dependent" and
+    requiredJob = required.getId() and
     event = dependent.getEnclosingWorkflow().getOn().getAnEvent() and
     event.getName() = "push" and
     jobExecutionRequiresSuccessfulCompletionOf(dependent, required, event)
