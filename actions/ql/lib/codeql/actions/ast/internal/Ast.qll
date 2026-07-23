@@ -878,6 +878,18 @@ class StrategyImpl extends AstNodeImpl, TStrategyNode {
     result = count(n.lookup("matrix").(YamlMapping).lookup(name).(YamlSequence).getElementNode(_))
   }
 
+  string getMatrixDimensionValue(string name, int index) {
+    name = this.getAMatrixDimensionName() and
+    result =
+      n.lookup("matrix")
+          .(YamlMapping)
+          .lookup(name)
+          .(YamlSequence)
+          .getElementNode(index)
+          .(YamlScalar)
+          .getValue()
+  }
+
   predicate hasStaticCartesianMatrix() {
     exists(this.getAMatrixDimensionName()) and
     not exists(n.lookup("matrix").(YamlMapping).lookup(["include", "exclude"])) and

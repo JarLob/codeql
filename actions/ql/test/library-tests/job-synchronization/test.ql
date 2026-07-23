@@ -106,7 +106,11 @@ query predicate continueOnErrorTransformations(
   exists(Step step, Event event, FailureStatus failure |
     event = step.getEnclosingWorkflow().getOn().getAnEvent() and
     event.getName() = "push" and
-    step.getId() = ["step-continue-true", "step-continue-false", "step-continue-dynamic"] and
+    step.getId() =
+      [
+        "step-continue-true", "step-continue-false", "step-continue-dynamic",
+        "step-continue-only"
+      ] and
     scope = "step" and
     id = step.getId() and
     outcome = failure.getName() and
@@ -116,9 +120,109 @@ query predicate continueOnErrorTransformations(
 
 query predicate continueOnErrorCompletionStatuses(string job, string status) {
   exists(JobCompletionNode completion |
-    completion.getJob().getId() = ["continue-true", "continue-false", "continue-dynamic"] and
+    completion.getJob().getId() =
+      ["continue-true", "continue-false", "continue-dynamic", "step-continue-only"] and
     job = completion.getJob().getId() and
     status = completion.getStatus().getName()
+  )
+}
+
+query predicate eventCompletionStatuses(string job, string status) {
+  exists(Job completedJob, Event event, JobStatus completionStatus |
+    completedJob.getId() =
+      [
+        "continue-true", "continue-false", "continue-dynamic", "step-continue-only",
+        "matrix-continue-true", "matrix-job-continue-expression",
+        "matrix-step-continue-expression"
+      ] and
+    event.getName() = "push" and
+    jobMayCompleteForEvent(completedJob, event, completionStatus) and
+    job = completedJob.getId() and
+    status = completionStatus.getName()
+  )
+}
+
+query predicate completionOutcomes(string job, string conclusion, string outcome) {
+  exists(JobCompletionNode completion, Event event |
+    completion.getJob().getId() =
+      ["continue-true", "continue-false", "continue-dynamic", "step-continue-only"] and
+    event.getName() = "push" and
+    job = completion.getJob().getId() and
+    conclusion = completion.getStatus().getName() and
+    outcome = completion.getAOutcome(event).getName()
+  )
+}
+
+query predicate contributingStepOutcomes(
+  string job, string step, string conclusion, string outcome
+) {
+  exists(JobCompletionNode completion, Step completedStep, Event event |
+    completion.getJob().getId() =
+      ["continue-true", "continue-false", "continue-dynamic", "step-continue-only"] and
+    completedStep.getEnclosingJob() = completion.getJob() and
+    completedStep.getId() =
+      ["step-continue-true", "step-continue-false", "step-continue-dynamic", "step-continue-only"] and
+    event.getName() = "push" and
+    job = completion.getJob().getId() and
+    step = completedStep.getId() and
+    conclusion = completion.getStatus().getName() and
+    outcome = completion.getAContributingStepOutcome(completedStep, event).getName()
+  )
+}
+
+query predicate matrixContinueOnErrorTransformations(
+  string scope, string instance, string outcome, string conclusion
+) {
+  exists(MatrixJobInstance matrixInstance, Event event, FailureStatus failure |
+    matrixInstance.getJob().getId() = "matrix-job-continue-expression" and
+    event.getName() = "push" and
+    scope = "job" and
+    instance = matrixInstance.toString() and
+    outcome = failure.getName() and
+    conclusion =
+      getAMatrixJobConclusionForOutcome(matrixInstance, event, failure).getName()
+  )
+  or
+  exists(MatrixJobInstance matrixInstance, Step step, Event event, FailureStatus failure |
+    matrixInstance.getJob().getId() = "matrix-step-continue-expression" and
+    step.getEnclosingJob() = matrixInstance.getJob() and
+    step.getId() = "matrix-step-continue" and
+    event.getName() = "push" and
+    scope = "step" and
+    instance = matrixInstance.toString() and
+    outcome = failure.getName() and
+    conclusion =
+      getAMatrixStepConclusionForOutcome(step, matrixInstance, event, failure).getName()
+  )
+}
+
+query predicate matrixContinueOnErrorCompletionOutcomes(
+  string job, string instance, string conclusion, string outcome
+) {
+  exists(MatrixJobCompletionNode completion, Event event |
+    completion.getJob().getId() =
+      ["matrix-job-continue-expression", "matrix-step-continue-expression"] and
+    event.getName() = "push" and
+    job = completion.getJob().getId() and
+    instance = completion.getInstance().toString() and
+    conclusion = completion.getStatus().getName() and
+    outcome = completion.getAOutcome(event).getName()
+  )
+}
+
+query predicate matrixContributingStepOutcomes(
+  string job, string instance, string step, string conclusion, string outcome
+) {
+  exists(MatrixJobCompletionNode completion, Step completedStep, Event event |
+    completion.getJob().getId() =
+      ["matrix-job-continue-expression", "matrix-step-continue-expression"] and
+    completedStep.getEnclosingJob() = completion.getJob() and
+    event.getName() = "push" and
+    job = completion.getJob().getId() and
+    instance = completion.getInstance().toString() and
+    step = completedStep.getId() and
+    conclusion = completion.getStatus().getName() and
+    outcome = completion.getAContributingStepOutcome(completedStep, event).getName()
   )
 }
 

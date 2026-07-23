@@ -335,6 +335,8 @@ decisionEdges
 | matrix-dependent | complete matrix-dependent as skipped |
 | matrix-dependent | execute matrix-dependent |
 | matrix-dynamic | execute matrix-dynamic[*] |
+| matrix-job-continue-expression | execute matrix-job-continue-expression[experimental=0] |
+| matrix-job-continue-expression | execute matrix-job-continue-expression[experimental=1] |
 | matrix-output-blocked | complete matrix-output-blocked as skipped |
 | matrix-output-blocked | execute matrix-output-blocked |
 | matrix-output-dynamic | complete matrix-output-dynamic as skipped |
@@ -346,6 +348,8 @@ decisionEdges
 | matrix-root | execute matrix-root[os=0,version=1] |
 | matrix-root | execute matrix-root[os=1,version=0] |
 | matrix-root | execute matrix-root[os=1,version=1] |
+| matrix-step-continue-expression | execute matrix-step-continue-expression[experimental=0] |
+| matrix-step-continue-expression | execute matrix-step-continue-expression[experimental=1] |
 | mixed-dependent | complete mixed-dependent as skipped |
 | mixed-dependent | execute mixed-dependent |
 | named-results | complete named-results as skipped |
@@ -379,6 +383,7 @@ decisionEdges
 | root-b | execute root-b |
 | skipped-output-source | complete skipped-output-source as skipped |
 | skipped-output-source | execute skipped-output-source |
+| step-continue-only | execute step-continue-only |
 | success-dependent | complete success-dependent as skipped |
 | success-dependent | execute success-dependent |
 | terminal | complete terminal as skipped |
@@ -452,6 +457,7 @@ pushDecisionEdges
 | root-a | execute root-a |
 | root-b | execute root-b |
 | skipped-output-source | complete skipped-output-source as skipped |
+| step-continue-only | execute step-continue-only |
 | success-dependent | complete success-dependent as skipped |
 | success-dependent | execute success-dependent |
 | terminal | complete terminal as skipped |
@@ -687,6 +693,8 @@ executionCompletions
 | skipped-output-source | cancelled |
 | skipped-output-source | failure |
 | skipped-output-source | success |
+| step-continue-only | cancelled |
+| step-continue-only | success |
 | success-dependent | cancelled |
 | success-dependent | failure |
 | success-dependent | success |
@@ -700,60 +708,65 @@ executionCompletions
 | unknown-named-result | failure |
 | unknown-named-result | success |
 executionCfgNodes
-| after-nested-reusable | .github/workflows/test.yml:174:5:180:2 | Job: after-nested-reusable |
-| after-reusable | .github/workflows/test.yml:143:5:149:2 | Job: after-reusable |
-| after-reusable-blocked | .github/workflows/test.yml:150:5:156:2 | Job: after-reusable-blocked |
-| after-reusable-direct | .github/workflows/test.yml:157:5:163:2 | Job: after-reusable-direct |
-| after-reusable-dynamic | .github/workflows/test.yml:164:5:170:2 | Job: after-reusable-dynamic |
-| always-dependent | .github/workflows/test.yml:209:5:215:2 | Job: always-dependent |
-| cancelled-dependent | .github/workflows/test.yml:230:5:236:2 | Job: cancelled-dependent |
-| combined-dependent | .github/workflows/test.yml:244:5:250:2 | Job: combined-dependent |
-| continue-dynamic | .github/workflows/test.yml:111:5:118:2 | Job: continue-dynamic |
-| continue-dynamic-result-dependent | .github/workflows/test.yml:133:5:139:2 | Job: continue-dynamic-result-dependent |
-| continue-false | .github/workflows/test.yml:103:5:110:2 | Job: continue-false |
-| continue-true | .github/workflows/test.yml:95:5:102:2 | Job: continue-true |
-| continue-true-failure-dependent | .github/workflows/test.yml:126:5:132:2 | Job: continue-true-failure-dependent |
-| continue-true-success-dependent | .github/workflows/test.yml:119:5:125:2 | Job: continue-true-success-dependent |
-| correlated-dependent | .github/workflows/test.yml:187:5:193:2 | Job: correlated-dependent |
-| correlated-gate | .github/workflows/test.yml:181:5:186:2 | Job: correlated-gate |
-| dependent | .github/workflows/test.yml:202:5:208:2 | Job: dependent |
-| failure-dependent | .github/workflows/test.yml:223:5:229:2 | Job: failure-dependent |
+| after-nested-reusable | .github/workflows/test.yml:201:5:207:2 | Job: after-nested-reusable |
+| after-reusable | .github/workflows/test.yml:170:5:176:2 | Job: after-reusable |
+| after-reusable-blocked | .github/workflows/test.yml:177:5:183:2 | Job: after-reusable-blocked |
+| after-reusable-direct | .github/workflows/test.yml:184:5:190:2 | Job: after-reusable-direct |
+| after-reusable-dynamic | .github/workflows/test.yml:191:5:197:2 | Job: after-reusable-dynamic |
+| always-dependent | .github/workflows/test.yml:236:5:242:2 | Job: always-dependent |
+| cancelled-dependent | .github/workflows/test.yml:257:5:263:2 | Job: cancelled-dependent |
+| combined-dependent | .github/workflows/test.yml:271:5:277:2 | Job: combined-dependent |
+| continue-dynamic | .github/workflows/test.yml:131:5:138:2 | Job: continue-dynamic |
+| continue-dynamic-result-dependent | .github/workflows/test.yml:160:5:166:2 | Job: continue-dynamic-result-dependent |
+| continue-false | .github/workflows/test.yml:123:5:130:2 | Job: continue-false |
+| continue-true | .github/workflows/test.yml:115:5:122:2 | Job: continue-true |
+| continue-true-failure-dependent | .github/workflows/test.yml:153:5:159:2 | Job: continue-true-failure-dependent |
+| continue-true-success-dependent | .github/workflows/test.yml:146:5:152:2 | Job: continue-true-success-dependent |
+| correlated-dependent | .github/workflows/test.yml:214:5:220:2 | Job: correlated-dependent |
+| correlated-gate | .github/workflows/test.yml:208:5:213:2 | Job: correlated-gate |
+| dependent | .github/workflows/test.yml:229:5:235:2 | Job: dependent |
+| failure-dependent | .github/workflows/test.yml:250:5:256:2 | Job: failure-dependent |
 | matrix-continue-dependent | .github/workflows/test.yml:89:5:94:2 | Job: matrix-continue-dependent |
 | matrix-dependent | .github/workflows/test.yml:37:5:42:2 | Job: matrix-dependent |
 | matrix-output-blocked | .github/workflows/test.yml:50:5:56:2 | Job: matrix-output-blocked |
 | matrix-output-dynamic | .github/workflows/test.yml:57:5:63:2 | Job: matrix-output-dynamic |
 | matrix-output-enabled | .github/workflows/test.yml:43:5:49:2 | Job: matrix-output-enabled |
-| mixed-dependent | .github/workflows/test.yml:251:5:257:2 | Job: mixed-dependent |
-| named-results | .github/workflows/test.yml:265:5:275:2 | Job: named-results |
-| not-success-dependent | .github/workflows/test.yml:237:5:243:2 | Job: not-success-dependent |
-| output-always-dependent | .github/workflows/test.yml:290:5:300:2 | Job: output-always-dependent |
-| output-blocked-dependent | .github/workflows/test.yml:301:5:307:2 | Job: output-blocked-dependent |
-| output-boolean-dependent | .github/workflows/test.yml:341:5:347:2 | Job: output-boolean-dependent |
-| output-default-dependent | .github/workflows/test.yml:283:5:289:2 | Job: output-default-dependent |
-| output-dynamic-dependent | .github/workflows/test.yml:322:5:331:2 | Job: output-dynamic-dependent |
-| output-empty-dependent | .github/workflows/test.yml:332:5:340:2 | Job: output-empty-dependent |
-| output-failure-dependent | .github/workflows/test.yml:315:5:321:2 | Job: output-failure-dependent |
-| output-negated-dependent | .github/workflows/test.yml:308:5:314:2 | Job: output-negated-dependent |
-| output-skipped-dependent | .github/workflows/test.yml:348:5:354:2 | Job: output-skipped-dependent |
+| mixed-dependent | .github/workflows/test.yml:278:5:284:2 | Job: mixed-dependent |
+| named-results | .github/workflows/test.yml:292:5:302:2 | Job: named-results |
+| not-success-dependent | .github/workflows/test.yml:264:5:270:2 | Job: not-success-dependent |
+| output-always-dependent | .github/workflows/test.yml:317:5:327:2 | Job: output-always-dependent |
+| output-blocked-dependent | .github/workflows/test.yml:328:5:334:2 | Job: output-blocked-dependent |
+| output-boolean-dependent | .github/workflows/test.yml:368:5:374:2 | Job: output-boolean-dependent |
+| output-default-dependent | .github/workflows/test.yml:310:5:316:2 | Job: output-default-dependent |
+| output-dynamic-dependent | .github/workflows/test.yml:349:5:358:2 | Job: output-dynamic-dependent |
+| output-empty-dependent | .github/workflows/test.yml:359:5:367:2 | Job: output-empty-dependent |
+| output-failure-dependent | .github/workflows/test.yml:342:5:348:2 | Job: output-failure-dependent |
+| output-negated-dependent | .github/workflows/test.yml:335:5:341:2 | Job: output-negated-dependent |
+| output-skipped-dependent | .github/workflows/test.yml:375:5:381:2 | Job: output-skipped-dependent |
 | reusable-root | .github/workflows/reusable.yml:15:5:19:2 | Job: reusable-root |
 | reusable-skipped-terminal | .github/workflows/reusable.yml:20:5:25:2 | Job: reusable-skipped-terminal |
 | reusable-terminal | .github/workflows/reusable.yml:26:5:34:36 | Job: reusable-terminal |
 | root-a | .github/workflows/test.yml:6:5:18:2 | Job: root-a |
 | root-b | .github/workflows/test.yml:19:5:23:2 | Job: root-b |
-| skipped-output-source | .github/workflows/test.yml:194:5:201:2 | Job: skipped-output-source |
-| success-dependent | .github/workflows/test.yml:216:5:222:2 | Job: success-dependent |
-| terminal | .github/workflows/test.yml:355:5:358:26 | Job: terminal |
-| transitive-combined | .github/workflows/test.yml:258:5:264:2 | Job: transitive-combined |
-| unknown-named-result | .github/workflows/test.yml:276:5:282:2 | Job: unknown-named-result |
+| skipped-output-source | .github/workflows/test.yml:221:5:228:2 | Job: skipped-output-source |
+| step-continue-only | .github/workflows/test.yml:139:5:145:2 | Job: step-continue-only |
+| success-dependent | .github/workflows/test.yml:243:5:249:2 | Job: success-dependent |
+| terminal | .github/workflows/test.yml:382:5:385:26 | Job: terminal |
+| transitive-combined | .github/workflows/test.yml:285:5:291:2 | Job: transitive-combined |
+| unknown-named-result | .github/workflows/test.yml:303:5:309:2 | Job: unknown-named-result |
 matrixExecutions
 | matrix-continue-true | matrix-continue-true[version=0] |
 | matrix-continue-true | matrix-continue-true[version=1] |
 | matrix-dynamic | matrix-dynamic[*] |
+| matrix-job-continue-expression | matrix-job-continue-expression[experimental=0] |
+| matrix-job-continue-expression | matrix-job-continue-expression[experimental=1] |
 | matrix-over-cap | matrix-over-cap[*] |
 | matrix-root | matrix-root[os=0,version=0] |
 | matrix-root | matrix-root[os=0,version=1] |
 | matrix-root | matrix-root[os=1,version=0] |
 | matrix-root | matrix-root[os=1,version=1] |
+| matrix-step-continue-expression | matrix-step-continue-expression[experimental=0] |
+| matrix-step-continue-expression | matrix-step-continue-expression[experimental=1] |
 matrixFanInRequirements
 | matrix-continue-dependent | matrix-continue-true | cancelled |
 | matrix-continue-dependent | matrix-continue-true | success |
@@ -777,6 +790,7 @@ continueOnErrorTransformations
 | step | step-continue-dynamic | failure | failure |
 | step | step-continue-dynamic | failure | success |
 | step | step-continue-false | failure | failure |
+| step | step-continue-only | failure | success |
 | step | step-continue-true | failure | success |
 continueOnErrorCompletionStatuses
 | continue-dynamic | cancelled |
@@ -787,6 +801,84 @@ continueOnErrorCompletionStatuses
 | continue-false | success |
 | continue-true | cancelled |
 | continue-true | success |
+| step-continue-only | cancelled |
+| step-continue-only | success |
+eventCompletionStatuses
+| continue-dynamic | cancelled |
+| continue-dynamic | failure |
+| continue-dynamic | success |
+| continue-false | cancelled |
+| continue-false | failure |
+| continue-false | success |
+| continue-true | cancelled |
+| continue-true | success |
+| matrix-continue-true | cancelled |
+| matrix-continue-true | success |
+| matrix-job-continue-expression | cancelled |
+| matrix-job-continue-expression | failure |
+| matrix-job-continue-expression | success |
+| matrix-step-continue-expression | cancelled |
+| matrix-step-continue-expression | failure |
+| matrix-step-continue-expression | success |
+| step-continue-only | cancelled |
+| step-continue-only | success |
+completionOutcomes
+| continue-dynamic | cancelled | cancelled |
+| continue-dynamic | failure | failure |
+| continue-dynamic | success | failure |
+| continue-dynamic | success | success |
+| continue-false | cancelled | cancelled |
+| continue-false | failure | failure |
+| continue-false | success | success |
+| continue-true | cancelled | cancelled |
+| continue-true | success | failure |
+| continue-true | success | success |
+| step-continue-only | cancelled | cancelled |
+| step-continue-only | success | success |
+contributingStepOutcomes
+| continue-dynamic | step-continue-dynamic | cancelled | cancelled |
+| continue-dynamic | step-continue-dynamic | failure | failure |
+| continue-dynamic | step-continue-dynamic | success | failure |
+| continue-dynamic | step-continue-dynamic | success | success |
+| continue-false | step-continue-false | cancelled | cancelled |
+| continue-false | step-continue-false | failure | failure |
+| continue-false | step-continue-false | success | success |
+| continue-true | step-continue-true | cancelled | cancelled |
+| continue-true | step-continue-true | success | failure |
+| continue-true | step-continue-true | success | success |
+| step-continue-only | step-continue-only | cancelled | cancelled |
+| step-continue-only | step-continue-only | success | failure |
+| step-continue-only | step-continue-only | success | success |
+matrixContinueOnErrorTransformations
+| job | matrix-job-continue-expression[experimental=0] | failure | success |
+| job | matrix-job-continue-expression[experimental=1] | failure | failure |
+| step | matrix-step-continue-expression[experimental=0] | failure | success |
+| step | matrix-step-continue-expression[experimental=1] | failure | failure |
+matrixContinueOnErrorCompletionOutcomes
+| matrix-job-continue-expression | matrix-job-continue-expression[experimental=0] | cancelled | cancelled |
+| matrix-job-continue-expression | matrix-job-continue-expression[experimental=0] | success | failure |
+| matrix-job-continue-expression | matrix-job-continue-expression[experimental=0] | success | success |
+| matrix-job-continue-expression | matrix-job-continue-expression[experimental=1] | cancelled | cancelled |
+| matrix-job-continue-expression | matrix-job-continue-expression[experimental=1] | failure | failure |
+| matrix-job-continue-expression | matrix-job-continue-expression[experimental=1] | success | success |
+| matrix-step-continue-expression | matrix-step-continue-expression[experimental=0] | cancelled | cancelled |
+| matrix-step-continue-expression | matrix-step-continue-expression[experimental=0] | success | success |
+| matrix-step-continue-expression | matrix-step-continue-expression[experimental=1] | cancelled | cancelled |
+| matrix-step-continue-expression | matrix-step-continue-expression[experimental=1] | failure | failure |
+| matrix-step-continue-expression | matrix-step-continue-expression[experimental=1] | success | success |
+matrixContributingStepOutcomes
+| matrix-job-continue-expression | matrix-job-continue-expression[experimental=0] | matrix-job-step | cancelled | cancelled |
+| matrix-job-continue-expression | matrix-job-continue-expression[experimental=0] | matrix-job-step | success | failure |
+| matrix-job-continue-expression | matrix-job-continue-expression[experimental=0] | matrix-job-step | success | success |
+| matrix-job-continue-expression | matrix-job-continue-expression[experimental=1] | matrix-job-step | cancelled | cancelled |
+| matrix-job-continue-expression | matrix-job-continue-expression[experimental=1] | matrix-job-step | failure | failure |
+| matrix-job-continue-expression | matrix-job-continue-expression[experimental=1] | matrix-job-step | success | success |
+| matrix-step-continue-expression | matrix-step-continue-expression[experimental=0] | matrix-step-continue | cancelled | cancelled |
+| matrix-step-continue-expression | matrix-step-continue-expression[experimental=0] | matrix-step-continue | success | failure |
+| matrix-step-continue-expression | matrix-step-continue-expression[experimental=0] | matrix-step-continue | success | success |
+| matrix-step-continue-expression | matrix-step-continue-expression[experimental=1] | matrix-step-continue | cancelled | cancelled |
+| matrix-step-continue-expression | matrix-step-continue-expression[experimental=1] | matrix-step-continue | failure | failure |
+| matrix-step-continue-expression | matrix-step-continue-expression[experimental=1] | matrix-step-continue | success | success |
 reusableWorkflowBoundaryEdges
 | call-inner | callee-entry | enter jobs in "on": |
 | call-inner | caller-completion | complete call-inner as cancelled |
@@ -816,13 +908,16 @@ workflowBoundaries
 | entry | continue-true |
 | entry | matrix-continue-true |
 | entry | matrix-dynamic |
+| entry | matrix-job-continue-expression |
 | entry | matrix-over-cap |
 | entry | matrix-root |
+| entry | matrix-step-continue-expression |
 | entry | reusable-root |
 | entry | reusable-skipped-terminal |
 | entry | root-a |
 | entry | root-b |
 | entry | skipped-output-source |
+| entry | step-continue-only |
 | exit | after-nested-reusable |
 | exit | after-reusable |
 | exit | after-reusable-blocked |
@@ -856,6 +951,7 @@ workflowBoundaries
 | exit | output-skipped-dependent |
 | exit | reusable-skipped-terminal |
 | exit | reusable-terminal |
+| exit | step-continue-only |
 | exit | success-dependent |
 | exit | terminal |
 | exit | transitive-combined |

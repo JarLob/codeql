@@ -94,6 +94,20 @@ private predicate jobAlwaysContinuesOnError(Job job) {
   getStaticContinueOnErrorValue(job.getContinueOnErrorExpr(), true)
 }
 
+private predicate stepAlwaysContinuesOnError(Step step) {
+  step.getContinueOnErrorValue().toLowerCase() = "true"
+  or
+  getStaticContinueOnErrorValue(step.getContinueOnErrorExpr(), true)
+}
+
+private predicate jobAlwaysMasksStepFailures(Job job) {
+  jobAlwaysContinuesOnError(job)
+  or
+  job instanceof LocalJob and
+  exists(job.(LocalJob).getAStep()) and
+  forall(Step step | step = job.(LocalJob).getAStep() | stepAlwaysContinuesOnError(step))
+}
+
 /** Gets a possible effective conclusion after applying a job's `continue-on-error`. */
 bindingset[job, event, outcome]
 JobStatus getAJobConclusionForOutcome(Job job, Event event, JobStatus outcome) {
@@ -254,7 +268,142 @@ class MatrixJobInstance extends TMatrixJobInstance {
 
   string getAssignment() { this = TConcreteMatrixJobInstance(_, result) }
 
+  int getDimensionIndex(string name) {
+    exists(string component |
+      component = this.getAssignment().splitAt(",") and
+      component.splitAt("=", 0) = name and
+      result = component.splitAt("=", 1).toInt()
+    )
+  }
+
+  string getMatrixValue(string name) {
+    result = this.getJob().getStrategy().getMatrixDimensionValue(name, this.getDimensionIndex(name))
+  }
+
   string toString() { result = this.getJob().getId() + "[" + this.getAssignment() + "]" }
+}
+
+private predicate getInstanceContinueOnErrorValue(
+  Expression expression, MatrixJobInstance instance, boolean outcome
+) {
+  getStaticContinueOnErrorValue(expression, outcome)
+  or
+  exists(AccessExpression access, string dimension |
+    access = expression.getRoot().getChild(0) and
+    dimension = instance.getJob().getStrategy().getAMatrixDimensionName() and
+    access.getAccessPath().toLowerCase() = ("matrix." + dimension).toLowerCase() and
+    instance.getMatrixValue(dimension).toLowerCase() = outcome.toString()
+  )
+}
+
+private predicate matrixJobContinueOnErrorMayEvaluateTo(
+  MatrixJobInstance instance, Event event, boolean outcome
+) {
+  instance.getJob().getATriggerEvent() = event and
+  exists(string value |
+    value = instance.getJob().getContinueOnErrorValue() and
+    (
+      value.toLowerCase() = "true" and outcome = true
+      or
+      value.toLowerCase() = "false" and outcome = false
+      or
+      not value.toLowerCase() = ["true", "false"] and
+      getInstanceContinueOnErrorValue(instance.getJob().getContinueOnErrorExpr(), instance,
+        outcome)
+      or
+      not value.toLowerCase() = ["true", "false"] and
+      not exists(boolean known |
+        getInstanceContinueOnErrorValue(instance.getJob().getContinueOnErrorExpr(), instance,
+          known)
+      ) and
+      outcome in [false, true]
+    )
+  )
+  or
+  not exists(instance.getJob().getContinueOnErrorValue()) and outcome = false
+}
+
+private predicate matrixStepContinueOnErrorMayEvaluateTo(
+  Step step, MatrixJobInstance instance, Event event, boolean outcome
+) {
+  step.getEnclosingJob() = instance.getJob() and
+  step.getATriggerEvent() = event and
+  exists(string value |
+    value = step.getContinueOnErrorValue() and
+    (
+      value.toLowerCase() = "true" and outcome = true
+      or
+      value.toLowerCase() = "false" and outcome = false
+      or
+      not value.toLowerCase() = ["true", "false"] and
+      getInstanceContinueOnErrorValue(step.getContinueOnErrorExpr(), instance, outcome)
+      or
+      not value.toLowerCase() = ["true", "false"] and
+      not exists(boolean known |
+        getInstanceContinueOnErrorValue(step.getContinueOnErrorExpr(), instance, known)
+      ) and
+      outcome in [false, true]
+    )
+  )
+  or
+  not exists(step.getContinueOnErrorValue()) and outcome = false
+}
+
+private predicate matrixJobAlwaysMasksStepFailures(MatrixJobInstance instance) {
+  exists(Event event |
+    instance.getJob().getATriggerEvent() = event and
+    matrixJobContinueOnErrorMayEvaluateTo(instance, event, true) and
+    not matrixJobContinueOnErrorMayEvaluateTo(instance, event, false)
+  )
+  or
+  instance.getJob() instanceof LocalJob and
+  exists(instance.getJob().(LocalJob).getAStep()) and
+  forall(Step step | step = instance.getJob().(LocalJob).getAStep() |
+    exists(Event event |
+      step.getATriggerEvent() = event and
+      matrixStepContinueOnErrorMayEvaluateTo(step, instance, event, true) and
+      not matrixStepContinueOnErrorMayEvaluateTo(step, instance, event, false)
+    )
+  )
+}
+
+private predicate allMatrixInstancesAlwaysMaskStepFailures(Job job) {
+  exists(MatrixJobInstance instance | instance.getJob() = job) and
+  forall(MatrixJobInstance instance | instance.getJob() = job |
+    matrixJobAlwaysMasksStepFailures(instance)
+  )
+}
+
+/** Gets a possible effective conclusion for a matrix instance's raw outcome. */
+bindingset[instance, event, outcome]
+JobStatus getAMatrixJobConclusionForOutcome(
+  MatrixJobInstance instance, Event event, JobStatus outcome
+) {
+  not outcome instanceof FailureStatus and result = outcome
+  or
+  outcome instanceof FailureStatus and
+  matrixJobContinueOnErrorMayEvaluateTo(instance, event, false) and
+  result instanceof FailureStatus
+  or
+  outcome instanceof FailureStatus and
+  matrixJobContinueOnErrorMayEvaluateTo(instance, event, true) and
+  result instanceof SuccessStatus
+}
+
+/** Gets a possible effective conclusion for a step's raw outcome in a matrix instance. */
+bindingset[step, instance, event, outcome]
+JobStatus getAMatrixStepConclusionForOutcome(
+  Step step, MatrixJobInstance instance, Event event, JobStatus outcome
+) {
+  not outcome instanceof FailureStatus and result = outcome
+  or
+  outcome instanceof FailureStatus and
+  matrixStepContinueOnErrorMayEvaluateTo(step, instance, event, false) and
+  result instanceof FailureStatus
+  or
+  outcome instanceof FailureStatus and
+  matrixStepContinueOnErrorMayEvaluateTo(step, instance, event, true) and
+  result instanceof SuccessStatus
 }
 
 private newtype TNode =
@@ -266,18 +415,18 @@ private newtype TNode =
   } or
   TJobCompletionNode(Job job, JobStatus status) {
     (not job.getStrategy().hasMatrix() or status instanceof SkippedStatus) and
-    not (status instanceof FailureStatus and jobAlwaysContinuesOnError(job)) and
+    not (status instanceof FailureStatus and jobAlwaysMasksStepFailures(job)) and
     (not status instanceof SkippedStatus or jobMayBeSkipped(job))
   } or
   TMatrixJobExecutionNode(MatrixJobInstance instance) or
   TMatrixJobCompletionNode(MatrixJobInstance instance, JobStatus status) {
     not status instanceof SkippedStatus and
-    not (status instanceof FailureStatus and jobAlwaysContinuesOnError(instance.getJob()))
+    not (status instanceof FailureStatus and matrixJobAlwaysMasksStepFailures(instance))
   } or
   TMatrixJobFanInNode(Job job, JobStatus status) {
     job.getStrategy().hasMatrix() and
     not status instanceof SkippedStatus and
-    not (status instanceof FailureStatus and jobAlwaysContinuesOnError(job))
+    not (status instanceof FailureStatus and allMatrixInstancesAlwaysMaskStepFailures(job))
   } or
   TWorkflowExitNode(Workflow workflow)
 
@@ -379,6 +528,21 @@ class JobCompletionNode extends Node, TJobCompletionNode {
 
   JobStatus getStatus() { result = status }
 
+  /** Gets a raw job outcome that may produce this effective conclusion for `event`. */
+  JobStatus getAOutcome(Event event) {
+    this.getJob().getATriggerEvent() = event and
+    this.getStatus() = getAJobConclusionForOutcome(this.getJob(), event, result)
+  }
+
+  /** Gets a raw step outcome that may contribute to this effective job conclusion. */
+  JobStatus getAContributingStepOutcome(Step step, Event event) {
+    step.getEnclosingJob() = this.getJob() and
+    exists(JobStatus stepConclusion |
+      stepConclusion = getAStepConclusionForOutcome(step, event, result) and
+      this.getStatus() = getAJobConclusionForOutcome(this.getJob(), event, stepConclusion)
+    )
+  }
+
   override string toString() { result = "complete " + job.getId() + " as " + status.toString() }
 }
 
@@ -410,6 +574,23 @@ class MatrixJobCompletionNode extends Node, TMatrixJobCompletionNode {
 
   JobStatus getStatus() { result = status }
 
+  /** Gets a raw instance outcome that may produce this effective conclusion for `event`. */
+  JobStatus getAOutcome(Event event) {
+    this.getJob().getATriggerEvent() = event and
+    this.getStatus() = getAMatrixJobConclusionForOutcome(this.getInstance(), event, result)
+  }
+
+  /** Gets a raw step outcome that may contribute to this effective instance conclusion. */
+  JobStatus getAContributingStepOutcome(Step step, Event event) {
+    step.getEnclosingJob() = this.getJob() and
+    exists(JobStatus stepConclusion |
+      stepConclusion =
+        getAMatrixStepConclusionForOutcome(step, this.getInstance(), event, result) and
+      this.getStatus() =
+        getAMatrixJobConclusionForOutcome(this.getInstance(), event, stepConclusion)
+    )
+  }
+
   override string toString() {
     result = "complete " + instance.toString() + " as " + status.toString()
   }
@@ -438,6 +619,91 @@ class WorkflowExitNode extends Node, TWorkflowExitNode {
   Workflow getWorkflow() { result = workflow }
 
   override string toString() { result = "exit jobs in " + workflow.toString() }
+}
+
+private JobStatus getAPossibleNonMatrixJobConclusionForEvent(Job job, Event event) {
+  not job.getStrategy().hasMatrix() and
+  job.getATriggerEvent() = event and
+  (
+    exists(LocalJob local, Step step, JobStatus outcome, JobStatus stepConclusion |
+      local = job and
+      step = local.getAStep() and
+      not outcome instanceof SkippedStatus and
+      stepConclusion = getAStepConclusionForOutcome(step, event, outcome) and
+      result = getAJobConclusionForOutcome(job, event, stepConclusion)
+    )
+    or
+    not exists(LocalJob local, Step step | local = job and step = local.getAStep()) and
+    exists(JobStatus outcome |
+      not outcome instanceof SkippedStatus and
+      result = getAJobConclusionForOutcome(job, event, outcome)
+    )
+  )
+}
+
+private JobStatus getAPossibleMatrixInstanceConclusionForEvent(
+  MatrixJobInstance instance, Event event
+) {
+  instance.getJob().getATriggerEvent() = event and
+  (
+    exists(LocalJob local, Step step, JobStatus outcome, JobStatus stepConclusion |
+      local = instance.getJob() and
+      step = local.getAStep() and
+      not outcome instanceof SkippedStatus and
+      stepConclusion = getAMatrixStepConclusionForOutcome(step, instance, event, outcome) and
+      result = getAMatrixJobConclusionForOutcome(instance, event, stepConclusion)
+    )
+    or
+    not exists(LocalJob local, Step step |
+      local = instance.getJob() and step = local.getAStep()
+    ) and
+    exists(JobStatus outcome |
+      not outcome instanceof SkippedStatus and
+      result = getAMatrixJobConclusionForOutcome(instance, event, outcome)
+    )
+  )
+}
+
+private JobStatus getAPossibleMatrixJobConclusionForEvent(Job job, Event event) {
+  job.getStrategy().hasMatrix() and
+  job.getATriggerEvent() = event and
+  exists(MatrixJobFanInNode fanIn |
+    fanIn.getJob() = job and
+    fanIn.getStatus() = result and
+    (
+      result instanceof FailureStatus and
+      exists(MatrixJobInstance instance |
+        instance.getJob() = job and
+        getAPossibleMatrixInstanceConclusionForEvent(instance, event) = result
+      )
+      or
+      result instanceof CancelledStatus and
+      exists(MatrixJobInstance instance |
+        instance.getJob() = job and
+        getAPossibleMatrixInstanceConclusionForEvent(instance, event) = result
+      ) and
+      forall(MatrixJobInstance instance | instance.getJob() = job |
+        exists(JobStatus conclusion |
+          conclusion = getAPossibleMatrixInstanceConclusionForEvent(instance, event) and
+          not conclusion instanceof FailureStatus
+        )
+      )
+      or
+      result instanceof SuccessStatus and
+      forall(MatrixJobInstance instance | instance.getJob() = job |
+        getAPossibleMatrixInstanceConclusionForEvent(instance, event) = result
+      )
+    )
+  )
+}
+
+private JobStatus getAPossibleNonReusableJobConclusionForEvent(Job job, Event event) {
+  not exists(getCalledReusableWorkflow(job)) and
+  (
+    result = getAPossibleNonMatrixJobConclusionForEvent(job, event)
+    or
+    result = getAPossibleMatrixJobConclusionForEvent(job, event)
+  )
 }
 
 private predicate isTerminalJob(Job job) {
@@ -472,10 +738,7 @@ private predicate terminalJobMayCompleteForEvent(
       or
       not status instanceof SkippedStatus and
       ownConditionMayHaveOutcome(terminal, event, true) and
-      exists(JobStatus outcome |
-        not outcome instanceof SkippedStatus and
-        status = getAJobConclusionForOutcome(terminal, event, outcome)
-      )
+      status = getAPossibleNonReusableJobConclusionForEvent(terminal, event)
     )
     or
     (not isRootJob(terminal) or terminal.getStrategy().hasMatrix()) and
@@ -509,6 +772,16 @@ private predicate reusableWorkflowMayCompleteForEvent(
       (terminalStatus instanceof SuccessStatus or terminalStatus instanceof SkippedStatus)
     )
   )
+}
+
+private JobStatus getAPossibleExecutedJobConclusionForEvent(Job job, Event event) {
+  exists(ReusableWorkflow workflow, JobStatus outcome |
+    workflow = getCalledReusableWorkflow(job) and
+    reusableWorkflowMayCompleteForEvent(workflow, event, outcome) and
+    result = getAJobConclusionForOutcome(job, event, outcome)
+  )
+  or
+  result = getAPossibleNonReusableJobConclusionForEvent(job, event)
 }
 
 private predicate decisionMayHaveOutcome(Job job, boolean outcome) {
@@ -683,17 +956,7 @@ private predicate jobMayCompleteForDirectAssignment(
     or
     not status instanceof SkippedStatus and
     decisionMayHaveOutcomeForExactAssignment(job, event, assignment, true) and
-    exists(JobStatus outcome |
-      (
-        exists(ReusableWorkflow workflow |
-          workflow = getCalledReusableWorkflow(job) and
-          reusableWorkflowMayCompleteForEvent(workflow, event, outcome)
-        )
-        or
-        not exists(getCalledReusableWorkflow(job)) and not outcome instanceof SkippedStatus
-      ) and
-      status = getAJobConclusionForOutcome(job, event, outcome)
-    )
+    status = getAPossibleExecutedJobConclusionForEvent(job, event)
   )
 }
 
@@ -1137,17 +1400,7 @@ predicate jobMayCompleteForEvent(Job job, Event event, JobStatus status) {
   job.getATriggerEvent() = event and
   (
     jobMayExecuteForEvent(job, event) and
-    exists(JobStatus outcome |
-      (
-        exists(ReusableWorkflow workflow |
-          workflow = getCalledReusableWorkflow(job) and
-          reusableWorkflowMayCompleteForEvent(workflow, event, outcome)
-        )
-        or
-        not exists(getCalledReusableWorkflow(job)) and not outcome instanceof SkippedStatus
-      ) and
-      status = getAJobConclusionForOutcome(job, event, outcome)
-    )
+    status = getAPossibleExecutedJobConclusionForEvent(job, event)
     or
     status instanceof SkippedStatus and
     (

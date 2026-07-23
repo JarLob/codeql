@@ -339,6 +339,10 @@ nodes
 | .github/workflows/composite-action-caller-4.yml:10:9:17:6 | Uses Step: clone [result] | semmle.label | Uses Step: clone [result] |
 | .github/workflows/composite-action-caller-4.yml:14:19:14:56 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
 | .github/workflows/composite-action-caller-4.yml:17:21:17:53 | steps.clone.outputs.result | semmle.label | steps.clone.outputs.result |
+| .github/workflows/continue_on_error_matrix.yml:19:21:19:58 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
+| .github/workflows/continue_on_error_matrix.yml:35:21:35:58 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
+| .github/workflows/continue_on_error_matrix.yml:51:21:51:58 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
+| .github/workflows/continue_on_error_matrix.yml:67:21:67:58 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
 | .github/workflows/cross3.yml:27:7:37:4 | Uses Step: remove_quotations [replaced] | semmle.label | Uses Step: remove_quotations [replaced] |
 | .github/workflows/cross3.yml:32:18:32:53 | github.event.commits[0].message | semmle.label | github.event.commits[0].message |
 | .github/workflows/cross3.yml:39:31:39:75 | steps.remove_quotations.outputs.replaced | semmle.label | steps.remove_quotations.outputs.replaced |

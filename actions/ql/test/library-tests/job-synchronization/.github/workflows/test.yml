@@ -91,6 +91,26 @@ jobs:
     steps:
       - run: echo continued matrix dependent
 
+  matrix-job-continue-expression:
+    strategy:
+      matrix:
+        experimental: [true, false]
+    continue-on-error: "${{ matrix.experimental }}"
+    runs-on: ubuntu-latest
+    steps:
+      - id: matrix-job-step
+        run: exit 1
+
+  matrix-step-continue-expression:
+    strategy:
+      matrix:
+        experimental: [true, false]
+    runs-on: ubuntu-latest
+    steps:
+      - id: matrix-step-continue
+        continue-on-error: "${{ matrix.experimental }}"
+        run: exit 1
+
   continue-true:
     continue-on-error: true
     runs-on: ubuntu-latest
@@ -113,6 +133,13 @@ jobs:
     steps:
       - id: step-continue-dynamic
         continue-on-error: "${{ vars.CONTINUE_ON_ERROR }}"
+        run: exit 1
+
+  step-continue-only:
+    runs-on: ubuntu-latest
+    steps:
+      - id: step-continue-only
+        continue-on-error: true
         run: exit 1
 
   continue-true-success-dependent:
