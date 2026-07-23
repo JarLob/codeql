@@ -86,3 +86,13 @@ jobs:
           # VULNERABLE: assigned raw output can begin with a workflow command
           VALUE=$(jq --raw-output '.value' pr-number.json)
           echo "$VALUE"
+      - id: clob11
+        run: |
+          # VULNERABLE: the file name contains regex metacharacters
+          echo "VALUE=$(cat 'pr[number](final).txt')"
+          echo "::set-output name=OUTPUT::SAFE"
+      - id: clob12
+        run: |
+          # VULNERABLE: echo is invoked through env
+          env echo "VALUE=$(cat 'pr[number](final).txt')"
+          echo "::set-output name=OUTPUT::SAFE"
