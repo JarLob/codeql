@@ -234,9 +234,13 @@ class Default extends AstNode instanceof DefaultsImpl {
 }
 
 class Outputs extends AstNode instanceof OutputsImpl {
+  string getAnOutputName() { result = super.getAnOutputName() }
+
   Expression getAnOutputExpr() { result = super.getAnOutputExpr() }
 
   Expression getOutputExpr(string outputName) { result = super.getOutputExpr(outputName) }
+
+  string getOutputValue(string outputName) { result = super.getOutputValue(outputName) }
 
   override string toString() { result = "Job outputs node" }
 }
@@ -249,6 +253,16 @@ class Permissions extends AstNode instanceof PermissionsImpl {
 }
 
 class Strategy extends AstNode instanceof StrategyImpl {
+  predicate hasMatrix() { super.hasMatrix() }
+
+  string getAMatrixDimensionName() { result = super.getAMatrixDimensionName() }
+
+  int getMatrixDimensionValueCount(string name) {
+    result = super.getMatrixDimensionValueCount(name)
+  }
+
+  predicate hasStaticCartesianMatrix() { super.hasStaticCartesianMatrix() }
+
   Expression getMatrixVarExpr(string varName) { result = super.getMatrixVarExpr(varName) }
 
   Expression getAMatrixVarExpr() { result = super.getAMatrixVarExpr() }
@@ -300,6 +314,10 @@ abstract class Job extends AstNode instanceof JobImpl {
 
   If getIf() { result = super.getIf() }
 
+  string getContinueOnErrorValue() { result = super.getContinueOnErrorValue() }
+
+  Expression getContinueOnErrorExpr() { result = super.getContinueOnErrorExpr() }
+
   Environment getEnvironment() { result = super.getEnvironment() }
 
   Permissions getPermissions() { result = super.getPermissions() }
@@ -345,6 +363,10 @@ class Step extends AstNode instanceof StepImpl {
   Env getEnv() { result = super.getEnv() }
 
   If getIf() { result = super.getIf() }
+
+  string getContinueOnErrorValue() { result = super.getContinueOnErrorValue() }
+
+  Expression getContinueOnErrorExpr() { result = super.getContinueOnErrorExpr() }
 
   StepsContainer getContainer() { result = super.getContainer() }
 

@@ -4,6 +4,14 @@
 jobs:
   root-a:
     runs-on: ubuntu-latest
+    outputs:
+      decision: "${{ 'run' }}"
+      plain: run
+      blocked: "${{ 'stop' }}"
+      empty: "${{ '' }}"
+      feature-flag: "${{ true }}"
+      nothing: "${{ null }}"
+      dynamic: "${{ steps.missing.outputs.value }}"
     steps:
       - run: echo a
 
@@ -11,6 +19,75 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo b
+
+  matrix-root:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        version: [20, 22]
+    runs-on: "${{ matrix.os }}"
+    steps:
+      - run: echo matrix
+
+  matrix-dependent:
+    needs: matrix-root
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo matrix dependent
+
+  continue-true:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    steps:
+      - id: step-continue-true
+        continue-on-error: true
+        run: exit 1
+
+  continue-false:
+    continue-on-error: false
+    runs-on: ubuntu-latest
+    steps:
+      - id: step-continue-false
+        continue-on-error: false
+        run: exit 1
+
+  continue-dynamic:
+    continue-on-error: "${{ vars.CONTINUE_ON_ERROR }}"
+    runs-on: ubuntu-latest
+    steps:
+      - id: step-continue-dynamic
+        continue-on-error: "${{ vars.CONTINUE_ON_ERROR }}"
+        run: exit 1
+
+  call-reusable:
+    uses: ./.github/workflows/reusable.yml
+
+  after-reusable:
+    needs: call-reusable
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo after reusable
+
+  correlated-gate:
+    needs: root-a
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo correlated gate
+
+  correlated-dependent:
+    needs: [root-a, correlated-gate]
+    if: always() && needs.correlated-gate.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo correlated dependent
+
+  skipped-output-source:
+    if: "${{ false }}"
+    runs-on: ubuntu-latest
+    outputs:
+      decision: "${{ 'run' }}"
+    steps:
+      - run: echo skipped output source
 
   dependent:
     needs: [root-a, root-b]
@@ -92,6 +169,64 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo unknown named result
+
+  output-default-dependent:
+    needs: root-a
+    if: needs.root-a.outputs['decision'] == 'run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo output default
+
+  output-always-dependent:
+    needs: root-a
+    if: >-
+      always() &&
+      needs.root-a.outputs.decision == 'run' &&
+      needs.root-a.outputs.plain == 'run' &&
+      needs.root-a.outputs.blocked != 'run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo output always
+
+  output-blocked-dependent:
+    needs: root-a
+    if: always() && needs.root-a.outputs.blocked == 'run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo output blocked
+
+  output-dynamic-dependent:
+    needs: root-a
+    if: >-
+      always() &&
+      needs.root-a.outputs.decision == 'run' &&
+      needs.root-a.outputs.dynamic == 'run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo output dynamic
+
+  output-empty-dependent:
+    needs: root-a
+    if: >-
+      always() &&
+      (needs.root-a.outputs.empty || needs.root-a.outputs.nothing)
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo output empty
+
+  output-boolean-dependent:
+    needs: root-a
+    if: always() && needs.root-a.outputs.feature-flag == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo output boolean
+
+  output-skipped-dependent:
+    needs: skipped-output-source
+    if: always() && needs.skipped-output-source.outputs.decision == 'run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo output skipped
 
   terminal:
     needs: dependent

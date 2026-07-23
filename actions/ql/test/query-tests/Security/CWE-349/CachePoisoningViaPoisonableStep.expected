@@ -57,6 +57,12 @@ edges
 | .github/workflows/neg_poisonable_step1.yml:17:17:17:60 | steps.comment-branch.outputs.head_sha | .github/workflows/neg_poisonable_step1.yml:14:9:19:6 | Uses Step |
 | .github/workflows/neg_poisonable_step2.yml:13:9:16:6 | Uses Step | .github/workflows/neg_poisonable_step2.yml:16:9:17:54 | Run Step |
 | .github/workflows/neg_static_matrix_ref.yml:10:9:15:6 | Uses Step | .github/workflows/neg_static_matrix_ref.yml:15:9:15:24 | Run Step |
+| .github/workflows/output_gated_cache.yml:23:9:28:6 | Run Step | .github/workflows/output_gated_cache.yml:28:9:29:6 | Run Step |
+| .github/workflows/output_gated_cache.yml:24:22:24:56 | github.event.inputs.head_sha | .github/workflows/output_gated_cache.yml:23:9:28:6 | Run Step |
+| .github/workflows/output_gated_cache.yml:28:9:29:6 | Run Step | .github/workflows/output_gated_cache.yml:29:9:34:2 | Uses Step |
+| .github/workflows/output_gated_cache.yml:40:9:45:6 | Run Step | .github/workflows/output_gated_cache.yml:45:9:46:6 | Run Step |
+| .github/workflows/output_gated_cache.yml:41:22:41:56 | github.event.inputs.head_sha | .github/workflows/output_gated_cache.yml:40:9:45:6 | Run Step |
+| .github/workflows/output_gated_cache.yml:45:9:46:6 | Run Step | .github/workflows/output_gated_cache.yml:46:9:49:30 | Uses Step |
 | .github/workflows/poisonable_step1.yml:10:9:12:6 | Uses Step: comment-branch | .github/workflows/poisonable_step1.yml:12:9:15:6 | Uses Step |
 | .github/workflows/poisonable_step1.yml:12:9:15:6 | Uses Step | .github/workflows/poisonable_step1.yml:15:9:17:2 | Run Step |
 | .github/workflows/poisonable_step1.yml:14:17:14:60 | steps.comment-branch.outputs.head_sha | .github/workflows/poisonable_step1.yml:12:9:15:6 | Uses Step |
@@ -79,3 +85,4 @@ edges
 #select
 | .github/workflows/cache_write_capable_workflow_dispatch.yml:19:9:20:6 | Run Step | .github/workflows/cache_write_capable_workflow_dispatch.yml:15:22:15:68 | fromJSON(steps.pr.outputs.json).head.sha | .github/workflows/cache_write_capable_workflow_dispatch.yml:19:9:20:6 | Run Step | Potential cache poisoning in the context of the default branch due to privilege checkout of untrusted code from $@. ($@). | .github/workflows/cache_write_capable_workflow_dispatch.yml:15:22:15:68 | fromJSON(steps.pr.outputs.json).head.sha | fromJSON(steps.pr.outputs.json).head.sha | .github/workflows/cache_write_capable_workflow_dispatch.yml:1:5:1:21 | workflow_dispatch | workflow_dispatch |
 | .github/workflows/dynamic_matrix_ref.yml:19:9:19:24 | Run Step | .github/workflows/dynamic_matrix_ref.yml:17:17:17:33 | matrix.ref | .github/workflows/dynamic_matrix_ref.yml:19:9:19:24 | Run Step | Potential cache poisoning in the context of the default branch due to privilege checkout of untrusted code from $@. ($@). | .github/workflows/dynamic_matrix_ref.yml:17:17:17:33 | matrix.ref | matrix.ref | .github/workflows/dynamic_matrix_ref.yml:2:3:2:19 | workflow_dispatch | workflow_dispatch |
+| .github/workflows/output_gated_cache.yml:28:9:29:6 | Run Step | .github/workflows/output_gated_cache.yml:24:22:24:56 | github.event.inputs.head_sha | .github/workflows/output_gated_cache.yml:28:9:29:6 | Run Step | Potential cache poisoning in the context of the default branch due to privilege checkout of untrusted code from $@. ($@). | .github/workflows/output_gated_cache.yml:24:22:24:56 | github.event.inputs.head_sha | github.event.inputs.head_sha | .github/workflows/output_gated_cache.yml:2:3:2:19 | workflow_dispatch | workflow_dispatch |

@@ -1,21 +1,37 @@
 joinRequirements
+| after-reusable | call-reusable |
 | always-dependent | root-a |
 | cancelled-dependent | root-a |
 | combined-dependent | root-a |
 | combined-dependent | root-b |
+| correlated-dependent | correlated-gate |
+| correlated-dependent | root-a |
+| correlated-gate | root-a |
 | dependent | root-a |
 | dependent | root-b |
 | failure-dependent | root-a |
+| matrix-dependent | matrix-root |
 | mixed-dependent | dependent |
 | mixed-dependent | root-a |
 | named-results | root-a |
 | named-results | root-b |
 | not-success-dependent | root-a |
+| output-always-dependent | root-a |
+| output-blocked-dependent | root-a |
+| output-boolean-dependent | root-a |
+| output-default-dependent | root-a |
+| output-dynamic-dependent | root-a |
+| output-empty-dependent | root-a |
+| output-skipped-dependent | skipped-output-source |
+| reusable-terminal | reusable-root |
 | success-dependent | root-a |
 | terminal | dependent |
 | transitive-combined | combined-dependent |
 | unknown-named-result | root-a |
 joinRequirementCompletions
+| after-reusable | call-reusable | cancelled |
+| after-reusable | call-reusable | failure |
+| after-reusable | call-reusable | success |
 | always-dependent | root-a | cancelled |
 | always-dependent | root-a | failure |
 | always-dependent | root-a | success |
@@ -28,6 +44,16 @@ joinRequirementCompletions
 | combined-dependent | root-b | cancelled |
 | combined-dependent | root-b | failure |
 | combined-dependent | root-b | success |
+| correlated-dependent | correlated-gate | cancelled |
+| correlated-dependent | correlated-gate | failure |
+| correlated-dependent | correlated-gate | skipped |
+| correlated-dependent | correlated-gate | success |
+| correlated-dependent | root-a | cancelled |
+| correlated-dependent | root-a | failure |
+| correlated-dependent | root-a | success |
+| correlated-gate | root-a | cancelled |
+| correlated-gate | root-a | failure |
+| correlated-gate | root-a | success |
 | dependent | root-a | cancelled |
 | dependent | root-a | failure |
 | dependent | root-a | success |
@@ -53,6 +79,31 @@ joinRequirementCompletions
 | not-success-dependent | root-a | cancelled |
 | not-success-dependent | root-a | failure |
 | not-success-dependent | root-a | success |
+| output-always-dependent | root-a | cancelled |
+| output-always-dependent | root-a | failure |
+| output-always-dependent | root-a | success |
+| output-blocked-dependent | root-a | cancelled |
+| output-blocked-dependent | root-a | failure |
+| output-blocked-dependent | root-a | success |
+| output-boolean-dependent | root-a | cancelled |
+| output-boolean-dependent | root-a | failure |
+| output-boolean-dependent | root-a | success |
+| output-default-dependent | root-a | cancelled |
+| output-default-dependent | root-a | failure |
+| output-default-dependent | root-a | success |
+| output-dynamic-dependent | root-a | cancelled |
+| output-dynamic-dependent | root-a | failure |
+| output-dynamic-dependent | root-a | success |
+| output-empty-dependent | root-a | cancelled |
+| output-empty-dependent | root-a | failure |
+| output-empty-dependent | root-a | success |
+| output-skipped-dependent | skipped-output-source | cancelled |
+| output-skipped-dependent | skipped-output-source | failure |
+| output-skipped-dependent | skipped-output-source | skipped |
+| output-skipped-dependent | skipped-output-source | success |
+| reusable-terminal | reusable-root | cancelled |
+| reusable-terminal | reusable-root | failure |
+| reusable-terminal | reusable-root | success |
 | success-dependent | root-a | cancelled |
 | success-dependent | root-a | failure |
 | success-dependent | root-a | success |
@@ -68,6 +119,9 @@ joinRequirementCompletions
 | unknown-named-result | root-a | failure |
 | unknown-named-result | root-a | success |
 joinDecisionStatuses
+| after-reusable | cancelled |
+| after-reusable | failure |
+| after-reusable | success |
 | always-dependent | cancelled |
 | always-dependent | failure |
 | always-dependent | success |
@@ -78,6 +132,16 @@ joinDecisionStatuses
 | combined-dependent | failure |
 | combined-dependent | failure+cancelled |
 | combined-dependent | success |
+| correlated-dependent | cancelled |
+| correlated-dependent | cancelled+skipped |
+| correlated-dependent | failure |
+| correlated-dependent | failure+cancelled |
+| correlated-dependent | failure+skipped |
+| correlated-dependent | skipped |
+| correlated-dependent | success |
+| correlated-gate | cancelled |
+| correlated-gate | failure |
+| correlated-gate | success |
 | dependent | cancelled |
 | dependent | failure |
 | dependent | failure+cancelled |
@@ -85,6 +149,9 @@ joinDecisionStatuses
 | failure-dependent | cancelled |
 | failure-dependent | failure |
 | failure-dependent | success |
+| matrix-dependent | cancelled |
+| matrix-dependent | failure |
+| matrix-dependent | success |
 | mixed-dependent | cancelled |
 | mixed-dependent | cancelled+skipped |
 | mixed-dependent | failure |
@@ -100,6 +167,31 @@ joinDecisionStatuses
 | not-success-dependent | cancelled |
 | not-success-dependent | failure |
 | not-success-dependent | success |
+| output-always-dependent | cancelled |
+| output-always-dependent | failure |
+| output-always-dependent | success |
+| output-blocked-dependent | cancelled |
+| output-blocked-dependent | failure |
+| output-blocked-dependent | success |
+| output-boolean-dependent | cancelled |
+| output-boolean-dependent | failure |
+| output-boolean-dependent | success |
+| output-default-dependent | cancelled |
+| output-default-dependent | failure |
+| output-default-dependent | success |
+| output-dynamic-dependent | cancelled |
+| output-dynamic-dependent | failure |
+| output-dynamic-dependent | success |
+| output-empty-dependent | cancelled |
+| output-empty-dependent | failure |
+| output-empty-dependent | success |
+| output-skipped-dependent | cancelled |
+| output-skipped-dependent | failure |
+| output-skipped-dependent | skipped |
+| output-skipped-dependent | success |
+| reusable-terminal | cancelled |
+| reusable-terminal | failure |
+| reusable-terminal | success |
 | success-dependent | cancelled |
 | success-dependent | failure |
 | success-dependent | success |
@@ -123,24 +215,59 @@ joinDecisionStatuses
 | unknown-named-result | failure |
 | unknown-named-result | success |
 decisionEdges
+| after-reusable | complete after-reusable as skipped |
+| after-reusable | execute after-reusable |
 | always-dependent | complete always-dependent as skipped |
 | always-dependent | execute always-dependent |
+| call-reusable | enter jobs in "on": |
 | cancelled-dependent | complete cancelled-dependent as skipped |
 | cancelled-dependent | execute cancelled-dependent |
 | combined-dependent | complete combined-dependent as skipped |
 | combined-dependent | execute combined-dependent |
+| continue-dynamic | execute continue-dynamic |
+| continue-false | execute continue-false |
+| continue-true | execute continue-true |
+| correlated-dependent | complete correlated-dependent as skipped |
+| correlated-dependent | execute correlated-dependent |
+| correlated-gate | complete correlated-gate as skipped |
+| correlated-gate | execute correlated-gate |
 | dependent | complete dependent as skipped |
 | dependent | execute dependent |
 | failure-dependent | complete failure-dependent as skipped |
 | failure-dependent | execute failure-dependent |
+| matrix-dependent | complete matrix-dependent as skipped |
+| matrix-dependent | execute matrix-dependent |
+| matrix-root | execute matrix-root[os=0,version=0] |
+| matrix-root | execute matrix-root[os=0,version=1] |
+| matrix-root | execute matrix-root[os=1,version=0] |
+| matrix-root | execute matrix-root[os=1,version=1] |
 | mixed-dependent | complete mixed-dependent as skipped |
 | mixed-dependent | execute mixed-dependent |
 | named-results | complete named-results as skipped |
 | named-results | execute named-results |
 | not-success-dependent | complete not-success-dependent as skipped |
 | not-success-dependent | execute not-success-dependent |
+| output-always-dependent | complete output-always-dependent as skipped |
+| output-always-dependent | execute output-always-dependent |
+| output-blocked-dependent | complete output-blocked-dependent as skipped |
+| output-blocked-dependent | execute output-blocked-dependent |
+| output-boolean-dependent | complete output-boolean-dependent as skipped |
+| output-boolean-dependent | execute output-boolean-dependent |
+| output-default-dependent | complete output-default-dependent as skipped |
+| output-default-dependent | execute output-default-dependent |
+| output-dynamic-dependent | complete output-dynamic-dependent as skipped |
+| output-dynamic-dependent | execute output-dynamic-dependent |
+| output-empty-dependent | complete output-empty-dependent as skipped |
+| output-empty-dependent | execute output-empty-dependent |
+| output-skipped-dependent | complete output-skipped-dependent as skipped |
+| output-skipped-dependent | execute output-skipped-dependent |
+| reusable-root | execute reusable-root |
+| reusable-terminal | complete reusable-terminal as skipped |
+| reusable-terminal | execute reusable-terminal |
 | root-a | execute root-a |
 | root-b | execute root-b |
+| skipped-output-source | complete skipped-output-source as skipped |
+| skipped-output-source | execute skipped-output-source |
 | success-dependent | complete success-dependent as skipped |
 | success-dependent | execute success-dependent |
 | terminal | complete terminal as skipped |
@@ -150,28 +277,51 @@ decisionEdges
 | unknown-named-result | complete unknown-named-result as skipped |
 | unknown-named-result | execute unknown-named-result |
 pushDecisionEdges
+| after-reusable | complete after-reusable as skipped |
+| after-reusable | execute after-reusable |
 | always-dependent | execute always-dependent |
+| call-reusable | enter jobs in "on": |
 | cancelled-dependent | complete cancelled-dependent as skipped |
 | cancelled-dependent | execute cancelled-dependent |
 | combined-dependent | complete combined-dependent as skipped |
 | combined-dependent | execute combined-dependent |
+| continue-dynamic | execute continue-dynamic |
+| continue-false | execute continue-false |
+| continue-true | execute continue-true |
+| correlated-dependent | complete correlated-dependent as skipped |
+| correlated-dependent | execute correlated-dependent |
+| correlated-gate | complete correlated-gate as skipped |
+| correlated-gate | execute correlated-gate |
 | dependent | complete dependent as skipped |
 | dependent | execute dependent |
 | failure-dependent | complete failure-dependent as skipped |
 | failure-dependent | execute failure-dependent |
+| matrix-dependent | complete matrix-dependent as skipped |
+| matrix-dependent | execute matrix-dependent |
 | mixed-dependent | execute mixed-dependent |
 | named-results | complete named-results as skipped |
 | named-results | execute named-results |
 | not-success-dependent | complete not-success-dependent as skipped |
 | not-success-dependent | execute not-success-dependent |
+| output-always-dependent | complete output-always-dependent as skipped |
+| output-always-dependent | execute output-always-dependent |
+| output-blocked-dependent | complete output-blocked-dependent as skipped |
+| output-boolean-dependent | complete output-boolean-dependent as skipped |
+| output-boolean-dependent | execute output-boolean-dependent |
+| output-default-dependent | complete output-default-dependent as skipped |
+| output-default-dependent | execute output-default-dependent |
+| output-dynamic-dependent | complete output-dynamic-dependent as skipped |
+| output-dynamic-dependent | execute output-dynamic-dependent |
+| output-empty-dependent | complete output-empty-dependent as skipped |
+| output-skipped-dependent | complete output-skipped-dependent as skipped |
 | root-a | execute root-a |
 | root-b | execute root-b |
+| skipped-output-source | complete skipped-output-source as skipped |
 | success-dependent | complete success-dependent as skipped |
 | success-dependent | execute success-dependent |
 | terminal | complete terminal as skipped |
 | terminal | execute terminal |
 | transitive-combined | complete transitive-combined as skipped |
-| transitive-combined | execute transitive-combined |
 | unknown-named-result | complete unknown-named-result as skipped |
 | unknown-named-result | execute unknown-named-result |
 knownStatusDecisionEdges
@@ -193,33 +343,47 @@ knownStatusDecisionEdges
 | failure-dependent | failure | execute failure-dependent |
 | failure-dependent | success | complete failure-dependent as skipped |
 | named-results | cancelled | complete named-results as skipped |
-| named-results | cancelled | execute named-results |
 | named-results | failure | complete named-results as skipped |
-| named-results | failure | execute named-results |
 | named-results | failure+cancelled | complete named-results as skipped |
-| named-results | failure+cancelled | execute named-results |
-| named-results | success | complete named-results as skipped |
 | named-results | success | execute named-results |
 | not-success-dependent | cancelled | execute not-success-dependent |
 | not-success-dependent | failure | execute not-success-dependent |
 | not-success-dependent | success | complete not-success-dependent as skipped |
+| output-always-dependent | cancelled | complete output-always-dependent as skipped |
+| output-always-dependent | cancelled | execute output-always-dependent |
+| output-always-dependent | failure | complete output-always-dependent as skipped |
+| output-always-dependent | failure | execute output-always-dependent |
+| output-always-dependent | success | execute output-always-dependent |
+| output-blocked-dependent | cancelled | complete output-blocked-dependent as skipped |
+| output-blocked-dependent | failure | complete output-blocked-dependent as skipped |
+| output-blocked-dependent | success | complete output-blocked-dependent as skipped |
+| output-boolean-dependent | cancelled | complete output-boolean-dependent as skipped |
+| output-boolean-dependent | cancelled | execute output-boolean-dependent |
+| output-boolean-dependent | failure | complete output-boolean-dependent as skipped |
+| output-boolean-dependent | failure | execute output-boolean-dependent |
+| output-boolean-dependent | success | execute output-boolean-dependent |
+| output-default-dependent | cancelled | complete output-default-dependent as skipped |
+| output-default-dependent | failure | complete output-default-dependent as skipped |
+| output-default-dependent | success | execute output-default-dependent |
+| output-dynamic-dependent | cancelled | complete output-dynamic-dependent as skipped |
+| output-dynamic-dependent | cancelled | execute output-dynamic-dependent |
+| output-dynamic-dependent | failure | complete output-dynamic-dependent as skipped |
+| output-dynamic-dependent | failure | execute output-dynamic-dependent |
+| output-dynamic-dependent | success | complete output-dynamic-dependent as skipped |
+| output-dynamic-dependent | success | execute output-dynamic-dependent |
+| output-empty-dependent | cancelled | complete output-empty-dependent as skipped |
+| output-empty-dependent | failure | complete output-empty-dependent as skipped |
+| output-empty-dependent | success | complete output-empty-dependent as skipped |
+| output-skipped-dependent | skipped | complete output-skipped-dependent as skipped |
 | success-dependent | cancelled | complete success-dependent as skipped |
 | success-dependent | failure | complete success-dependent as skipped |
 | success-dependent | success | execute success-dependent |
 | terminal | cancelled | complete terminal as skipped |
-| terminal | cancelled+skipped | complete terminal as skipped |
 | terminal | failure | complete terminal as skipped |
-| terminal | failure+cancelled | complete terminal as skipped |
-| terminal | failure+cancelled+skipped | complete terminal as skipped |
-| terminal | failure+skipped | complete terminal as skipped |
 | terminal | skipped | complete terminal as skipped |
 | terminal | success | execute terminal |
 | transitive-combined | cancelled | complete transitive-combined as skipped |
-| transitive-combined | cancelled+skipped | complete transitive-combined as skipped |
 | transitive-combined | failure | complete transitive-combined as skipped |
-| transitive-combined | failure+cancelled | execute transitive-combined |
-| transitive-combined | failure+cancelled+skipped | execute transitive-combined |
-| transitive-combined | failure+skipped | complete transitive-combined as skipped |
 | transitive-combined | skipped | complete transitive-combined as skipped |
 | transitive-combined | success | complete transitive-combined as skipped |
 | unknown-named-result | cancelled | complete unknown-named-result as skipped |
@@ -229,6 +393,9 @@ knownStatusDecisionEdges
 | unknown-named-result | success | complete unknown-named-result as skipped |
 | unknown-named-result | success | execute unknown-named-result |
 executionCompletions
+| after-reusable | cancelled |
+| after-reusable | failure |
+| after-reusable | success |
 | always-dependent | cancelled |
 | always-dependent | failure |
 | always-dependent | success |
@@ -238,12 +405,29 @@ executionCompletions
 | combined-dependent | cancelled |
 | combined-dependent | failure |
 | combined-dependent | success |
+| continue-dynamic | cancelled |
+| continue-dynamic | failure |
+| continue-dynamic | success |
+| continue-false | cancelled |
+| continue-false | failure |
+| continue-false | success |
+| continue-true | cancelled |
+| continue-true | success |
+| correlated-dependent | cancelled |
+| correlated-dependent | failure |
+| correlated-dependent | success |
+| correlated-gate | cancelled |
+| correlated-gate | failure |
+| correlated-gate | success |
 | dependent | cancelled |
 | dependent | failure |
 | dependent | success |
 | failure-dependent | cancelled |
 | failure-dependent | failure |
 | failure-dependent | success |
+| matrix-dependent | cancelled |
+| matrix-dependent | failure |
+| matrix-dependent | success |
 | mixed-dependent | cancelled |
 | mixed-dependent | failure |
 | mixed-dependent | success |
@@ -253,12 +437,42 @@ executionCompletions
 | not-success-dependent | cancelled |
 | not-success-dependent | failure |
 | not-success-dependent | success |
+| output-always-dependent | cancelled |
+| output-always-dependent | failure |
+| output-always-dependent | success |
+| output-blocked-dependent | cancelled |
+| output-blocked-dependent | failure |
+| output-blocked-dependent | success |
+| output-boolean-dependent | cancelled |
+| output-boolean-dependent | failure |
+| output-boolean-dependent | success |
+| output-default-dependent | cancelled |
+| output-default-dependent | failure |
+| output-default-dependent | success |
+| output-dynamic-dependent | cancelled |
+| output-dynamic-dependent | failure |
+| output-dynamic-dependent | success |
+| output-empty-dependent | cancelled |
+| output-empty-dependent | failure |
+| output-empty-dependent | success |
+| output-skipped-dependent | cancelled |
+| output-skipped-dependent | failure |
+| output-skipped-dependent | success |
+| reusable-root | cancelled |
+| reusable-root | failure |
+| reusable-root | success |
+| reusable-terminal | cancelled |
+| reusable-terminal | failure |
+| reusable-terminal | success |
 | root-a | cancelled |
 | root-a | failure |
 | root-a | success |
 | root-b | cancelled |
 | root-b | failure |
 | root-b | success |
+| skipped-output-source | cancelled |
+| skipped-output-source | failure |
+| skipped-output-source | success |
 | success-dependent | cancelled |
 | success-dependent | failure |
 | success-dependent | success |
@@ -272,29 +486,99 @@ executionCompletions
 | unknown-named-result | failure |
 | unknown-named-result | success |
 executionCfgNodes
-| always-dependent | .github/workflows/test.yml:23:5:29:2 | Job: always-dependent |
-| cancelled-dependent | .github/workflows/test.yml:44:5:50:2 | Job: cancelled-dependent |
-| combined-dependent | .github/workflows/test.yml:58:5:64:2 | Job: combined-dependent |
-| dependent | .github/workflows/test.yml:16:5:22:2 | Job: dependent |
-| failure-dependent | .github/workflows/test.yml:37:5:43:2 | Job: failure-dependent |
-| mixed-dependent | .github/workflows/test.yml:65:5:71:2 | Job: mixed-dependent |
-| named-results | .github/workflows/test.yml:79:5:89:2 | Job: named-results |
-| not-success-dependent | .github/workflows/test.yml:51:5:57:2 | Job: not-success-dependent |
-| root-a | .github/workflows/test.yml:6:5:10:2 | Job: root-a |
-| root-b | .github/workflows/test.yml:11:5:15:2 | Job: root-b |
-| success-dependent | .github/workflows/test.yml:30:5:36:2 | Job: success-dependent |
-| terminal | .github/workflows/test.yml:97:5:100:26 | Job: terminal |
-| transitive-combined | .github/workflows/test.yml:72:5:78:2 | Job: transitive-combined |
-| unknown-named-result | .github/workflows/test.yml:90:5:96:2 | Job: unknown-named-result |
+| after-reusable | .github/workflows/test.yml:66:5:71:2 | Job: after-reusable |
+| always-dependent | .github/workflows/test.yml:100:5:106:2 | Job: always-dependent |
+| cancelled-dependent | .github/workflows/test.yml:121:5:127:2 | Job: cancelled-dependent |
+| combined-dependent | .github/workflows/test.yml:135:5:141:2 | Job: combined-dependent |
+| continue-dynamic | .github/workflows/test.yml:55:5:62:2 | Job: continue-dynamic |
+| continue-false | .github/workflows/test.yml:47:5:54:2 | Job: continue-false |
+| continue-true | .github/workflows/test.yml:39:5:46:2 | Job: continue-true |
+| correlated-dependent | .github/workflows/test.yml:78:5:84:2 | Job: correlated-dependent |
+| correlated-gate | .github/workflows/test.yml:72:5:77:2 | Job: correlated-gate |
+| dependent | .github/workflows/test.yml:93:5:99:2 | Job: dependent |
+| failure-dependent | .github/workflows/test.yml:114:5:120:2 | Job: failure-dependent |
+| matrix-dependent | .github/workflows/test.yml:33:5:38:2 | Job: matrix-dependent |
+| mixed-dependent | .github/workflows/test.yml:142:5:148:2 | Job: mixed-dependent |
+| named-results | .github/workflows/test.yml:156:5:166:2 | Job: named-results |
+| not-success-dependent | .github/workflows/test.yml:128:5:134:2 | Job: not-success-dependent |
+| output-always-dependent | .github/workflows/test.yml:181:5:191:2 | Job: output-always-dependent |
+| output-blocked-dependent | .github/workflows/test.yml:192:5:198:2 | Job: output-blocked-dependent |
+| output-boolean-dependent | .github/workflows/test.yml:218:5:224:2 | Job: output-boolean-dependent |
+| output-default-dependent | .github/workflows/test.yml:174:5:180:2 | Job: output-default-dependent |
+| output-dynamic-dependent | .github/workflows/test.yml:199:5:208:2 | Job: output-dynamic-dependent |
+| output-empty-dependent | .github/workflows/test.yml:209:5:217:2 | Job: output-empty-dependent |
+| output-skipped-dependent | .github/workflows/test.yml:225:5:231:2 | Job: output-skipped-dependent |
+| reusable-root | .github/workflows/reusable.yml:6:5:10:2 | Job: reusable-root |
+| reusable-terminal | .github/workflows/reusable.yml:11:5:14:36 | Job: reusable-terminal |
+| root-a | .github/workflows/test.yml:6:5:18:2 | Job: root-a |
+| root-b | .github/workflows/test.yml:19:5:23:2 | Job: root-b |
+| skipped-output-source | .github/workflows/test.yml:85:5:92:2 | Job: skipped-output-source |
+| success-dependent | .github/workflows/test.yml:107:5:113:2 | Job: success-dependent |
+| terminal | .github/workflows/test.yml:232:5:235:26 | Job: terminal |
+| transitive-combined | .github/workflows/test.yml:149:5:155:2 | Job: transitive-combined |
+| unknown-named-result | .github/workflows/test.yml:167:5:173:2 | Job: unknown-named-result |
+matrixExecutions
+| matrix-root | matrix-root[os=0,version=0] |
+| matrix-root | matrix-root[os=0,version=1] |
+| matrix-root | matrix-root[os=1,version=0] |
+| matrix-root | matrix-root[os=1,version=1] |
+matrixFanInRequirements
+| matrix-dependent | matrix-root | cancelled |
+| matrix-dependent | matrix-root | failure |
+| matrix-dependent | matrix-root | success |
+continueOnErrorTransformations
+| job | continue-dynamic | failure | failure |
+| job | continue-dynamic | failure | success |
+| job | continue-false | failure | failure |
+| job | continue-true | failure | success |
+| step | step-continue-dynamic | failure | failure |
+| step | step-continue-dynamic | failure | success |
+| step | step-continue-false | failure | failure |
+| step | step-continue-true | failure | success |
+continueOnErrorCompletionStatuses
+| continue-dynamic | cancelled |
+| continue-dynamic | failure |
+| continue-dynamic | success |
+| continue-false | cancelled |
+| continue-false | failure |
+| continue-false | success |
+| continue-true | cancelled |
+| continue-true | success |
+reusableWorkflowBoundaryEdges
+| call-reusable | callee-entry | enter jobs in "on": |
+| call-reusable | caller-completion | complete call-reusable as cancelled |
+| call-reusable | caller-completion | complete call-reusable as failure |
+| call-reusable | caller-completion | complete call-reusable as success |
 workflowBoundaries
+| entry | call-reusable |
+| entry | continue-dynamic |
+| entry | continue-false |
+| entry | continue-true |
+| entry | matrix-root |
+| entry | reusable-root |
 | entry | root-a |
 | entry | root-b |
+| entry | skipped-output-source |
+| exit | after-reusable |
 | exit | always-dependent |
 | exit | cancelled-dependent |
+| exit | continue-dynamic |
+| exit | continue-false |
+| exit | continue-true |
+| exit | correlated-dependent |
 | exit | failure-dependent |
+| exit | matrix-dependent |
 | exit | mixed-dependent |
 | exit | named-results |
 | exit | not-success-dependent |
+| exit | output-always-dependent |
+| exit | output-blocked-dependent |
+| exit | output-boolean-dependent |
+| exit | output-default-dependent |
+| exit | output-dynamic-dependent |
+| exit | output-empty-dependent |
+| exit | output-skipped-dependent |
+| exit | reusable-terminal |
 | exit | success-dependent |
 | exit | terminal |
 | exit | transitive-combined |
@@ -302,11 +586,18 @@ workflowBoundaries
 synchronizationCycles
 impossibleStatusSummaries
 requiredSuccessfulJobs
+| after-reusable | call-reusable |
+| correlated-dependent | root-a |
+| correlated-gate | root-a |
 | dependent | root-a |
 | dependent | root-b |
+| matrix-dependent | matrix-root |
 | named-results | root-a |
 | named-results | root-b |
+| output-default-dependent | root-a |
 | success-dependent | root-a |
 | terminal | dependent |
 | terminal | root-a |
 | terminal | root-b |
+exactCorrelatedRequiredSuccessfulJobs
+| root-a |
