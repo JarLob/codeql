@@ -1,0 +1,25 @@
+on:
+  pull_request_target:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: "${{ 'run' }}"
+      disabled: "${{ 'stop' }}"
+    steps:
+      - run: echo gate
+
+  enabled:
+    needs: gate
+    if: needs.gate.outputs.enabled == 'run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"
+
+  disabled:
+    needs: gate
+    if: needs.gate.outputs.disabled == 'run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"

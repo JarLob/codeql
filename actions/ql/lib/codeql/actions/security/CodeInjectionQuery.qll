@@ -5,6 +5,7 @@ import codeql.actions.dataflow.FlowSources
 import codeql.actions.DataFlow
 import codeql.actions.security.ControlChecks
 import codeql.actions.security.CachePoisoningQuery
+private import codeql.actions.JobSynchronization as JobSync
 
 class CodeInjectionSink extends DataFlow::Node {
   CodeInjectionSink() {
@@ -13,11 +14,23 @@ class CodeInjectionSink extends DataFlow::Node {
   }
 }
 
+private predicate sinkMayExecuteForEvent(DataFlow::Node sink, Event event) {
+  JobSync::jobMayExecuteForEvent(sink.asExpr().getEnclosingJob(), event)
+}
+
+private predicate sinkMayExecuteForAnyEvent(DataFlow::Node sink) {
+  not exists(sink.asExpr().getEnclosingJob().getATriggerEvent())
+  or
+  JobSync::jobMayExecuteForEvent(sink.asExpr().getEnclosingJob(),
+    sink.asExpr().getEnclosingJob().getATriggerEvent())
+}
+
 /**
  * Get the relevant event for the sink in CodeInjectionCritical.ql.
  */
 Event getRelevantCriticalEventForSink(DataFlow::Node sink) {
   inPrivilegedContext(sink.asExpr(), result) and
+  sinkMayExecuteForEvent(sink, result) and
   not exists(ControlCheck check | check.protects(sink.asExpr(), result, "code-injection")) and
   not isGithubScriptUsingToJson(sink.asExpr())
 }
@@ -94,6 +107,7 @@ predicate mediumSeverityCodeInjection(
   CodeInjectionFlow::PathNode source, CodeInjectionFlow::PathNode sink
 ) {
   CodeInjectionFlow::flowPath(source, sink) and
+  sinkMayExecuteForAnyEvent(sink.getNode()) and
   not criticalSeverityCodeInjection(source, sink, _) and
   not isGithubScriptUsingToJson(sink.getNode().asExpr())
 }
