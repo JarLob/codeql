@@ -1,0 +1,6 @@
+on:
+  workflow_dispatch:
+
+jobs:
+  call-cache:
+    uses: ./.github/workflows/reusable-cache.yml

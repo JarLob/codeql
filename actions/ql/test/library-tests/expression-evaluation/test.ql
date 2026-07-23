@@ -11,7 +11,8 @@ query predicate feasibleConditions(If condition, Event event) {
 }
 
 query predicate literalSubexpressionValues(ExpressionNode node, boolean value) {
-  node.getExpression().getEnclosingJob().getId() = "literals" and
+  node.getExpression().getEnclosingJob().getId() =
+    ["literals", "zero-literal", "nonzero-literal", "empty-string-literal", "null-literal"] and
   exists(Event event |
     event = node.getExpression().getEnclosingWorkflow().getOn().getAnEvent() and
     event.getName() = "pull_request" and

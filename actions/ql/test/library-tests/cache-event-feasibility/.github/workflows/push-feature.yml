@@ -1,0 +1,9 @@
+on:
+  push:
+    branches: [feature]
+
+jobs:
+  push-feature:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo feature branch

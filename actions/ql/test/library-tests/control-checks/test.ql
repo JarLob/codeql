@@ -10,3 +10,17 @@ query predicate parsedChecks(ControlCheck check) {
     check.protectsCategoryAndEvent("untrusted-checkout", event)
   )
 }
+
+query predicate neededJobProtection(string protectedJob) {
+  exists(ControlCheck check, Step sink, Event event |
+    check.getEnclosingJob().getId() = "needed-label-check" and
+    protectedJob = sink.getEnclosingJob().getId() and
+    protectedJob =
+      [
+        "protected-dependent", "bypassable-dependent", "explicit-success-dependent",
+        "explicit-failure-dependent"
+      ] and
+    event.getName() = "pull_request_target" and
+    check.protects(sink, event, "untrusted-checkout")
+  )
+}

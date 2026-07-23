@@ -1,0 +1,6 @@
+on:
+  pull_request:
+
+jobs:
+  call-cache:
+    uses: ./.github/workflows/reusable-cache.yml

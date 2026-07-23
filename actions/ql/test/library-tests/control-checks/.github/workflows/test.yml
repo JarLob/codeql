@@ -77,3 +77,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo unparsed
+
+  needed-label-check:
+    if: "contains(github.event.pull_request.labels.*.name, 'safe')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo checked
+
+  protected-dependent:
+    needs: needed-label-check
+    runs-on: ubuntu-latest
+    steps:
+      - id: protected-sink
+        run: echo protected
+
+  bypassable-dependent:
+    needs: needed-label-check
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - id: bypassable-sink
+        run: echo bypassable
+
+  explicit-success-dependent:
+    needs: needed-label-check
+    if: always() && needs.needed-label-check.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - id: explicit-success-sink
+        run: echo explicitly protected
+
+  explicit-failure-dependent:
+    needs: needed-label-check
+    if: always() && needs.needed-label-check.result == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - id: explicit-failure-sink
+        run: echo explicitly bypassable
