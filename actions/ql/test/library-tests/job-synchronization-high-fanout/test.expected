@@ -1,0 +1,8 @@
+execution
+| high-fanout |
+completion
+| high-fanout | cancelled |
+| high-fanout | failure |
+| high-fanout | skipped |
+| high-fanout | success |
+requiredSuccessfulCompletion

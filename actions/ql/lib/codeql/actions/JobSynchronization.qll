@@ -196,6 +196,13 @@ private ReusableWorkflow getCalledReusableWorkflow(Job job) {
 
 private Job getANeededAncestor(Job job) { result = job.getANeededJob+() }
 
+/** Bounds exact status assignments to at most 4^8 combinations. */
+private int maxExactPrerequisiteCount() { result = 8 }
+
+private predicate hasBoundedPrerequisiteClosure(Job job) {
+  count(getANeededAncestor(job)) <= maxExactPrerequisiteCount()
+}
+
 private predicate needsStatusMayOccur(Job job, NeedsStatus status) {
   isRootJob(job) and status.isSuccess()
   or
@@ -815,14 +822,14 @@ private predicate decisionMayHaveOutcome(
   Job job, Event event, NeedsStatus needsStatus, boolean outcome
 ) {
   not isRootJob(job) and
-  jobConditionContainsAssignedNeedsValue(job) and
+  jobConditionUsesExactNeedsAssignment(job) and
   exists(string assignment |
     assignment = getANeededStatusAssignment(job, event) and
     getAssignmentSummary(assignment) = needsStatus and
     decisionMayHaveOutcomeForAssignment(job, event, assignment, outcome)
   )
   or
-  not jobConditionContainsAssignedNeedsValue(job) and
+  not jobConditionUsesExactNeedsAssignment(job) and
   (
     isRootJob(job) and
     ownConditionMayHaveOutcome(job, event, outcome)
@@ -938,10 +945,10 @@ bindingset[job, event, assignment]
 private predicate decisionMayHaveOutcomeForExactAssignment(
   Job job, Event event, string assignment, boolean outcome
 ) {
-  jobConditionContainsAssignedNeedsValue(job) and
+  jobConditionUsesExactNeedsAssignment(job) and
   decisionMayHaveOutcomeForAssignment(job, event, assignment, outcome)
   or
-  not jobConditionContainsAssignedNeedsValue(job) and
+  not jobConditionUsesExactNeedsAssignment(job) and
   decisionMayHaveOutcome(job, event, getAssignmentSummary(assignment), outcome)
 }
 
@@ -961,15 +968,18 @@ private predicate jobMayCompleteForDirectAssignment(
 }
 
 private string getAReachablePrerequisiteAssignmentPrefix(Job job, Event event, int length) {
-  length = 0 and result = ""
-  or
-  exists(string prefix, string directAssignment, Job prerequisite, JobStatus status |
-    length > 0 and
-    prerequisite = getPrerequisiteAt(job, length - 1) and
-    prefix = getAReachablePrerequisiteAssignmentPrefix(job, event, length - 1) and
-    directAssignment = getDirectAssignmentFromPrerequisites(job, prerequisite, prefix) and
-    jobMayCompleteForDirectAssignment(prerequisite, event, directAssignment, status) and
-    result = prefix + getStatusCode(status)
+  hasBoundedPrerequisiteClosure(job) and
+  (
+    length = 0 and result = ""
+    or
+    exists(string prefix, string directAssignment, Job prerequisite, JobStatus status |
+      length > 0 and
+      prerequisite = getPrerequisiteAt(job, length - 1) and
+      prefix = getAReachablePrerequisiteAssignmentPrefix(job, event, length - 1) and
+      directAssignment = getDirectAssignmentFromPrerequisites(job, prerequisite, prefix) and
+      jobMayCompleteForDirectAssignment(prerequisite, event, directAssignment, status) and
+      result = prefix + getStatusCode(status)
+    )
   )
 }
 
@@ -1005,10 +1015,15 @@ private NeedsStatus getAssignmentSummary(string assignment) {
 }
 
 private predicate needsStatusMayOccurForEvent(Job job, Event event, NeedsStatus status) {
+  hasBoundedPrerequisiteClosure(job) and
   exists(string assignment |
     assignment = getANeededStatusAssignment(job, event) and
     status = getAssignmentSummary(assignment)
   )
+  or
+  not hasBoundedPrerequisiteClosure(job) and
+  job.getATriggerEvent() = event and
+  needsStatusMayOccur(job, status)
 }
 
 private string getStringLiteralValue(ExpressionNode node) {
@@ -1143,11 +1158,15 @@ private predicate jobConditionContainsAssignedNeedsValue(Job job) {
   )
 }
 
+private predicate jobConditionUsesExactNeedsAssignment(Job job) {
+  jobConditionContainsAssignedNeedsValue(job) and hasBoundedPrerequisiteClosure(job)
+}
+
 private predicate belongsToAssignedNeedsValueCondition(ExpressionNode node) {
   exists(Job job, If condition |
     condition = job.getIf() and
     node.getExpression() = condition.getConditionExpr() and
-    jobConditionContainsAssignedNeedsValue(job)
+    jobConditionUsesExactNeedsAssignment(job)
   )
 }
 
@@ -1317,14 +1336,17 @@ private predicate mayEvaluateForAssignment(
 }
 
 private string getAConservativeNeededStatusAssignmentPrefix(Job job, int length) {
-  length = 0 and result = ""
-  or
-  exists(string prefix, Job needed, JobStatus status |
-    length > 0 and
-    needed = getNeededJobAt(job, length - 1) and
-    (not status instanceof SkippedStatus or jobMayBeSkipped(needed)) and
-    prefix = getAConservativeNeededStatusAssignmentPrefix(job, length - 1) and
-    result = prefix + getStatusCode(status)
+  hasBoundedPrerequisiteClosure(job) and
+  (
+    length = 0 and result = ""
+    or
+    exists(string prefix, Job needed, JobStatus status |
+      length > 0 and
+      needed = getNeededJobAt(job, length - 1) and
+      (not status instanceof SkippedStatus or jobMayBeSkipped(needed)) and
+      prefix = getAConservativeNeededStatusAssignmentPrefix(job, length - 1) and
+      result = prefix + getStatusCode(status)
+    )
   )
 }
 
@@ -1380,13 +1402,13 @@ bindingset[job, event]
 predicate jobMayExecuteForEvent(Job job, Event event) {
   job.getATriggerEvent() = event and
   (
-    not jobConditionContainsAssignedNeedsValue(job) and
+    not jobConditionUsesExactNeedsAssignment(job) and
     exists(NeedsStatus needsStatus |
       needsStatusMayOccurForEvent(job, event, needsStatus) and
       decisionMayHaveOutcome(job, event, needsStatus, true)
     )
     or
-    jobConditionContainsAssignedNeedsValue(job) and
+    jobConditionUsesExactNeedsAssignment(job) and
     exists(string assignment |
       assignment = getANeededStatusAssignment(job, event) and
       decisionMayHaveOutcomeForAssignment(job, event, assignment, true)
@@ -1404,13 +1426,13 @@ predicate jobMayCompleteForEvent(Job job, Event event, JobStatus status) {
     or
     status instanceof SkippedStatus and
     (
-      not jobConditionContainsAssignedNeedsValue(job) and
+      not jobConditionUsesExactNeedsAssignment(job) and
       exists(NeedsStatus needsStatus |
         needsStatusMayOccurForEvent(job, event, needsStatus) and
         decisionMayHaveOutcome(job, event, needsStatus, false)
       )
       or
-      jobConditionContainsAssignedNeedsValue(job) and
+      jobConditionUsesExactNeedsAssignment(job) and
       exists(string assignment |
         assignment = getANeededStatusAssignment(job, event) and
         decisionMayHaveOutcomeForAssignment(job, event, assignment, false)
@@ -1422,6 +1444,7 @@ predicate jobMayCompleteForEvent(Job job, Event event, JobStatus status) {
 private predicate jobMayExecuteWithDirectNeededStatus(
   Job job, Event event, Job neededJob, JobStatus neededStatus
 ) {
+  hasBoundedPrerequisiteClosure(job) and
   neededJob = job.getANeededJob() and
   job.getATriggerEvent() = event and
   exists(string assignment |
