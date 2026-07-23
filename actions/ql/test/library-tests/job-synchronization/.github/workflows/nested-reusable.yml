@@ -1,0 +1,9 @@
+"on":
+  workflow_call:
+    outputs:
+      decision:
+        value: "${{ jobs.call-inner.outputs.decision }}"
+
+jobs:
+  call-inner:
+    uses: ./.github/workflows/reusable.yml

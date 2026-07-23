@@ -444,6 +444,73 @@ private predicate isTerminalJob(Job job) {
   not exists(Job dependent | dependent.getANeededJob() = job)
 }
 
+private predicate structuralTerminalJobMayComplete(Job terminal, JobStatus status) {
+  exists(JobCompletionNode completion |
+    completion.getJob() = terminal and completion.getStatus() = status
+  )
+  or
+  exists(MatrixJobFanInNode fanIn | fanIn.getJob() = terminal and fanIn.getStatus() = status)
+}
+
+private predicate terminalJobMayCompleteForEvent(
+  Job terminal, Event event, JobStatus status
+) {
+  exists(ReusableWorkflow workflow, JobStatus outcome |
+    workflow = getCalledReusableWorkflow(terminal) and
+    terminal.getATriggerEvent() = event and
+    reusableWorkflowMayCompleteForEvent(workflow, event, outcome) and
+    status = getAJobConclusionForOutcome(terminal, event, outcome)
+  )
+  or
+  not exists(getCalledReusableWorkflow(terminal)) and
+  terminal.getATriggerEvent() = event and
+  (
+    isRootJob(terminal) and
+    not terminal.getStrategy().hasMatrix() and
+    (
+      status instanceof SkippedStatus and ownConditionMayHaveOutcome(terminal, event, false)
+      or
+      not status instanceof SkippedStatus and
+      ownConditionMayHaveOutcome(terminal, event, true) and
+      exists(JobStatus outcome |
+        not outcome instanceof SkippedStatus and
+        status = getAJobConclusionForOutcome(terminal, event, outcome)
+      )
+    )
+    or
+    (not isRootJob(terminal) or terminal.getStrategy().hasMatrix()) and
+    structuralTerminalJobMayComplete(terminal, status)
+  )
+}
+
+private predicate reusableWorkflowMayCompleteForEvent(
+  ReusableWorkflow workflow, Event event, JobStatus status
+) {
+  status instanceof FailureStatus and
+  exists(Job terminal |
+    terminal.getWorkflow() = workflow and
+    isTerminalJob(terminal) and
+    terminalJobMayCompleteForEvent(terminal, event, status)
+  )
+  or
+  status instanceof CancelledStatus and
+  exists(Job terminal |
+    terminal.getWorkflow() = workflow and
+    isTerminalJob(terminal) and
+    terminalJobMayCompleteForEvent(terminal, event, status)
+  )
+  or
+  status instanceof SuccessStatus and
+  not exists(Job terminal |
+    terminal.getWorkflow() = workflow and
+    isTerminalJob(terminal) and
+    not exists(JobStatus terminalStatus |
+      terminalJobMayCompleteForEvent(terminal, event, terminalStatus) and
+      (terminalStatus instanceof SuccessStatus or terminalStatus instanceof SkippedStatus)
+    )
+  )
+}
+
 private predicate decisionMayHaveOutcome(Job job, boolean outcome) {
   not exists(job.getIf()) and
   isRootJob(job) and
@@ -617,7 +684,14 @@ private predicate jobMayCompleteForDirectAssignment(
     not status instanceof SkippedStatus and
     decisionMayHaveOutcomeForExactAssignment(job, event, assignment, true) and
     exists(JobStatus outcome |
-      not outcome instanceof SkippedStatus and
+      (
+        exists(ReusableWorkflow workflow |
+          workflow = getCalledReusableWorkflow(job) and
+          reusableWorkflowMayCompleteForEvent(workflow, event, outcome)
+        )
+        or
+        not exists(getCalledReusableWorkflow(job)) and not outcome instanceof SkippedStatus
+      ) and
       status = getAJobConclusionForOutcome(job, event, outcome)
     )
   )
@@ -701,6 +775,28 @@ private string getStaticOutputStringValue(Job needed, string outputName) {
   or
   not exists(needed.getOutputExpr(outputName)) and
   result = needed.getOutputs().getOutputValue(outputName)
+  or
+  exists(ReusableWorkflow workflow |
+    needed = workflow.getACaller() and
+    result = getStaticExpressionOutputStringValue(workflow.getOutputExpr(outputName))
+  )
+  or
+  exists(ReusableWorkflow workflow, AccessExpression access, Job outputJob, string jobOutputName |
+    needed = workflow.getACaller() and
+    access = workflow.getOutputExpr(outputName).getRoot().getChild(0) and
+    access.getAccessPath().toLowerCase() =
+      ("jobs." + outputJob.getId() + ".outputs." + jobOutputName).toLowerCase() and
+    outputJob.getWorkflow() = workflow and
+    result = getStaticOutputStringValue(outputJob, jobOutputName)
+  )
+}
+
+private string getANeededOutputName(Job needed) {
+  result = needed.getOutputs().getAnOutputName()
+  or
+  exists(ReusableWorkflow workflow |
+    needed = workflow.getACaller() and result = workflow.getOutputs().getAnOutputName()
+  )
 }
 
 bindingset[access, needed, outputName]
@@ -716,7 +812,7 @@ private string getReferencedStaticOutputStringValue(ExpressionNode node, Job job
   exists(AccessExpression access, string outputName |
     access = node and
     needed = job.getANeededJob() and
-    outputName = needed.getOutputs().getAnOutputName() and
+    outputName = getANeededOutputName(needed) and
     accessesNeededOutput(access, needed, outputName) and
     result = getStaticOutputStringValue(needed, outputName)
   )
@@ -1042,7 +1138,14 @@ predicate jobMayCompleteForEvent(Job job, Event event, JobStatus status) {
   (
     jobMayExecuteForEvent(job, event) and
     exists(JobStatus outcome |
-      not outcome instanceof SkippedStatus and
+      (
+        exists(ReusableWorkflow workflow |
+          workflow = getCalledReusableWorkflow(job) and
+          reusableWorkflowMayCompleteForEvent(workflow, event, outcome)
+        )
+        or
+        not exists(getCalledReusableWorkflow(job)) and not outcome instanceof SkippedStatus
+      ) and
       status = getAJobConclusionForOutcome(job, event, outcome)
     )
     or
@@ -1189,6 +1292,10 @@ private predicate synchronizationSuccessor(Node predecessor, Node successor) {
     predecessor = exit and
     exit.getWorkflow() = getCalledReusableWorkflow(completion.getJob()) and
     not completion.getStatus() instanceof SkippedStatus and
+    exists(Event event |
+      completion.getJob().getATriggerEvent() = event and
+      reusableWorkflowMayCompleteForEvent(exit.getWorkflow(), event, completion.getStatus())
+    ) and
     successor = completion
   )
 }
@@ -1196,7 +1303,8 @@ private predicate synchronizationSuccessor(Node predecessor, Node successor) {
 private predicate synchronizationSuccessorForEvent(Node predecessor, Node successor, Event event) {
   synchronizationSuccessor(predecessor, successor) and
   not predecessor instanceof JobDecisionNode and
-  not predecessor instanceof NeedsJoinNode
+  not predecessor instanceof NeedsJoinNode and
+  not predecessor instanceof WorkflowExitNode
   or
   exists(NeedsJoinNode join, JobDecisionNode decision |
     predecessor = join and
@@ -1227,6 +1335,14 @@ private predicate synchronizationSuccessorForEvent(Node predecessor, Node succes
     completion.getStatus() instanceof SkippedStatus and
     needsStatusMayOccurForEvent(decision.getJob(), event, decision.getNeedsStatus()) and
     decisionMayHaveOutcome(decision.getJob(), event, decision.getNeedsStatus(), false) and
+    successor = completion
+  )
+  or
+  exists(WorkflowExitNode exit, JobCompletionNode completion |
+    predecessor = exit and
+    exit.getWorkflow() = getCalledReusableWorkflow(completion.getJob()) and
+    not completion.getStatus() instanceof SkippedStatus and
+    reusableWorkflowMayCompleteForEvent(exit.getWorkflow(), event, completion.getStatus()) and
     successor = completion
   )
 }

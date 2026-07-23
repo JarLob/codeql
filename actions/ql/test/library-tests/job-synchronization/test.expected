@@ -1,5 +1,9 @@
 joinRequirements
+| after-nested-reusable | call-nested-reusable |
 | after-reusable | call-reusable |
+| after-reusable-blocked | call-reusable |
+| after-reusable-direct | call-reusable |
+| after-reusable-dynamic | call-reusable |
 | always-dependent | root-a |
 | cancelled-dependent | root-a |
 | combined-dependent | root-a |
@@ -38,9 +42,21 @@ joinRequirements
 | transitive-combined | combined-dependent |
 | unknown-named-result | root-a |
 joinRequirementCompletions
+| after-nested-reusable | call-nested-reusable | cancelled |
+| after-nested-reusable | call-nested-reusable | failure |
+| after-nested-reusable | call-nested-reusable | success |
 | after-reusable | call-reusable | cancelled |
 | after-reusable | call-reusable | failure |
 | after-reusable | call-reusable | success |
+| after-reusable-blocked | call-reusable | cancelled |
+| after-reusable-blocked | call-reusable | failure |
+| after-reusable-blocked | call-reusable | success |
+| after-reusable-direct | call-reusable | cancelled |
+| after-reusable-direct | call-reusable | failure |
+| after-reusable-direct | call-reusable | success |
+| after-reusable-dynamic | call-reusable | cancelled |
+| after-reusable-dynamic | call-reusable | failure |
+| after-reusable-dynamic | call-reusable | success |
 | always-dependent | root-a | cancelled |
 | always-dependent | root-a | failure |
 | always-dependent | root-a | success |
@@ -141,9 +157,21 @@ joinRequirementCompletions
 | unknown-named-result | root-a | failure |
 | unknown-named-result | root-a | success |
 joinDecisionStatuses
+| after-nested-reusable | cancelled |
+| after-nested-reusable | failure |
+| after-nested-reusable | success |
 | after-reusable | cancelled |
 | after-reusable | failure |
 | after-reusable | success |
+| after-reusable-blocked | cancelled |
+| after-reusable-blocked | failure |
+| after-reusable-blocked | success |
+| after-reusable-direct | cancelled |
+| after-reusable-direct | failure |
+| after-reusable-direct | success |
+| after-reusable-dynamic | cancelled |
+| after-reusable-dynamic | failure |
+| after-reusable-dynamic | success |
 | always-dependent | cancelled |
 | always-dependent | failure |
 | always-dependent | success |
@@ -264,10 +292,20 @@ joinDecisionStatuses
 | unknown-named-result | failure |
 | unknown-named-result | success |
 decisionEdges
+| after-nested-reusable | complete after-nested-reusable as skipped |
+| after-nested-reusable | execute after-nested-reusable |
 | after-reusable | complete after-reusable as skipped |
 | after-reusable | execute after-reusable |
+| after-reusable-blocked | complete after-reusable-blocked as skipped |
+| after-reusable-blocked | execute after-reusable-blocked |
+| after-reusable-direct | complete after-reusable-direct as skipped |
+| after-reusable-direct | execute after-reusable-direct |
+| after-reusable-dynamic | complete after-reusable-dynamic as skipped |
+| after-reusable-dynamic | execute after-reusable-dynamic |
 | always-dependent | complete always-dependent as skipped |
 | always-dependent | execute always-dependent |
+| call-inner | enter jobs in "on": |
+| call-nested-reusable | enter jobs in "on": |
 | call-reusable | enter jobs in "on": |
 | cancelled-dependent | complete cancelled-dependent as skipped |
 | cancelled-dependent | execute cancelled-dependent |
@@ -333,6 +371,8 @@ decisionEdges
 | output-skipped-dependent | complete output-skipped-dependent as skipped |
 | output-skipped-dependent | execute output-skipped-dependent |
 | reusable-root | execute reusable-root |
+| reusable-skipped-terminal | complete reusable-skipped-terminal as skipped |
+| reusable-skipped-terminal | execute reusable-skipped-terminal |
 | reusable-terminal | complete reusable-terminal as skipped |
 | reusable-terminal | execute reusable-terminal |
 | root-a | execute root-a |
@@ -348,9 +388,17 @@ decisionEdges
 | unknown-named-result | complete unknown-named-result as skipped |
 | unknown-named-result | execute unknown-named-result |
 pushDecisionEdges
+| after-nested-reusable | complete after-nested-reusable as skipped |
+| after-nested-reusable | execute after-nested-reusable |
 | after-reusable | complete after-reusable as skipped |
 | after-reusable | execute after-reusable |
+| after-reusable-blocked | complete after-reusable-blocked as skipped |
+| after-reusable-direct | complete after-reusable-direct as skipped |
+| after-reusable-direct | execute after-reusable-direct |
+| after-reusable-dynamic | complete after-reusable-dynamic as skipped |
+| after-reusable-dynamic | execute after-reusable-dynamic |
 | always-dependent | execute always-dependent |
+| call-nested-reusable | enter jobs in "on": |
 | call-reusable | enter jobs in "on": |
 | cancelled-dependent | complete cancelled-dependent as skipped |
 | cancelled-dependent | execute cancelled-dependent |
@@ -412,6 +460,18 @@ pushDecisionEdges
 | unknown-named-result | complete unknown-named-result as skipped |
 | unknown-named-result | execute unknown-named-result |
 knownStatusDecisionEdges
+| after-nested-reusable | cancelled | complete after-nested-reusable as skipped |
+| after-nested-reusable | success | execute after-nested-reusable |
+| after-reusable | cancelled | complete after-reusable as skipped |
+| after-reusable | success | execute after-reusable |
+| after-reusable-blocked | cancelled | complete after-reusable-blocked as skipped |
+| after-reusable-blocked | success | complete after-reusable-blocked as skipped |
+| after-reusable-direct | cancelled | complete after-reusable-direct as skipped |
+| after-reusable-direct | success | execute after-reusable-direct |
+| after-reusable-dynamic | cancelled | complete after-reusable-dynamic as skipped |
+| after-reusable-dynamic | cancelled | execute after-reusable-dynamic |
+| after-reusable-dynamic | success | complete after-reusable-dynamic as skipped |
+| after-reusable-dynamic | success | execute after-reusable-dynamic |
 | always-dependent | cancelled | execute always-dependent |
 | always-dependent | failure | execute always-dependent |
 | always-dependent | success | execute always-dependent |
@@ -506,9 +566,21 @@ knownStatusDecisionEdges
 | unknown-named-result | success | complete unknown-named-result as skipped |
 | unknown-named-result | success | execute unknown-named-result |
 executionCompletions
+| after-nested-reusable | cancelled |
+| after-nested-reusable | failure |
+| after-nested-reusable | success |
 | after-reusable | cancelled |
 | after-reusable | failure |
 | after-reusable | success |
+| after-reusable-blocked | cancelled |
+| after-reusable-blocked | failure |
+| after-reusable-blocked | success |
+| after-reusable-direct | cancelled |
+| after-reusable-direct | failure |
+| after-reusable-direct | success |
+| after-reusable-dynamic | cancelled |
+| after-reusable-dynamic | failure |
+| after-reusable-dynamic | success |
 | always-dependent | cancelled |
 | always-dependent | failure |
 | always-dependent | success |
@@ -601,8 +673,10 @@ executionCompletions
 | reusable-root | cancelled |
 | reusable-root | failure |
 | reusable-root | success |
+| reusable-skipped-terminal | cancelled |
+| reusable-skipped-terminal | failure |
+| reusable-skipped-terminal | success |
 | reusable-terminal | cancelled |
-| reusable-terminal | failure |
 | reusable-terminal | success |
 | root-a | cancelled |
 | root-a | failure |
@@ -626,46 +700,51 @@ executionCompletions
 | unknown-named-result | failure |
 | unknown-named-result | success |
 executionCfgNodes
-| after-reusable | .github/workflows/test.yml:143:5:148:2 | Job: after-reusable |
-| always-dependent | .github/workflows/test.yml:177:5:183:2 | Job: always-dependent |
-| cancelled-dependent | .github/workflows/test.yml:198:5:204:2 | Job: cancelled-dependent |
-| combined-dependent | .github/workflows/test.yml:212:5:218:2 | Job: combined-dependent |
+| after-nested-reusable | .github/workflows/test.yml:174:5:180:2 | Job: after-nested-reusable |
+| after-reusable | .github/workflows/test.yml:143:5:149:2 | Job: after-reusable |
+| after-reusable-blocked | .github/workflows/test.yml:150:5:156:2 | Job: after-reusable-blocked |
+| after-reusable-direct | .github/workflows/test.yml:157:5:163:2 | Job: after-reusable-direct |
+| after-reusable-dynamic | .github/workflows/test.yml:164:5:170:2 | Job: after-reusable-dynamic |
+| always-dependent | .github/workflows/test.yml:209:5:215:2 | Job: always-dependent |
+| cancelled-dependent | .github/workflows/test.yml:230:5:236:2 | Job: cancelled-dependent |
+| combined-dependent | .github/workflows/test.yml:244:5:250:2 | Job: combined-dependent |
 | continue-dynamic | .github/workflows/test.yml:111:5:118:2 | Job: continue-dynamic |
 | continue-dynamic-result-dependent | .github/workflows/test.yml:133:5:139:2 | Job: continue-dynamic-result-dependent |
 | continue-false | .github/workflows/test.yml:103:5:110:2 | Job: continue-false |
 | continue-true | .github/workflows/test.yml:95:5:102:2 | Job: continue-true |
 | continue-true-failure-dependent | .github/workflows/test.yml:126:5:132:2 | Job: continue-true-failure-dependent |
 | continue-true-success-dependent | .github/workflows/test.yml:119:5:125:2 | Job: continue-true-success-dependent |
-| correlated-dependent | .github/workflows/test.yml:155:5:161:2 | Job: correlated-dependent |
-| correlated-gate | .github/workflows/test.yml:149:5:154:2 | Job: correlated-gate |
-| dependent | .github/workflows/test.yml:170:5:176:2 | Job: dependent |
-| failure-dependent | .github/workflows/test.yml:191:5:197:2 | Job: failure-dependent |
+| correlated-dependent | .github/workflows/test.yml:187:5:193:2 | Job: correlated-dependent |
+| correlated-gate | .github/workflows/test.yml:181:5:186:2 | Job: correlated-gate |
+| dependent | .github/workflows/test.yml:202:5:208:2 | Job: dependent |
+| failure-dependent | .github/workflows/test.yml:223:5:229:2 | Job: failure-dependent |
 | matrix-continue-dependent | .github/workflows/test.yml:89:5:94:2 | Job: matrix-continue-dependent |
 | matrix-dependent | .github/workflows/test.yml:37:5:42:2 | Job: matrix-dependent |
 | matrix-output-blocked | .github/workflows/test.yml:50:5:56:2 | Job: matrix-output-blocked |
 | matrix-output-dynamic | .github/workflows/test.yml:57:5:63:2 | Job: matrix-output-dynamic |
 | matrix-output-enabled | .github/workflows/test.yml:43:5:49:2 | Job: matrix-output-enabled |
-| mixed-dependent | .github/workflows/test.yml:219:5:225:2 | Job: mixed-dependent |
-| named-results | .github/workflows/test.yml:233:5:243:2 | Job: named-results |
-| not-success-dependent | .github/workflows/test.yml:205:5:211:2 | Job: not-success-dependent |
-| output-always-dependent | .github/workflows/test.yml:258:5:268:2 | Job: output-always-dependent |
-| output-blocked-dependent | .github/workflows/test.yml:269:5:275:2 | Job: output-blocked-dependent |
-| output-boolean-dependent | .github/workflows/test.yml:309:5:315:2 | Job: output-boolean-dependent |
-| output-default-dependent | .github/workflows/test.yml:251:5:257:2 | Job: output-default-dependent |
-| output-dynamic-dependent | .github/workflows/test.yml:290:5:299:2 | Job: output-dynamic-dependent |
-| output-empty-dependent | .github/workflows/test.yml:300:5:308:2 | Job: output-empty-dependent |
-| output-failure-dependent | .github/workflows/test.yml:283:5:289:2 | Job: output-failure-dependent |
-| output-negated-dependent | .github/workflows/test.yml:276:5:282:2 | Job: output-negated-dependent |
-| output-skipped-dependent | .github/workflows/test.yml:316:5:322:2 | Job: output-skipped-dependent |
-| reusable-root | .github/workflows/reusable.yml:6:5:10:2 | Job: reusable-root |
-| reusable-terminal | .github/workflows/reusable.yml:11:5:14:36 | Job: reusable-terminal |
+| mixed-dependent | .github/workflows/test.yml:251:5:257:2 | Job: mixed-dependent |
+| named-results | .github/workflows/test.yml:265:5:275:2 | Job: named-results |
+| not-success-dependent | .github/workflows/test.yml:237:5:243:2 | Job: not-success-dependent |
+| output-always-dependent | .github/workflows/test.yml:290:5:300:2 | Job: output-always-dependent |
+| output-blocked-dependent | .github/workflows/test.yml:301:5:307:2 | Job: output-blocked-dependent |
+| output-boolean-dependent | .github/workflows/test.yml:341:5:347:2 | Job: output-boolean-dependent |
+| output-default-dependent | .github/workflows/test.yml:283:5:289:2 | Job: output-default-dependent |
+| output-dynamic-dependent | .github/workflows/test.yml:322:5:331:2 | Job: output-dynamic-dependent |
+| output-empty-dependent | .github/workflows/test.yml:332:5:340:2 | Job: output-empty-dependent |
+| output-failure-dependent | .github/workflows/test.yml:315:5:321:2 | Job: output-failure-dependent |
+| output-negated-dependent | .github/workflows/test.yml:308:5:314:2 | Job: output-negated-dependent |
+| output-skipped-dependent | .github/workflows/test.yml:348:5:354:2 | Job: output-skipped-dependent |
+| reusable-root | .github/workflows/reusable.yml:15:5:19:2 | Job: reusable-root |
+| reusable-skipped-terminal | .github/workflows/reusable.yml:20:5:25:2 | Job: reusable-skipped-terminal |
+| reusable-terminal | .github/workflows/reusable.yml:26:5:34:36 | Job: reusable-terminal |
 | root-a | .github/workflows/test.yml:6:5:18:2 | Job: root-a |
 | root-b | .github/workflows/test.yml:19:5:23:2 | Job: root-b |
-| skipped-output-source | .github/workflows/test.yml:162:5:169:2 | Job: skipped-output-source |
-| success-dependent | .github/workflows/test.yml:184:5:190:2 | Job: success-dependent |
-| terminal | .github/workflows/test.yml:323:5:326:26 | Job: terminal |
-| transitive-combined | .github/workflows/test.yml:226:5:232:2 | Job: transitive-combined |
-| unknown-named-result | .github/workflows/test.yml:244:5:250:2 | Job: unknown-named-result |
+| skipped-output-source | .github/workflows/test.yml:194:5:201:2 | Job: skipped-output-source |
+| success-dependent | .github/workflows/test.yml:216:5:222:2 | Job: success-dependent |
+| terminal | .github/workflows/test.yml:355:5:358:26 | Job: terminal |
+| transitive-combined | .github/workflows/test.yml:258:5:264:2 | Job: transitive-combined |
+| unknown-named-result | .github/workflows/test.yml:276:5:282:2 | Job: unknown-named-result |
 matrixExecutions
 | matrix-continue-true | matrix-continue-true[version=0] |
 | matrix-continue-true | matrix-continue-true[version=1] |
@@ -709,11 +788,28 @@ continueOnErrorCompletionStatuses
 | continue-true | cancelled |
 | continue-true | success |
 reusableWorkflowBoundaryEdges
+| call-inner | callee-entry | enter jobs in "on": |
+| call-inner | caller-completion | complete call-inner as cancelled |
+| call-inner | caller-completion | complete call-inner as success |
+| call-nested-reusable | callee-entry | enter jobs in "on": |
+| call-nested-reusable | caller-completion | complete call-nested-reusable as cancelled |
+| call-nested-reusable | caller-completion | complete call-nested-reusable as success |
 | call-reusable | callee-entry | enter jobs in "on": |
 | call-reusable | caller-completion | complete call-reusable as cancelled |
-| call-reusable | caller-completion | complete call-reusable as failure |
 | call-reusable | caller-completion | complete call-reusable as success |
+reusableCallerCompletionStatuses
+| call-nested-reusable | cancelled |
+| call-nested-reusable | success |
+| call-reusable | cancelled |
+| call-reusable | success |
+reusableTerminalCompletionStatuses
+| reusable-skipped-terminal | skipped |
+| reusable-terminal | cancelled |
+| reusable-terminal | skipped |
+| reusable-terminal | success |
 workflowBoundaries
+| entry | call-inner |
+| entry | call-nested-reusable |
 | entry | call-reusable |
 | entry | continue-dynamic |
 | entry | continue-false |
@@ -723,11 +819,17 @@ workflowBoundaries
 | entry | matrix-over-cap |
 | entry | matrix-root |
 | entry | reusable-root |
+| entry | reusable-skipped-terminal |
 | entry | root-a |
 | entry | root-b |
 | entry | skipped-output-source |
+| exit | after-nested-reusable |
 | exit | after-reusable |
+| exit | after-reusable-blocked |
+| exit | after-reusable-direct |
+| exit | after-reusable-dynamic |
 | exit | always-dependent |
+| exit | call-inner |
 | exit | cancelled-dependent |
 | exit | continue-dynamic-result-dependent |
 | exit | continue-false |
@@ -752,6 +854,7 @@ workflowBoundaries
 | exit | output-failure-dependent |
 | exit | output-negated-dependent |
 | exit | output-skipped-dependent |
+| exit | reusable-skipped-terminal |
 | exit | reusable-terminal |
 | exit | success-dependent |
 | exit | terminal |
@@ -760,7 +863,9 @@ workflowBoundaries
 synchronizationCycles
 impossibleStatusSummaries
 requiredSuccessfulJobs
+| after-nested-reusable | call-nested-reusable |
 | after-reusable | call-reusable |
+| after-reusable-direct | call-reusable |
 | continue-true-success-dependent | continue-true |
 | correlated-dependent | root-a |
 | correlated-gate | root-a |
