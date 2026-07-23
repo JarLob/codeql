@@ -26,6 +26,10 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         version: [20, 22]
     runs-on: "${{ matrix.os }}"
+    outputs:
+      decision: "${{ 'run' }}"
+      blocked: "${{ 'stop' }}"
+      selected: "${{ matrix.os }}"
     steps:
       - run: echo matrix
 
@@ -34,6 +38,58 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo matrix dependent
+
+  matrix-output-enabled:
+    needs: matrix-root
+    if: needs.matrix-root.outputs.decision == 'run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo matrix output enabled
+
+  matrix-output-blocked:
+    needs: matrix-root
+    if: needs.matrix-root.outputs.blocked == 'run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo matrix output blocked
+
+  matrix-output-dynamic:
+    needs: matrix-root
+    if: needs.matrix-root.outputs.selected == 'ubuntu-latest'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo matrix output dynamic
+
+  matrix-over-cap:
+    strategy:
+      matrix:
+        row: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        column: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo bounded matrix fallback
+
+  matrix-dynamic:
+    strategy:
+      matrix: "${{ fromJSON(vars.MATRIX) }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo dynamic matrix fallback
+
+  matrix-continue-true:
+    strategy:
+      matrix:
+        version: [20, 22]
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 1
+
+  matrix-continue-dependent:
+    needs: matrix-continue-true
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo continued matrix dependent
 
   continue-true:
     continue-on-error: true
@@ -58,6 +114,27 @@ jobs:
       - id: step-continue-dynamic
         continue-on-error: "${{ vars.CONTINUE_ON_ERROR }}"
         run: exit 1
+
+  continue-true-success-dependent:
+    needs: continue-true
+    if: always() && needs.continue-true.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo continued failure is successful
+
+  continue-true-failure-dependent:
+    needs: continue-true
+    if: always() && needs.continue-true.result == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo unreachable failure conclusion
+
+  continue-dynamic-result-dependent:
+    needs: continue-dynamic
+    if: always() && needs.continue-dynamic.result == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo dynamic failure conclusion
 
   call-reusable:
     uses: ./.github/workflows/reusable.yml
@@ -194,6 +271,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo output blocked
+
+  output-negated-dependent:
+    needs: root-a
+    if: always() && !(needs.root-a.outputs.decision == 'run')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo output negated
+
+  output-failure-dependent:
+    needs: root-a
+    if: failure() && needs.root-a.result == 'failure' && needs.root-a.outputs.decision == 'run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo output after failure
 
   output-dynamic-dependent:
     needs: root-a

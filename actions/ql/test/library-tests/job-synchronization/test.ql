@@ -49,7 +49,10 @@ query predicate knownStatusDecisionEdges(string job, string status, string succe
         "cancelled-dependent", "not-success-dependent", "combined-dependent", "transitive-combined",
         "named-results", "unknown-named-result", "output-default-dependent",
         "output-always-dependent", "output-blocked-dependent", "output-dynamic-dependent",
-        "terminal", "output-empty-dependent", "output-boolean-dependent", "output-skipped-dependent"
+        "terminal", "output-empty-dependent", "output-boolean-dependent", "output-skipped-dependent",
+        "continue-true-success-dependent", "continue-true-failure-dependent",
+        "continue-dynamic-result-dependent", "matrix-output-enabled", "matrix-output-blocked",
+        "matrix-output-dynamic", "output-negated-dependent", "output-failure-dependent"
       ] and
     status = decision.getNeedsStatus().getName() and
     successor = decision.getASuccessor(event).toString()

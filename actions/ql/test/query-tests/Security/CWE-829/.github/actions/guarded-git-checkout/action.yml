@@ -1,0 +1,10 @@
+name: Guarded git checkout
+description: Checkout pull request code using the runtime guard
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v7
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+    - run: echo checked out
+      shell: bash

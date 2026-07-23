@@ -43,6 +43,54 @@ jobs:
     steps:
       - run: echo literals
 
+  string-functions-true:
+    if: "startsWith('CodeQL', 'code') && endsWith('CodeQL', 'QL')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo matching string functions
+
+  string-functions-false:
+    if: "startsWith('CodeQL', 'QL') || endsWith('CodeQL', 'code')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo nonmatching string functions
+
+  zero-literal:
+    if: "${{ 0 || false }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo zero
+
+  nonzero-literal:
+    if: "${{ 1 && true }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo nonzero
+
+  empty-string-literal:
+    if: "${{ '' || false }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo empty string
+
+  null-literal:
+    if: "${{ null || false }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo null
+
+  typed-comparisons-true:
+    if: "true == !false && null == null && 2 >= 2 && 3 > 2 && 1 <= 1"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo matching typed comparisons
+
+  typed-comparisons-false:
+    if: "true != true || null != null || 2 < 1 || 1 > 2"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo nonmatching typed comparisons
+
   always:
     if: "always()"
     runs-on: ubuntu-latest
