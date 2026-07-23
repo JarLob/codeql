@@ -18,7 +18,8 @@ query predicate neededJobProtection(string protectedJob) {
     protectedJob =
       [
         "protected-dependent", "bypassable-dependent", "explicit-success-dependent",
-        "explicit-failure-dependent"
+        "explicit-failure-dependent", "output-protected-dependent",
+        "output-bypassable-dependent"
       ] and
     event.getName() = "pull_request_target" and
     check.protects(sink, event, "untrusted-checkout")
