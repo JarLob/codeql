@@ -1,0 +1,15 @@
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  mapped:
+    uses: ./.github/workflows/reusable.yml
+    with:
+      token: ${{ github.event.issue.title }}
+    secrets:
+      token: ${{ github.event.issue.body }}
+
+  inherited:
+    uses: ./.github/workflows/reusable.yml
+    secrets: inherit

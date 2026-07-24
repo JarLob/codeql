@@ -635,6 +635,35 @@ class ReusableWorkflowImpl extends AstNodeImpl, WorkflowImpl {
     result.getNode().(YamlString).getValue() = name
   }
 
+  string getASecretName() {
+    exists(YamlScalar key |
+      workflow_call.(YamlMapping).lookup("secrets").(YamlMapping).maps(key, _) and
+      result = key.getValue()
+    )
+  }
+
+  predicate declaresSecret(string name) {
+    exists(YamlValue secret |
+      workflow_call.(YamlMapping).lookup("secrets").(YamlMapping).lookup(name) = secret
+    )
+  }
+
+  predicate isSecretRequired(string name) {
+    workflow_call
+        .(YamlMapping)
+        .lookup("secrets")
+        .(YamlMapping)
+        .lookup(name)
+        .(YamlMapping)
+        .lookup("required")
+        .(YamlScalar)
+        .getValue() = "true"
+  }
+
+  SecretsExpressionImpl getASecretExpr() {
+    result.getEnclosingWorkflow() = this and this.declaresSecret(result.getFieldName())
+  }
+
   ExternalJobImpl getACaller() {
     exists(DataFlow::CallNode call |
       call.getCalleeNode() = this and
@@ -1150,6 +1179,8 @@ class JobImpl extends AstNodeImpl, TJobNode {
   }
 
   private predicate hasExplicitSecretAccess() {
+    this.(ExternalJobImpl).inheritsSecrets()
+    or
     // the job accesses a secret other than GITHUB_TOKEN
     exists(SecretsExpressionImpl expr |
       (expr.getEnclosingJob() = this or not exists(expr.getEnclosingJob())) and
@@ -1532,6 +1563,8 @@ abstract class UsesImpl extends AstNodeImpl {
 
   abstract ScalarValueImpl getCalleeNode();
 
+  abstract predicate isRemoteCall();
+
   abstract string getVersion();
 
   int getMajorVersion() {
@@ -1569,6 +1602,8 @@ class UsesStepImpl extends StepImpl, UsesImpl {
   }
 
   private predicate isLocalCall() { u.getValue().matches(["./%", ".github/%"]) }
+
+  override predicate isRemoteCall() { not this.isLocalCall() }
 
   private predicate hasModeledExternalCallee() {
     exists(string owner, string repo, string action_path, string requested_ref,
@@ -1634,6 +1669,21 @@ class ExternalJobImpl extends JobImpl, UsesImpl {
 
   ExternalJobImpl() { n.lookup("uses") = u }
 
+  string getSecret(string key) {
+    exists(ScalarValueImpl scalar |
+      scalar.getNode() = n.lookup("secrets").(YamlMapping).lookup(key) and
+      result = scalar.getValue()
+    )
+  }
+
+  ExpressionImpl getASecretExpr() { result = this.getSecretExpr(_) }
+
+  ExpressionImpl getSecretExpr(string key) {
+    result.getParentNode().getNode() = n.lookup("secrets").(YamlMapping).lookup(key)
+  }
+
+  predicate inheritsSecrets() { n.lookup("secrets").(YamlScalar).getValue() = "inherit" }
+
   override string getCallee() {
     if u.getValue().matches("./%")
     then result = u.getValue().regexpCapture(pathUsesParser(), 1)
@@ -1645,6 +1695,8 @@ class ExternalJobImpl extends JobImpl, UsesImpl {
   }
 
   private predicate isLocalCall() { u.getValue().matches("./%") }
+
+  override predicate isRemoteCall() { not this.isLocalCall() }
 
   private predicate hasExternalEnclosingWorkflow() {
     exists(ReusableWorkflowImpl enclosing_workflow |

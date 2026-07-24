@@ -1,10 +1,10 @@
 ## Overview
 
-When the workflow runner cannot determine what secrets are needed to run the workflow, it will pass all the available secrets to the runner including organization and repository secrets. This violates the least privileged principle and increases the impact of a potential vulnerability affecting the workflow.
+When the workflow runner cannot determine what secrets are needed, it receives all available organization and repository secrets. Calling a reusable workflow with `secrets: inherit` similarly makes every available secret accessible to that workflow. Both patterns violate least privilege and increase the impact of a compromised runner or reusable workflow.
 
 ## Recommendation
 
-Only pass those secrets that are needed by the workflow. Avoid using expressions such as `toJSON(secrets)` or dynamically accessed secrets such as `secrets[format('GH_PAT_%s', matrix.env)]` since the workflow will need to receive all secrets to decide at runtime which one needs to be used.
+Only pass the secrets needed by the job or reusable workflow. Avoid expressions such as `toJSON(secrets)`, dynamically accessed secrets such as `secrets[format('GH_PAT_%s', matrix.env)]`, and `secrets: inherit`. Prefer explicit named secret mappings for reusable workflows.
 
 ## Example
 
@@ -21,6 +21,13 @@ strategy:
     env: [PROD, DEV]
 env:
   GH_TOKEN: ${{ secrets[format('GH_PAT_%s', matrix.env)] }}
+```
+
+```yaml
+jobs:
+  build:
+    uses: octo-org/example/.github/workflows/build.yml@main
+    secrets: inherit
 ```
 
 ### Correct Usage
@@ -42,6 +49,14 @@ env:
 if: matrix.env == "DEV"
 env:
   GH_TOKEN: ${{ secrets.GH_PAT_DEV }}
+```
+
+```yaml
+jobs:
+  build:
+    uses: octo-org/example/.github/workflows/build.yml@25b062c917b0c75f8b47d8469aff6c94ffd89abb
+    secrets:
+      token: ${{ secrets.GH_PAT }}
 ```
 
 ## References

@@ -293,6 +293,7 @@ private class ExternalJobTree extends GuardedPreOrderTree instanceof ExternalJob
       rank[i](AstNode child, Location l |
         (
           child = this.(ExternalJob).getArgumentExpr(_) or
+          child = this.(ExternalJob).getSecretExpr(_) or
           child = this.(ExternalJob).getInScopeEnvVarExpr(_) or
           child = this.(ExternalJob).getOutputs() or
           child = this.(ExternalJob).getStrategy()

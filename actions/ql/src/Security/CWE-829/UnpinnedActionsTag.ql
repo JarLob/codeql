@@ -1,6 +1,6 @@
 /**
- * @name Unpinned tag for a non-immutable Action in workflow or composite action
- * @description Using a tag for a non-immutable Action that is not pinned to a commit can lead to executing an untrusted Action through a supply chain attack.
+ * @name Unpinned tag for a non-immutable Action or reusable workflow
+ * @description Using a tag for a non-immutable Action or reusable workflow that is not pinned to a commit can lead to executing untrusted code through a supply chain attack.
  * @kind problem
  * @security-severity 5.0
  * @problem.severity warning
@@ -49,14 +49,42 @@ private predicate getStepContainerName(UsesStep uses, string name) {
   )
 }
 
-from UsesStep uses, string nwo, string version, string name
+private predicate getWorkflowContainerName(ExternalJob job, string name) {
+  exists(Workflow workflow |
+    job.getEnclosingWorkflow() = workflow and
+    (
+      workflow.getName() = name
+      or
+      not exists(workflow.getName()) and workflow.getLocation().getFile().getBaseName() = name
+    )
+  )
+}
+
+from Uses uses, string nwo, string version, string name, string message
 where
+  uses.isRemoteCall() and
   uses.getCallee() = nwo and
-  getStepContainerName(uses, name) and
   uses.getVersion() = version and
   not isTrustedOwner(nwo) and
-  not (if isContainerImage(nwo) then isPinnedContainer(version) else isPinnedCommit(version)) and
-  not isImmutableAction(uses, nwo)
-select uses.getCalleeNode(),
-  "Unpinned 3rd party Action '" + name + "' step $@ uses '" + nwo + "' with ref '" + version +
-    "', not a pinned commit hash", uses, uses.toString()
+  (
+    exists(UsesStep step |
+      uses = step and
+      getStepContainerName(step, name) and
+      not (if isContainerImage(nwo) then isPinnedContainer(version) else isPinnedCommit(version)) and
+      not isImmutableAction(step, nwo) and
+      message =
+        "Unpinned 3rd party Action '" + name + "' step $@ uses '" + nwo + "' with ref '" +
+          version + "', not a pinned commit hash"
+    )
+    or
+    exists(ExternalJob job |
+      uses = job and
+      getWorkflowContainerName(job, name) and
+      not isPinnedCommit(version) and
+      message =
+        "Unpinned 3rd party reusable workflow in '" + name +
+          "' $@ uses '" + nwo + "' with ref '" + version +
+          "', not a pinned commit hash"
+    )
+  )
+select uses.getCalleeNode(), message, uses, uses.toString()

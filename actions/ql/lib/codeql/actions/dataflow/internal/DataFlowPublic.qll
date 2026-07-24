@@ -48,20 +48,44 @@ class ExprNode extends Node, TExprNode {
  * Reusable workflow input nodes
  */
 class ParameterNode extends ExprNode {
-  private Input input;
+  private AstNode parameter;
 
-  ParameterNode() { this.asExpr() = input }
-
-  predicate isParameterOf(DataFlowCallable c, ParameterPosition pos) {
-    input = c.(ReusableWorkflow).getInput(pos) or
-    input = c.(CompositeAction).getInput(pos)
+  ParameterNode() {
+    this.asExpr() = parameter and
+    (
+      parameter instanceof Input
+      or
+      exists(ReusableWorkflow workflow |
+        parameter = workflow.getASecretExpr()
+      )
+    )
   }
 
-  override string toString() { result = "input " + input.toString() }
+  predicate isParameterOf(DataFlowCallable c, ParameterPosition pos) {
+    exists(string name |
+      pos = inputPosition(name) and
+      (
+        parameter = c.(ReusableWorkflow).getInput(name) or
+        parameter = c.(CompositeAction).getInput(name)
+      )
+    )
+    or
+    exists(string name |
+      pos = secretPosition(name) and
+      parameter = c.(ReusableWorkflow).getASecretExpr() and
+      parameter.(SecretsExpression).getFieldName() = name
+    )
+  }
 
-  override Location getLocation() { result = input.getLocation() }
+  override string toString() {
+    result = "input " + parameter.(Input).toString()
+    or
+    result = "secret " + parameter.(SecretsExpression).getFieldName()
+  }
 
-  Input getInput() { result = input }
+  override Location getLocation() { result = parameter.getLocation() }
+
+  Input getInput() { result = parameter }
 }
 
 /**
@@ -79,12 +103,24 @@ class CallNode extends ExprNode {
  * An argument to a Uses step (call).
  */
 class ArgumentNode extends ExprNode {
-  ArgumentNode() { this.getCfgNode().getAstNode() = any(Uses e).getArgumentExpr(_) }
+  ArgumentNode() {
+    this.getCfgNode().getAstNode() = any(Uses e).getArgumentExpr(_)
+    or
+    this.getCfgNode().getAstNode() = any(ExternalJob e).getSecretExpr(_)
+  }
 
   predicate argumentOf(DataFlowCall call, ArgumentPosition pos) {
     this.getCfgNode() = call.(Cfg::Node).getASuccessor+() and
-    call.(Cfg::Node).getAstNode() =
-      any(Uses e | e.getArgumentExpr(pos) = this.getCfgNode().getAstNode())
+    exists(Uses uses, string name |
+      call.(Cfg::Node).getAstNode() = uses and
+      (
+        pos = inputPosition(name) and
+        uses.getArgumentExpr(name) = this.getCfgNode().getAstNode()
+        or
+        pos = secretPosition(name) and
+        uses.(ExternalJob).getSecretExpr(name) = this.getCfgNode().getAstNode()
+      )
+    )
   }
 }
 

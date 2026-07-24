@@ -1,0 +1,10 @@
+declaredSecrets
+| optional-token | optional |
+| token | required |
+mappedSecrets
+| mapped | token | ${{ github.event.issue.body }} |
+inheritedSecretJobs
+| .github/workflows/caller.yml:14:5:15:20 | Job: inherited |
+boundaryFlows
+| .github/workflows/caller.yml:9:15:9:45 | github.event.issue.title | .github/workflows/reusable.yml:17:21:17:39 | inputs.token |
+| .github/workflows/caller.yml:11:15:11:44 | github.event.issue.body | .github/workflows/reusable.yml:18:21:18:40 | secret token |

@@ -178,10 +178,25 @@ ContentApprox getContentApprox(Content c) { result = c }
 /**
  * Made a string to match the ArgumentPosition type.
  */
+bindingset[name]
+string inputPosition(string name) { result = "input:" + name }
+
+bindingset[name]
+string secretPosition(string name) { result = "secret:" + name }
+
 class ParameterPosition extends string {
   ParameterPosition() {
-    exists(any(ReusableWorkflow w).getInput(this)) or
-    exists(any(CompositeAction a).getInput(this))
+    exists(string name |
+      this = inputPosition(name) and
+      (
+        exists(any(ReusableWorkflow w).getInput(name)) or
+        exists(any(CompositeAction a).getInput(name))
+      )
+    )
+    or
+    exists(ReusableWorkflow workflow, SecretsExpression secret |
+      workflow.getASecretExpr() = secret and this = secretPosition(secret.getFieldName())
+    )
   }
 }
 
@@ -189,7 +204,15 @@ class ParameterPosition extends string {
  * Made a string to match `With:` keys in the AST
  */
 class ArgumentPosition extends string {
-  ArgumentPosition() { exists(any(Uses e).getArgumentExpr(this)) }
+  ArgumentPosition() {
+    exists(Uses uses, string name |
+      exists(uses.getArgumentExpr(name)) and this = inputPosition(name)
+    )
+    or
+    exists(ExternalJob job, string name |
+      exists(job.getSecretExpr(name)) and this = secretPosition(name)
+    )
+  }
 }
 
 /**
