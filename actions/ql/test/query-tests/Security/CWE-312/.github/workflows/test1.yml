@@ -23,3 +23,12 @@ jobs:
         run: |
           echo "$username"
           echo "$password"
+
+  inherited-secrets:
+    uses: third-party/workflows/.github/workflows/build.yml@main
+    secrets: inherit
+
+  mapped-secret:
+    uses: third-party/workflows/.github/workflows/build.yml@main
+    secrets:
+      token: ${{ secrets.TOKEN }}

@@ -224,6 +224,14 @@ class ReusableWorkflow extends Workflow instanceof ReusableWorkflowImpl {
 
   Input getInput(string inputName) { result = super.getInput(inputName) }
 
+  string getASecretName() { result = super.getASecretName() }
+
+  predicate declaresSecret(string secretName) { super.declaresSecret(secretName) }
+
+  predicate isSecretRequired(string secretName) { super.isSecretRequired(secretName) }
+
+  SecretsExpression getASecretExpr() { result = super.getASecretExpr() }
+
   ExternalJob getACaller() { result = super.getACaller() }
 }
 
@@ -404,6 +412,9 @@ abstract class Uses extends AstNode instanceof UsesImpl {
 
   ScalarValue getCalleeNode() { result = super.getCalleeNode() }
 
+  /** Holds if this call uses a remote reference rather than a local path. */
+  predicate isRemoteCall() { super.isRemoteCall() }
+
   string getVersion() { result = super.getVersion() }
 
   int getMajorVersion() { result = super.getMajorVersion() }
@@ -415,7 +426,15 @@ abstract class Uses extends AstNode instanceof UsesImpl {
 
 class UsesStep extends Step, Uses instanceof UsesStepImpl { }
 
-class ExternalJob extends Job, Uses instanceof ExternalJobImpl { }
+class ExternalJob extends Job, Uses instanceof ExternalJobImpl {
+  string getSecret(string secretName) { result = super.getSecret(secretName) }
+
+  Expression getASecretExpr() { result = super.getASecretExpr() }
+
+  Expression getSecretExpr(string secretName) { result = super.getSecretExpr(secretName) }
+
+  predicate inheritsSecrets() { super.inheritsSecrets() }
+}
 
 /**
  * A `run` field within an Actions job step, which runs command-line programs using an operating system shell.

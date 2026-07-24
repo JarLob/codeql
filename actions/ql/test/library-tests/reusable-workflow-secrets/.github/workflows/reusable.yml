@@ -1,0 +1,18 @@
+on:
+  workflow_call:
+    inputs:
+      token:
+        type: string
+        required: true
+    secrets:
+      token:
+        required: true
+      optional-token:
+        required: false
+
+jobs:
+  consume:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ inputs.token }}"
+      - run: echo "${{ secrets.token }}"
