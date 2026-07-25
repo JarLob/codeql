@@ -1,0 +1,215 @@
+typedSteps
+| cancel-one | cancel | cancel-one |
+| cancel-one | run | after-cancel |
+| cancel-one | run | cancellable |
+| disabled-wait-all | run | after-disabled |
+| disabled-wait-all | run | disabled-background |
+| explicit-wait | run | after-wait |
+| explicit-wait | run | background-run |
+| explicit-wait | run | foreground |
+| explicit-wait | wait | wait-one |
+| implicit-wait | run | final-foreground |
+| implicit-wait | run | unjoined-background |
+| nested-background | parallel | Parallel Step |
+| nested-background | run | after-nested |
+| parallel-job | parallel | Parallel Step |
+| parallel-job | run | after-parallel |
+| parallel-job | run | before-parallel |
+| skipped-background | run | after-skipped |
+| skipped-background | run | maybe-background |
+| skipped-background | wait | wait-skipped |
+| wait-everything | run | after-all |
+| wait-everything | run | background-a |
+| wait-everything | run | background-b |
+| wait-everything | wait-all | wait-everything |
+| wait-many | run | after-many |
+| wait-many | run | first-background |
+| wait-many | uses | second-background |
+| wait-many | wait | wait-many |
+backgroundSteps
+| cancel-one | cancellable |
+| disabled-wait-all | disabled-background |
+| explicit-wait | background-run |
+| implicit-wait | unjoined-background |
+| skipped-background | maybe-background |
+| wait-everything | background-a |
+| wait-everything | background-b |
+| wait-many | first-background |
+| wait-many | second-background |
+backgroundBodies
+| cancel-one | cancellable | run | echo cancellable |
+| disabled-wait-all | disabled-background | run | echo disabled |
+| explicit-wait | background-run | run | echo "${{ github.event.comment.body }}" |
+| implicit-wait | unjoined-background | run | echo unjoined |
+| skipped-background | maybe-background | run | echo maybe |
+| wait-everything | background-a | run | echo a |
+| wait-everything | background-b | run | echo b |
+| wait-many | first-background | run | echo first |
+| wait-many | second-background | uses | actions/github-script |
+unjoinedBackgroundSteps
+| disabled-wait-all | disabled-background |
+| implicit-wait | unjoined-background |
+waitTargets
+| explicit-wait | wait-one | background-run |
+| skipped-background | wait-skipped | maybe-background |
+| wait-many | wait-many | first-background |
+| wait-many | wait-many | second-background |
+cancelTargets
+| cancel-one | cancel-one | cancellable |
+parallelChildren
+| nested-background | run | nested-background-run |
+| nested-background | run | nested-foreground |
+| parallel-job | run | parallel-run |
+| parallel-job | uses | parallel-use |
+containedSteps
+| cancel-one | after-cancel |
+| cancel-one | cancel-one |
+| cancel-one | cancellable |
+| disabled-wait-all | after-disabled |
+| disabled-wait-all | disabled-background |
+| disabled-wait-all | disabled-wait |
+| explicit-wait | after-wait |
+| explicit-wait | background-run |
+| explicit-wait | foreground |
+| explicit-wait | wait-one |
+| implicit-wait | final-foreground |
+| implicit-wait | unjoined-background |
+| nested-background | Parallel Step |
+| nested-background | after-nested |
+| nested-background | nested-background-run |
+| nested-background | nested-foreground |
+| parallel-job | Parallel Step |
+| parallel-job | after-parallel |
+| parallel-job | before-parallel |
+| parallel-job | parallel-run |
+| parallel-job | parallel-use |
+| skipped-background | after-skipped |
+| skipped-background | maybe-background |
+| skipped-background | wait-skipped |
+| wait-everything | after-all |
+| wait-everything | background-a |
+| wait-everything | background-b |
+| wait-everything | wait-everything |
+| wait-many | after-many |
+| wait-many | first-background |
+| wait-many | second-background |
+| wait-many | wait-many |
+stepReachability
+| cancel-one | after-cancel | after-cancel |
+| cancel-one | cancel-one | after-cancel |
+| cancel-one | cancel-one | cancel-one |
+| cancel-one | cancellable | after-cancel |
+| cancel-one | cancellable | cancel-one |
+| cancel-one | cancellable | cancellable |
+| disabled-wait-all | after-disabled | after-disabled |
+| disabled-wait-all | disabled-background | after-disabled |
+| disabled-wait-all | disabled-background | disabled-background |
+| explicit-wait | after-wait | after-wait |
+| explicit-wait | background-run | after-wait |
+| explicit-wait | background-run | background-run |
+| explicit-wait | background-run | foreground |
+| explicit-wait | background-run | wait-one |
+| explicit-wait | foreground | after-wait |
+| explicit-wait | foreground | foreground |
+| explicit-wait | foreground | wait-one |
+| explicit-wait | wait-one | after-wait |
+| explicit-wait | wait-one | wait-one |
+| implicit-wait | final-foreground | final-foreground |
+| implicit-wait | unjoined-background | final-foreground |
+| implicit-wait | unjoined-background | unjoined-background |
+| nested-background | Parallel Step | Parallel Step |
+| nested-background | Parallel Step | after-nested |
+| nested-background | after-nested | after-nested |
+| nested-background | nested-background-run | Parallel Step |
+| nested-background | nested-background-run | after-nested |
+| nested-background | nested-background-run | nested-background-run |
+| nested-background | nested-foreground | Parallel Step |
+| nested-background | nested-foreground | after-nested |
+| nested-background | nested-foreground | nested-foreground |
+| parallel-job | Parallel Step | Parallel Step |
+| parallel-job | Parallel Step | after-parallel |
+| parallel-job | after-parallel | after-parallel |
+| parallel-job | before-parallel | Parallel Step |
+| parallel-job | before-parallel | after-parallel |
+| parallel-job | before-parallel | before-parallel |
+| parallel-job | before-parallel | parallel-run |
+| parallel-job | before-parallel | parallel-use |
+| parallel-job | parallel-run | Parallel Step |
+| parallel-job | parallel-run | after-parallel |
+| parallel-job | parallel-run | parallel-run |
+| parallel-job | parallel-use | Parallel Step |
+| parallel-job | parallel-use | after-parallel |
+| parallel-job | parallel-use | parallel-use |
+| skipped-background | after-skipped | after-skipped |
+| skipped-background | maybe-background | after-skipped |
+| skipped-background | maybe-background | maybe-background |
+| skipped-background | maybe-background | wait-skipped |
+| skipped-background | wait-skipped | after-skipped |
+| skipped-background | wait-skipped | wait-skipped |
+| wait-everything | after-all | after-all |
+| wait-everything | background-a | after-all |
+| wait-everything | background-a | background-a |
+| wait-everything | background-a | background-b |
+| wait-everything | background-a | wait-everything |
+| wait-everything | background-b | after-all |
+| wait-everything | background-b | background-b |
+| wait-everything | background-b | wait-everything |
+| wait-everything | wait-everything | after-all |
+| wait-everything | wait-everything | wait-everything |
+| wait-many | after-many | after-many |
+| wait-many | first-background | after-many |
+| wait-many | first-background | first-background |
+| wait-many | first-background | second-background |
+| wait-many | first-background | wait-many |
+| wait-many | second-background | after-many |
+| wait-many | second-background | second-background |
+| wait-many | second-background | wait-many |
+| wait-many | wait-many | after-many |
+| wait-many | wait-many | wait-many |
+backgroundBodyReachability
+| explicit-wait | background-run body | after-wait |
+| explicit-wait | background-run body | wait-one |
+| skipped-background | maybe-background body | after-skipped |
+| skipped-background | maybe-background body | wait-skipped |
+| wait-everything | background-a body | after-all |
+| wait-everything | background-a body | wait-everything |
+| wait-everything | background-b body | after-all |
+| wait-everything | background-b body | wait-everything |
+| wait-many | first-background body | after-many |
+| wait-many | first-background body | wait-many |
+backgroundArgumentReachability
+| wait-many | second-background argument | wait-many |
+barrierCompletionEdges
+| explicit-wait | background-run | wait-one |
+| skipped-background | maybe-background | wait-skipped |
+| wait-everything | background-a | wait-everything |
+| wait-everything | background-b | wait-everything |
+| wait-many | first-background | wait-many |
+| wait-many | second-background | wait-many |
+implicitExitReachability
+| disabled-wait-all | disabled-background |
+| implicit-wait | unjoined-background |
+forbiddenReachability
+backgroundFollowingSteps
+| cancel-one | cancellable | after-cancel |
+| cancel-one | cancellable | cancel-one |
+| explicit-wait | background-run | after-wait |
+| explicit-wait | background-run | wait-one |
+| skipped-background | maybe-background | after-skipped |
+| skipped-background | maybe-background | wait-skipped |
+| wait-everything | background-a | after-all |
+| wait-everything | background-a | wait-everything |
+| wait-everything | background-b | after-all |
+| wait-everything | background-b | wait-everything |
+| wait-many | first-background | after-many |
+| wait-many | first-background | wait-many |
+| wait-many | second-background | after-many |
+| wait-many | second-background | wait-many |
+cancelContinuation
+| cancel-one | cancel-one | after-cancel |
+skippedBackgroundContinuation
+| skipped-background | wait-skipped | after-skipped |
+nestedBackgroundExit
+| nested-background | nested-background-run |
+disabledWaitAll
+| disabled-wait-all | disabled-wait | no-op |

@@ -104,8 +104,10 @@ private predicate jobAlwaysMasksStepFailures(Job job) {
   jobAlwaysContinuesOnError(job)
   or
   job instanceof LocalJob and
-  exists(job.(LocalJob).getAStep()) and
-  forall(Step step | step = job.(LocalJob).getAStep() | stepAlwaysContinuesOnError(step))
+  exists(job.(LocalJob).getAContainedStep()) and
+  forall(Step step | step = job.(LocalJob).getAContainedStep() |
+    stepAlwaysContinuesOnError(step)
+  )
 }
 
 /** Gets a possible effective conclusion after applying a job's `continue-on-error`. */
@@ -364,8 +366,8 @@ private predicate matrixJobAlwaysMasksStepFailures(MatrixJobInstance instance) {
   )
   or
   instance.getJob() instanceof LocalJob and
-  exists(instance.getJob().(LocalJob).getAStep()) and
-  forall(Step step | step = instance.getJob().(LocalJob).getAStep() |
+  exists(instance.getJob().(LocalJob).getAContainedStep()) and
+  forall(Step step | step = instance.getJob().(LocalJob).getAContainedStep() |
     exists(Event event |
       step.getATriggerEvent() = event and
       matrixStepContinueOnErrorMayEvaluateTo(step, instance, event, true) and
@@ -634,13 +636,13 @@ private JobStatus getAPossibleNonMatrixJobConclusionForEvent(Job job, Event even
   (
     exists(LocalJob local, Step step, JobStatus outcome, JobStatus stepConclusion |
       local = job and
-      step = local.getAStep() and
+      step = local.getAContainedStep() and
       not outcome instanceof SkippedStatus and
       stepConclusion = getAStepConclusionForOutcome(step, event, outcome) and
       result = getAJobConclusionForOutcome(job, event, stepConclusion)
     )
     or
-    not exists(LocalJob local, Step step | local = job and step = local.getAStep()) and
+    not exists(LocalJob local, Step step | local = job and step = local.getAContainedStep()) and
     exists(JobStatus outcome |
       not outcome instanceof SkippedStatus and
       result = getAJobConclusionForOutcome(job, event, outcome)
@@ -655,14 +657,14 @@ private JobStatus getAPossibleMatrixInstanceConclusionForEvent(
   (
     exists(LocalJob local, Step step, JobStatus outcome, JobStatus stepConclusion |
       local = instance.getJob() and
-      step = local.getAStep() and
+      step = local.getAContainedStep() and
       not outcome instanceof SkippedStatus and
       stepConclusion = getAMatrixStepConclusionForOutcome(step, instance, event, outcome) and
       result = getAMatrixJobConclusionForOutcome(instance, event, stepConclusion)
     )
     or
     not exists(LocalJob local, Step step |
-      local = instance.getJob() and step = local.getAStep()
+      local = instance.getJob() and step = local.getAContainedStep()
     ) and
     exists(JobStatus outcome |
       not outcome instanceof SkippedStatus and

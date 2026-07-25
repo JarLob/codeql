@@ -116,6 +116,168 @@ private import CfgImpl
 private import Completion
 private import CfgScope
 
+abstract private class BackgroundTree extends ControlFlowTree {
+  abstract BackgroundStep getBackgroundStep();
+
+  abstract AstNode getBodyChild(int i);
+
+  private If getGuard() { result = this.getBackgroundStep().getIf() }
+
+  private ControlFlowTree getBodyChildTree(int i) { result = this.getBodyChild(i) }
+
+  private ControlFlowTree getFirstBodyChildTree() { result = this.getBodyChildTree(1) }
+
+  private ControlFlowTree getLastBodyChildTree() {
+    exists(int last |
+      result = this.getBodyChildTree(last) and not exists(this.getBodyChildTree(last + 1))
+    )
+  }
+
+  override predicate first(AstNode firstNode) {
+    first(this.getGuard(), firstNode)
+    or
+    not exists(this.getGuard()) and firstNode = this
+  }
+
+  override predicate last(AstNode lastNode, Completion completion) {
+    exists(BooleanCompletion guardCompletion |
+      last(this.getGuard(), lastNode, guardCompletion) and
+      guardCompletion.getValue() = false and
+      completion = guardCompletion
+    )
+    or
+    lastNode = this and completion instanceof SimpleCompletion
+  }
+
+  override predicate propagatesAbnormal(AstNode child) {
+    child = this.getGuard() or child = this.getBodyChild(_)
+  }
+
+  override predicate succ(AstNode predecessor, AstNode successor, Completion completion) {
+    exists(BooleanCompletion guardCompletion |
+      last(this.getGuard(), predecessor, guardCompletion) and
+      guardCompletion.getValue() = true and
+      completion = guardCompletion and
+      successor = this
+    )
+    or
+    predecessor = this and
+    completion instanceof SimpleCompletion and
+    (
+      first(this.getFirstBodyChildTree(), successor)
+      or
+      not exists(this.getFirstBodyChildTree()) and
+      successor = this.getBackgroundStep().getCompletion()
+    )
+    or
+    exists(int i |
+      last(this.getBodyChildTree(i), predecessor, completion) and
+      completion instanceof NormalCompletion and
+      first(this.getBodyChildTree(i + 1), successor)
+    )
+    or
+    last(this.getLastBodyChildTree(), predecessor, completion) and
+    completion instanceof NormalCompletion and
+    successor = this.getBackgroundStep().getCompletion()
+  }
+}
+
+private class BackgroundRunTree extends BackgroundTree instanceof Run {
+  BackgroundRunTree() { this instanceof BackgroundStep }
+
+  override BackgroundStep getBackgroundStep() { result = this }
+
+  override AstNode getBodyChild(int i) {
+    result =
+      rank[i](AstNode child, Location l |
+        (
+          child = this.getInScopeEnvVarExpr(_) or
+          child = this.(Run).getScript()
+        ) and
+        l = child.getLocation()
+      |
+        child
+        order by
+          l.getStartLine(), l.getStartColumn(), l.getEndColumn(), l.getEndLine(), child.toString()
+      )
+  }
+}
+
+private class BackgroundUsesTree extends BackgroundTree instanceof UsesStep {
+  BackgroundUsesTree() { this instanceof BackgroundStep }
+
+  override BackgroundStep getBackgroundStep() { result = this }
+
+  override AstNode getBodyChild(int i) {
+    result =
+      rank[i](AstNode child, Location l |
+        (
+          child = this.(UsesStep).getArgumentExpr(_) or
+          child = this.getInScopeEnvVarExpr(_)
+        ) and
+        l = child.getLocation()
+      |
+        child
+        order by
+          l.getStartLine(), l.getStartColumn(), l.getEndColumn(), l.getEndLine(), child.toString()
+      )
+  }
+}
+
+private class BackgroundCompletionLeaf extends LeafTree instanceof BackgroundCompletion {
+  override predicate succ(AstNode predecessor, AstNode successor, Completion completion) { none() }
+}
+
+private class WaitTree extends LeafTree instanceof WaitStep {
+  override predicate succ(AstNode predecessor, AstNode successor, Completion completion) {
+    exists(BackgroundStep background |
+      background = this.(WaitStep).getATargetStep() and
+      predecessor = background.getCompletion() and
+      successor = this and
+      completion instanceof SimpleCompletion
+    )
+  }
+}
+
+private class WaitAllTree extends LeafTree instanceof WaitAllStep {
+  override predicate succ(AstNode predecessor, AstNode successor, Completion completion) {
+    exists(BackgroundStep background |
+      background = this.(WaitAllStep).getATargetStep() and
+      predecessor = background.getCompletion() and
+      successor = this and
+      completion instanceof SimpleCompletion
+    )
+  }
+}
+
+private class CancelTree extends LeafTree instanceof CancelStep {
+  override predicate succ(AstNode predecessor, AstNode successor, Completion completion) { none() }
+}
+
+private class ParallelTree extends ControlFlowTree instanceof ParallelStep {
+  private ControlFlowTree getChildTree(int i) { result = this.(ParallelStep).getStep(i) }
+
+  override predicate first(AstNode firstNode) {
+    first(this.getChildTree(_), firstNode)
+    or
+    not exists(this.getChildTree(_)) and firstNode = this
+  }
+
+  override predicate last(AstNode lastNode, Completion completion) {
+    lastNode = this and completion instanceof SimpleCompletion
+  }
+
+  override predicate propagatesAbnormal(AstNode child) {
+    child = this.(ParallelStep).getAStep()
+  }
+
+  override predicate succ(AstNode predecessor, AstNode successor, Completion completion) {
+    last(this.getChildTree(_), predecessor, completion) and
+    completion instanceof NormalCompletion and
+    successor = this
+  }
+}
+
 private class CompositeActionTree extends StandardPreOrderTree instanceof CompositeAction {
   override ControlFlowTree getChildNode(int i) {
     result =
@@ -283,6 +445,17 @@ private class JobTree extends GuardedPreOrderTree instanceof LocalJob {
           l.getStartLine(), l.getStartColumn(), l.getEndColumn(), l.getEndLine(), child.toString()
       )
   }
+
+  override predicate last(AstNode lastNode, Completion completion) {
+    super.last(lastNode, completion)
+    or
+    exists(BackgroundStep background |
+      this.(LocalJob).getAContainedStep() = background and
+      not exists(background.getBarrier()) and
+      lastNode = background.getCompletion() and
+      completion instanceof SimpleCompletion
+    )
+  }
 }
 
 private class ExternalJobTree extends GuardedPreOrderTree instanceof ExternalJob {
@@ -308,6 +481,8 @@ private class ExternalJobTree extends GuardedPreOrderTree instanceof ExternalJob
 }
 
 private class UsesTree extends GuardedPreOrderTree instanceof UsesStep {
+  UsesTree() { not this instanceof BackgroundStep }
+
   override If getGuard() { result = this.(UsesStep).getIf() }
 
   override AstNode getBodyChild(int i) {
@@ -327,6 +502,8 @@ private class UsesTree extends GuardedPreOrderTree instanceof UsesStep {
 }
 
 private class RunTree extends GuardedPreOrderTree instanceof Run {
+  RunTree() { not this instanceof BackgroundStep }
+
   override If getGuard() { result = this.(Run).getIf() }
 
   override AstNode getBodyChild(int i) {

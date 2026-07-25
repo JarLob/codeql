@@ -24,7 +24,7 @@ query predicate edges(Step a, Step b) { a.getNextStep() = b }
 from LocalJob job, Event event, Step source, Step step, string message, string path
 where
   // the job checkouts untrusted code from a pull request or downloads an untrusted artifact
-  job.getAStep() = source and
+  job.getAContainedStep() = source and
   (
     source instanceof PRHeadCheckoutStep and
     message = "due to privilege checkout of untrusted code." and
@@ -45,7 +45,7 @@ where
   hasDefaultBranchCacheWriteAccess(job, event) and
   // the job writes to the cache
   // (No need to follow the checkout/download step since the cache is normally write after the job completes)
-  job.getAStep() = step and
+  job.getAContainedStep() = step and
   step instanceof CacheWritingStep and
   (
     // we dont know what code can be controlled by the attacker

@@ -1,0 +1,116 @@
+on:
+  issue_comment:
+
+jobs:
+  explicit-wait:
+    runs-on: ubuntu-latest
+    steps:
+      - id: background-run
+        background: true
+        run: echo "${{ github.event.comment.body }}"
+      - id: foreground
+        run: echo foreground
+      - id: wait-one
+        wait: background-run
+      - id: after-wait
+        run: echo after
+
+  wait-many:
+    runs-on: ubuntu-latest
+    steps:
+      - id: first-background
+        background: true
+        run: echo first
+      - id: second-background
+        background: true
+        uses: actions/github-script@v7
+        with:
+          script: console.log('${{ github.event.comment.body }}')
+      - id: wait-many
+        wait: [first-background, second-background]
+      - id: after-many
+        run: echo after
+
+  cancel-one:
+    runs-on: ubuntu-latest
+    steps:
+      - id: cancellable
+        background: true
+        run: echo cancellable
+      - id: cancel-one
+        cancel: cancellable
+      - id: after-cancel
+        run: echo after
+
+  wait-everything:
+    runs-on: ubuntu-latest
+    steps:
+      - id: background-a
+        background: true
+        run: echo a
+      - id: background-b
+        background: true
+        run: echo b
+      - id: wait-everything
+        wait-all:
+      - id: after-all
+        run: echo after
+
+  parallel-job:
+    runs-on: ubuntu-latest
+    steps:
+      - id: before-parallel
+        run: echo before
+      - parallel:
+          - id: parallel-run
+            run: echo "${{ github.event.comment.body }}"
+          - id: parallel-use
+            uses: actions/github-script@v7
+            with:
+              script: console.log('parallel')
+      - id: after-parallel
+        run: echo after
+
+  implicit-wait:
+    runs-on: ubuntu-latest
+    steps:
+      - id: unjoined-background
+        background: true
+        run: echo unjoined
+      - id: final-foreground
+        run: echo final
+
+  skipped-background:
+    runs-on: ubuntu-latest
+    steps:
+      - id: maybe-background
+        if: false
+        background: true
+        run: echo maybe
+      - id: wait-skipped
+        wait: maybe-background
+      - id: after-skipped
+        run: echo after
+
+  nested-background:
+    runs-on: ubuntu-latest
+    steps:
+      - parallel:
+          - id: nested-background-run
+            background: true
+            run: echo nested
+          - id: nested-foreground
+            run: echo foreground
+      - id: after-nested
+        run: echo after
+
+  disabled-wait-all:
+    runs-on: ubuntu-latest
+    steps:
+      - id: disabled-background
+        background: true
+        run: echo disabled
+      - id: disabled-wait
+        wait-all: false
+      - id: after-disabled
+        run: echo after
