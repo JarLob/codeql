@@ -1,0 +1,10 @@
+on:
+  workflow_call:
+
+jobs:
+  target:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo nested-cap

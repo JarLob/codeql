@@ -1,0 +1,25 @@
+on:
+  workflow_dispatch:
+
+jobs:
+  bounded-read:
+    uses: ./.github/workflows/bounded-read.yml
+
+  bounded-write:
+    uses: ./.github/workflows/bounded-write.yml
+
+  unbounded:
+    uses: ./.github/workflows/unbounded.yml
+
+  opt-in-only:
+    uses: ./.github/workflows/opt-in-only.yml
+
+  multi-read:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/multiple-callers.yml
+
+  multi-write:
+    permissions:
+      contents: write
+    uses: ./.github/workflows/multiple-callers.yml

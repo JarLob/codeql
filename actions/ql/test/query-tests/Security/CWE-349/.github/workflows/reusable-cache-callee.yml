@@ -1,0 +1,24 @@
+on:
+  workflow_call:
+    inputs:
+      head_sha:
+        required: true
+        type: string
+  issue_comment:
+
+jobs:
+  cache:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          HEAD_SHA: ${{ inputs.head_sha }}
+        run: |
+          git fetch origin "$HEAD_SHA"
+          git checkout "$HEAD_SHA"
+      - run: npm install
+      - uses: actions/cache@v4
+        with:
+          path: .npm
+          key: reusable-cache

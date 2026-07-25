@@ -1,0 +1,23 @@
+on:
+  workflow_dispatch:
+
+permissions: write-all
+
+jobs:
+  read-all:
+    permissions: read-all
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo read
+
+  write-all:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo write
+
+  empty:
+    permissions: {}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo none

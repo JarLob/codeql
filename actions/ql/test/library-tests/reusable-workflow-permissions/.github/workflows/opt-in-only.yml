@@ -1,0 +1,11 @@
+on:
+  workflow_call:
+
+jobs:
+  target:
+    permissions:
+      copilot-requests: write
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo opt-in-only

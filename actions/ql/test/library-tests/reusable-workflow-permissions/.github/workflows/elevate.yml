@@ -1,0 +1,12 @@
+on:
+  workflow_call:
+
+jobs:
+  target:
+    permissions:
+      contents: write
+      security-events: write
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo capped
+      - uses: ./.github/actions/permission-probe

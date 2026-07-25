@@ -1,0 +1,50 @@
+on:
+  workflow_dispatch:
+
+jobs:
+  inherit:
+    permissions:
+      actions: read
+      contents: write
+      security-events: write
+    uses: ./.github/workflows/inherit.yml
+
+  tighten:
+    permissions:
+      actions: read
+      contents: write
+      security-events: write
+    uses: ./.github/workflows/tighten.yml
+
+  elevate:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/elevate.yml
+
+  workflow-level:
+    permissions:
+      actions: read
+      contents: write
+      security-events: write
+    uses: ./.github/workflows/workflow-level.yml
+
+  nested:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/middle.yml
+
+  deep-nested:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deep-middle-1.yml
+
+  mixed-trigger:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/mixed-triggers.yml
+
+  write-only:
+    permissions:
+      copilot-requests: write
+      id-token: write
+    uses: ./.github/workflows/write-only-middle.yml

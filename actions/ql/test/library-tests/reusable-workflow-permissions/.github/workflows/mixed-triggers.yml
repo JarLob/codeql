@@ -1,0 +1,16 @@
+on:
+  workflow_call:
+  issue_comment:
+
+jobs:
+  target:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo mixed
+
+  inherited:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo inherited

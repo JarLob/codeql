@@ -1,0 +1,13 @@
+on:
+  workflow_call:
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  target:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo workflow-level

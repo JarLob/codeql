@@ -1,0 +1,9 @@
+on:
+  pull_request_target:
+    types: [synchronize]
+
+jobs:
+  call:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reusable-read-callee.yml
