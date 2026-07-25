@@ -1,0 +1,99 @@
+name: Reduced Camunda performance topology
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  issue_comment:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+jobs:
+  root-a:
+    runs-on: ubuntu-latest
+    outputs:
+      decision: ${{ steps.decision.outputs.value }}
+    steps:
+      - id: decision
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: echo "value=run" >> "$GITHUB_OUTPUT"
+
+  root-b:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo root-b
+
+  root-c:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo root-c
+
+  root-d:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo root-d
+
+  root-e:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo root-e
+
+  condition-free-fan-in:
+    needs: [root-a, root-b, root-c, root-d, root-e]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo fan-in
+
+  output-gate:
+    needs: [root-a, root-b, root-c, root-d, root-e]
+    if: always() && needs.root-a.outputs.decision == 'run'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo output-gate
+
+  ordered-conditions:
+    runs-on: ubuntu-latest
+    steps:
+      - id: guarded
+        if: github.event_name == 'push' && github.actor != 'dependabot[bot]'
+        run: echo guarded
+      - id: after-guarded
+        run: echo after
+
+  matrix-static:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        shard: [one, two, three]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - id: static-default
+        run: echo default
+      - id: static-false
+        continue-on-error: false
+        run: echo false
+      - id: static-true
+        continue-on-error: true
+        run: echo true
+
+  matrix-dynamic:
+    strategy:
+      matrix:
+        experimental: [true, false]
+        shard: [one, two]
+    continue-on-error: ${{ matrix.experimental }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: dynamic
+        continue-on-error: ${{ matrix.experimental }}
+        run: echo dynamic
+
+  matrix-capped:
+    strategy:
+      matrix:
+        first: [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q]
+        second: [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo capped
