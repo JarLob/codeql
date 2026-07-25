@@ -311,6 +311,7 @@ eventPrivilege
 | elevate.yml | target | workflow_dispatch | unprivileged |
 | events.yml | write | issue_comment | privileged |
 | events.yml | write | pull_request | unprivileged |
+| events.yml | write | schedule | privileged |
 | inherit.yml | target | workflow_dispatch | privileged |
 | leaf.yml | target | workflow_dispatch | unprivileged |
 | middle.yml | call-leaf | workflow_dispatch | unprivileged |
