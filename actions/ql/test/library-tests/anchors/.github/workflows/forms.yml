@@ -1,0 +1,22 @@
+on:
+  issue_comment:
+
+permissions: &write-permissions
+  contents: write
+
+jobs:
+  original: &anchored-job
+    permissions: *write-permissions
+    runs-on: &runner ubuntu-latest
+    steps:
+      - &anchored-step
+        run: echo "${{ github.event.comment.body }}"
+      - *anchored-step
+
+  clone: *anchored-job
+
+  scalar-alias:
+    permissions: {}
+    runs-on: *runner
+    steps:
+      - run: echo safe

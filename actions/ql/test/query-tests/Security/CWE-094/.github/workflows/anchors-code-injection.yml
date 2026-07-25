@@ -1,0 +1,17 @@
+on:
+  issue_comment:
+
+permissions: &write-permissions
+  contents: write
+
+jobs:
+  definition:
+    permissions: *write-permissions
+    runs-on: ubuntu-latest
+    steps: &dangerous-steps
+      - run: echo "${{ github.event.comment.body }}"
+
+  consumer:
+    permissions: *write-permissions
+    runs-on: ubuntu-latest
+    steps: *dangerous-steps

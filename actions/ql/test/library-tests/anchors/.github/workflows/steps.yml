@@ -1,0 +1,16 @@
+on:
+  issue_comment:
+
+jobs:
+  definition:
+    if: false
+    permissions: {}
+    runs-on: ubuntu-latest
+    steps: &vulnerable-steps
+      - run: echo "${{ github.event.comment.body }}"
+
+  consumer:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps: *vulnerable-steps
