@@ -416,6 +416,7 @@ nodes
 | .github/workflows/output_gated_code_injection.yml:25:21:25:58 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
 | .github/workflows/output_gated_control_check.yml:18:21:18:58 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
 | .github/workflows/output_gated_control_check.yml:25:21:25:58 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
+| .github/workflows/merge_group_code_injection.yml:10:21:10:47 | toJSON(github.event) | semmle.label | toJSON(github.event) |
 | .github/workflows/parallel-code-injection.yml:13:25:13:56 | github.event.comment.body | semmle.label | github.event.comment.body |
 | .github/workflows/priv_pull_request.yml:14:21:14:57 | github.event.pull_request.body | semmle.label | github.event.pull_request.body |
 | .github/workflows/pull_request_review.yml:7:19:7:56 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
