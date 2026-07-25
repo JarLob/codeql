@@ -205,6 +205,13 @@ private predicate hasBoundedPrerequisiteClosure(Job job) {
   count(getANeededAncestor(job)) <= maxExactPrerequisiteCount()
 }
 
+private int maxExactAssignedNeedsCount() { result = 4 }
+
+private predicate hasBoundedAssignedNeeds(Job job) {
+  hasBoundedPrerequisiteClosure(job) and
+  count(job.getANeededJob()) <= maxExactAssignedNeedsCount()
+}
+
 private predicate needsStatusMayOccur(Job job, NeedsStatus status) {
   isRootJob(job) and status.isSuccess()
   or
@@ -305,31 +312,33 @@ private predicate getInstanceContinueOnErrorValue(
   )
 }
 
+private predicate jobHasDynamicContinueOnError(Job job) {
+  exists(string value |
+    value = job.getContinueOnErrorValue() and
+    not value.toLowerCase() = ["true", "false"]
+  )
+}
+
+private predicate stepHasDynamicContinueOnError(Step step) {
+  exists(string value |
+    value = step.getContinueOnErrorValue() and
+    not value.toLowerCase() = ["true", "false"]
+  )
+}
+
 private predicate matrixJobContinueOnErrorMayEvaluateTo(
   MatrixJobInstance instance, Event event, boolean outcome
 ) {
   instance.getJob().getATriggerEvent() = event and
-  exists(string value |
-    value = instance.getJob().getContinueOnErrorValue() and
-    (
-      value.toLowerCase() = "true" and outcome = true
-      or
-      value.toLowerCase() = "false" and outcome = false
-      or
-      not value.toLowerCase() = ["true", "false"] and
-      getInstanceContinueOnErrorValue(instance.getJob().getContinueOnErrorExpr(), instance,
-        outcome)
-      or
-      not value.toLowerCase() = ["true", "false"] and
-      not exists(boolean known |
-        getInstanceContinueOnErrorValue(instance.getJob().getContinueOnErrorExpr(), instance,
-          known)
-      ) and
-      outcome in [false, true]
-    )
+  jobHasDynamicContinueOnError(instance.getJob()) and
+  (
+    getInstanceContinueOnErrorValue(instance.getJob().getContinueOnErrorExpr(), instance, outcome)
+    or
+    not exists(boolean known |
+      getInstanceContinueOnErrorValue(instance.getJob().getContinueOnErrorExpr(), instance, known)
+    ) and
+    outcome in [false, true]
   )
-  or
-  not exists(instance.getJob().getContinueOnErrorValue()) and outcome = false
 }
 
 private predicate matrixStepContinueOnErrorMayEvaluateTo(
@@ -337,28 +346,22 @@ private predicate matrixStepContinueOnErrorMayEvaluateTo(
 ) {
   step.getEnclosingJob() = instance.getJob() and
   step.getATriggerEvent() = event and
-  exists(string value |
-    value = step.getContinueOnErrorValue() and
-    (
-      value.toLowerCase() = "true" and outcome = true
-      or
-      value.toLowerCase() = "false" and outcome = false
-      or
-      not value.toLowerCase() = ["true", "false"] and
-      getInstanceContinueOnErrorValue(step.getContinueOnErrorExpr(), instance, outcome)
-      or
-      not value.toLowerCase() = ["true", "false"] and
-      not exists(boolean known |
-        getInstanceContinueOnErrorValue(step.getContinueOnErrorExpr(), instance, known)
-      ) and
-      outcome in [false, true]
-    )
+  stepHasDynamicContinueOnError(step) and
+  (
+    getInstanceContinueOnErrorValue(step.getContinueOnErrorExpr(), instance, outcome)
+    or
+    not exists(boolean known |
+      getInstanceContinueOnErrorValue(step.getContinueOnErrorExpr(), instance, known)
+    ) and
+    outcome in [false, true]
   )
-  or
-  not exists(step.getContinueOnErrorValue()) and outcome = false
 }
 
 private predicate matrixJobAlwaysMasksStepFailures(MatrixJobInstance instance) {
+  not jobHasDynamicContinueOnError(instance.getJob()) and
+  jobAlwaysContinuesOnError(instance.getJob())
+  or
+  jobHasDynamicContinueOnError(instance.getJob()) and
   exists(Event event |
     instance.getJob().getATriggerEvent() = event and
     matrixJobContinueOnErrorMayEvaluateTo(instance, event, true) and
@@ -368,6 +371,9 @@ private predicate matrixJobAlwaysMasksStepFailures(MatrixJobInstance instance) {
   instance.getJob() instanceof LocalJob and
   exists(instance.getJob().(LocalJob).getAContainedStep()) and
   forall(Step step | step = instance.getJob().(LocalJob).getAContainedStep() |
+    not stepHasDynamicContinueOnError(step) and stepAlwaysContinuesOnError(step)
+    or
+    stepHasDynamicContinueOnError(step) and
     exists(Event event |
       step.getATriggerEvent() = event and
       matrixStepContinueOnErrorMayEvaluateTo(step, instance, event, true) and
@@ -391,10 +397,22 @@ JobStatus getAMatrixJobConclusionForOutcome(
   not outcome instanceof FailureStatus and result = outcome
   or
   outcome instanceof FailureStatus and
+  not jobHasDynamicContinueOnError(instance.getJob()) and
+  not jobAlwaysContinuesOnError(instance.getJob()) and
+  result instanceof FailureStatus
+  or
+  outcome instanceof FailureStatus and
+  not jobHasDynamicContinueOnError(instance.getJob()) and
+  jobAlwaysContinuesOnError(instance.getJob()) and
+  result instanceof SuccessStatus
+  or
+  outcome instanceof FailureStatus and
+  jobHasDynamicContinueOnError(instance.getJob()) and
   matrixJobContinueOnErrorMayEvaluateTo(instance, event, false) and
   result instanceof FailureStatus
   or
   outcome instanceof FailureStatus and
+  jobHasDynamicContinueOnError(instance.getJob()) and
   matrixJobContinueOnErrorMayEvaluateTo(instance, event, true) and
   result instanceof SuccessStatus
 }
@@ -407,10 +425,22 @@ JobStatus getAMatrixStepConclusionForOutcome(
   not outcome instanceof FailureStatus and result = outcome
   or
   outcome instanceof FailureStatus and
+  not stepHasDynamicContinueOnError(step) and
+  not stepAlwaysContinuesOnError(step) and
+  result instanceof FailureStatus
+  or
+  outcome instanceof FailureStatus and
+  not stepHasDynamicContinueOnError(step) and
+  stepAlwaysContinuesOnError(step) and
+  result instanceof SuccessStatus
+  or
+  outcome instanceof FailureStatus and
+  stepHasDynamicContinueOnError(step) and
   matrixStepContinueOnErrorMayEvaluateTo(step, instance, event, false) and
   result instanceof FailureStatus
   or
   outcome instanceof FailureStatus and
+  stepHasDynamicContinueOnError(step) and
   matrixStepContinueOnErrorMayEvaluateTo(step, instance, event, true) and
   result instanceof SuccessStatus
 }
@@ -1140,6 +1170,7 @@ private predicate compareAssignedStrings(string left, string operator, string ri
   operator = "!=" and left.toLowerCase() = right.toLowerCase() and outcome = false
 }
 
+bindingset[node, job]
 private predicate containsAssignedNeedsValue(ExpressionNode node, Job job) {
   exists(AccessExpression access, Job needed |
     access = node.getAChild*() and
@@ -1161,22 +1192,24 @@ private predicate jobConditionContainsAssignedNeedsValue(Job job) {
 }
 
 private predicate jobConditionUsesExactNeedsAssignment(Job job) {
-  jobConditionContainsAssignedNeedsValue(job) and hasBoundedPrerequisiteClosure(job)
+  jobConditionContainsAssignedNeedsValue(job) and hasBoundedAssignedNeeds(job)
 }
 
-private predicate belongsToAssignedNeedsValueCondition(ExpressionNode node) {
-  exists(Job job, If condition |
+private predicate belongsToAssignedNeedsValueCondition(ExpressionNode node, Job job) {
+  exists(If condition |
     condition = job.getIf() and
     node.getExpression() = condition.getConditionExpr() and
     jobConditionUsesExactNeedsAssignment(job)
   )
 }
 
-private predicate mayEvaluateForNeedsStatus(ExpressionNode node, NeedsStatus status, boolean outcome) {
-  belongsToAssignedNeedsValueCondition(node) and
+private predicate mayEvaluateForNeedsStatus(
+  ExpressionNode node, Job job, NeedsStatus status, boolean outcome
+) {
+  belongsToAssignedNeedsValueCondition(node, job) and
   (
     node instanceof ExpressionRoot and
-    mayEvaluateForNeedsStatus(node.getChild(0), status, outcome)
+    mayEvaluateForNeedsStatus(node.getChild(0), job, status, outcome)
     or
     node instanceof LiteralExpression and
     node.getKind() = "BooleanLiteral" and
@@ -1184,7 +1217,8 @@ private predicate mayEvaluateForNeedsStatus(ExpressionNode node, NeedsStatus sta
     or
     node instanceof UnaryExpression and
     node.(UnaryExpression).getOperator() = "!" and
-    mayEvaluateForNeedsStatus(node.(UnaryExpression).getOperand(), status, outcome.booleanNot())
+    mayEvaluateForNeedsStatus(node.(UnaryExpression).getOperand(), job, status,
+      outcome.booleanNot())
     or
     node instanceof BinaryExpression and
     node.(BinaryExpression).getOperator() = "&&" and
@@ -1192,11 +1226,11 @@ private predicate mayEvaluateForNeedsStatus(ExpressionNode node, NeedsStatus sta
       outcome = false and
       mayEvaluateForNeedsStatus([
           node.(BinaryExpression).getLeftOperand(), node.(BinaryExpression).getRightOperand()
-        ], status, false)
+        ], job, status, false)
       or
       outcome = true and
-      mayEvaluateForNeedsStatus(node.(BinaryExpression).getLeftOperand(), status, true) and
-      mayEvaluateForNeedsStatus(node.(BinaryExpression).getRightOperand(), status, true)
+      mayEvaluateForNeedsStatus(node.(BinaryExpression).getLeftOperand(), job, status, true) and
+      mayEvaluateForNeedsStatus(node.(BinaryExpression).getRightOperand(), job, status, true)
     )
     or
     node instanceof BinaryExpression and
@@ -1205,11 +1239,11 @@ private predicate mayEvaluateForNeedsStatus(ExpressionNode node, NeedsStatus sta
       outcome = true and
       mayEvaluateForNeedsStatus([
           node.(BinaryExpression).getLeftOperand(), node.(BinaryExpression).getRightOperand()
-        ], status, true)
+        ], job, status, true)
       or
       outcome = false and
-      mayEvaluateForNeedsStatus(node.(BinaryExpression).getLeftOperand(), status, false) and
-      mayEvaluateForNeedsStatus(node.(BinaryExpression).getRightOperand(), status, false)
+      mayEvaluateForNeedsStatus(node.(BinaryExpression).getLeftOperand(), job, status, false) and
+      mayEvaluateForNeedsStatus(node.(BinaryExpression).getRightOperand(), job, status, false)
     )
     or
     node instanceof FunctionCallExpression and
@@ -1262,7 +1296,7 @@ private predicate mayEvaluateForAssignment(
     not containsAssignedNeedsValue(node, job) and
     exists(NeedsStatus status |
       status = getAssignmentSummary(assignment) and
-      mayEvaluateForNeedsStatus(node, status, outcome)
+      mayEvaluateForNeedsStatus(node, job, status, outcome)
     )
     or
     node instanceof ExpressionRoot and
@@ -1399,17 +1433,49 @@ private predicate decisionMayHaveOutcomeForAssignment(
   )
 }
 
+private predicate jobConditionDependsOnNeedsState(Job job) {
+  jobConditionContainsAssignedNeedsValue(job)
+  or
+  exists(If condition | condition = job.getIf() | hasStatusCheckFunction(condition))
+}
+
+private predicate prerequisiteHasParsedCondition(Job job) {
+  exists(Job prerequisite, If condition |
+    prerequisite = getANeededAncestor(job) and
+    condition = prerequisite.getIf() and
+    exists(condition.getConditionExpr().getRoot())
+  )
+}
+
+private predicate prerequisiteClosureContainsReusableCall(Job job) {
+  exists(Job prerequisite |
+    prerequisite = job or prerequisite = getANeededAncestor(job)
+  |
+    exists(getCalledReusableWorkflow(prerequisite))
+  )
+}
+
+private predicate canUseOwnConditionExecutionFastPath(Job job) {
+  not jobConditionDependsOnNeedsState(job) and
+  not prerequisiteHasParsedCondition(job) and
+  not prerequisiteClosureContainsReusableCall(job)
+}
+
 /** Holds if `job` may execute for `event`, accounting for all transitive prerequisites. */
 bindingset[job, event]
 predicate jobMayExecuteForEvent(Job job, Event event) {
   job.getATriggerEvent() = event and
   (
+    canUseOwnConditionExecutionFastPath(job) and ownConditionMayHaveOutcome(job, event, true)
+    or
+    not canUseOwnConditionExecutionFastPath(job) and
     not jobConditionUsesExactNeedsAssignment(job) and
     exists(NeedsStatus needsStatus |
       needsStatusMayOccurForEvent(job, event, needsStatus) and
       decisionMayHaveOutcome(job, event, needsStatus, true)
     )
     or
+    not canUseOwnConditionExecutionFastPath(job) and
     jobConditionUsesExactNeedsAssignment(job) and
     exists(string assignment |
       assignment = getANeededStatusAssignment(job, event) and

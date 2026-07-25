@@ -38,7 +38,7 @@ abstract class Node extends TIntegratedNode {
   Node getAReachableNode() { result = this or result = this.getASuccessor+() }
 
   /** Gets a reachable node for `event`, including this node. */
-  Node getAReachableNode(Event event) { integratedReachableForEvent(this, result, event) }
+  Node getAReachableNode(Event event) { integratedScopeReachableForEvent(this, result, event) }
 
   /** Gets the shared Actions CFG scope containing this node. */
   Cfg::CfgScope getScope() {
@@ -89,6 +89,14 @@ private If getAParsedCondition(Cfg::Node node) {
 private Cfg::Node getConditionNode(Expression expression) {
   exists(If condition |
     condition.getConditionExpr() = expression and result.getAstNode() = condition
+  )
+}
+
+private predicate scopeHasEvent(Cfg::CfgScope scope, Event event) {
+  exists(ActionsNode action, AstNode ast |
+    action.getScope() = scope and
+    ast = action.getCfgNode().getAstNode() and
+    ast.getATriggerEvent() = event
   )
 }
 
@@ -155,48 +163,82 @@ cached
 private predicate integratedSuccessorForEvent(
   Node predecessor, Node successor, Event event, SuccessorType type
 ) {
-  exists(ActionsNode action, If condition |
-    predecessor = action and
-    condition = getAParsedCondition(action.getCfgNode()) and
-    successor = TExpressionNode(ExpressionCfg::getEntryNode(condition.getConditionExpr())) and
-    type instanceof DirectSuccessor
-  )
-  or
-  exists(ActionsNode action |
-    predecessor = action and
-    not exists(getAParsedCondition(action.getCfgNode())) and
-    successor = TActionsNode(action.getCfgNode().getASuccessor(type))
-  )
-  or
-  exists(ExpressionNode expression |
-    predecessor = expression and
-    not isRootCompletion(expression.getExpressionCfgNode()) and
-    successor = TExpressionNode(expression.getExpressionCfgNode().getASuccessor(event)) and
-    expressionEdgeType(expression.getExpressionCfgNode(),
-      successor.(ExpressionNode).getExpressionCfgNode(), type)
-  )
-  or
-  exists(
-    ExpressionNode expression, ExpressionCfg::CompletionNode completion, BooleanSuccessor branch,
-    Cfg::Node conditionNode
-  |
-    predecessor = expression and
-    completion = expression.getExpressionCfgNode() and
-    completion.getExpressionNode() instanceof ExpressionRoot and
-    conditionNode = getConditionNode(completion.getExpression()) and
-    branch.getValue() = completion.getOutcome() and
-    successor = TActionsNode(conditionNode.getASuccessor(branch)) and
-    type instanceof DirectSuccessor
+  predecessor.getScope() = successor.getScope() and
+  scopeHasEvent(predecessor.getScope(), event) and
+  (
+    exists(ActionsNode action, If condition |
+      predecessor = action and
+      condition = getAParsedCondition(action.getCfgNode()) and
+      successor = TExpressionNode(ExpressionCfg::getEntryNode(condition.getConditionExpr())) and
+      type instanceof DirectSuccessor
+    )
+    or
+    exists(ActionsNode action |
+      predecessor = action and
+      not exists(getAParsedCondition(action.getCfgNode())) and
+      successor = TActionsNode(action.getCfgNode().getASuccessor(type))
+    )
+    or
+    exists(ExpressionNode expression |
+      predecessor = expression and
+      not isRootCompletion(expression.getExpressionCfgNode()) and
+      successor = TExpressionNode(expression.getExpressionCfgNode().getASuccessor(event)) and
+      expressionEdgeType(expression.getExpressionCfgNode(),
+        successor.(ExpressionNode).getExpressionCfgNode(), type)
+    )
+    or
+    exists(
+      ExpressionNode expression, ExpressionCfg::CompletionNode completion, BooleanSuccessor branch,
+      Cfg::Node conditionNode
+    |
+      predecessor = expression and
+      completion = expression.getExpressionCfgNode() and
+      completion.getExpressionNode() instanceof ExpressionRoot and
+      conditionNode = getConditionNode(completion.getExpression()) and
+      branch.getValue() = completion.getOutcome() and
+      successor = TActionsNode(conditionNode.getASuccessor(branch)) and
+      type instanceof DirectSuccessor
+    )
   )
 }
 
-cached
-private predicate integratedReachableForEvent(Node source, Node target, Event event) {
-  target = source
-  or
-  exists(Node predecessor |
-    integratedReachableForEvent(source, predecessor, event) and
-    integratedSuccessorForEvent(predecessor, target, event, _)
+private predicate integratedScopeReachableForEvent(Node source, Node target, Event event) {
+  source.getScope() = target.getScope() and
+  scopeHasEvent(source.getScope(), event) and
+  (
+    target = source
+    or
+    exists(ActionsNode action, ExpressionNode expression, If condition |
+      source = action and
+      target = expression and
+      condition = getAParsedCondition(action.getCfgNode()) and
+      expression.getExpressionCfgNode() =
+        ExpressionCfg::getEntryNode(condition.getConditionExpr()).getAReachableNode(event)
+    )
+    or
+    exists(ExpressionNode sourceExpression, ExpressionNode targetExpression |
+      source = sourceExpression and
+      target = targetExpression and
+      sourceExpression.getExpressionCfgNode().getExpression() =
+        targetExpression.getExpressionCfgNode().getExpression() and
+      targetExpression.getExpressionCfgNode() =
+        sourceExpression.getExpressionCfgNode().getAReachableNode(event)
+    )
+    or
+    not target instanceof ExpressionNode and target = source.getAReachableNode()
+  )
+}
+
+bindingset[source, target, event]
+private predicate actionsMayReachForEvent(
+  ActionsNode source, ActionsNode target, Event event
+) {
+  source.getScope() = target.getScope() and
+  scopeHasEvent(source.getScope(), event) and
+  (
+    source = target
+    or
+    target.getCfgNode() = source.getCfgNode().getASuccessor+()
   )
 }
 
@@ -291,6 +333,7 @@ predicate orderedStepsMayReachForAnyEvent(Step source, Step target) {
 }
 
 /** Holds if `node` may execute for `event` in its Actions CFG scope. */
+bindingset[node, event]
 predicate mayExecuteForEvent(AstNode node, Event event) {
   exists(Step step | step = node.getEnclosingStep() | stepMayExecuteForEvent(step, event))
   or
@@ -304,7 +347,7 @@ predicate mayExecuteForEvent(AstNode node, Event event) {
       entry.getCfgNode() instanceof Cfg::EntryNode and
       entry.getScope() = nodeCfg.getScope() and
       nodeCfg.getCfgNode().getAstNode() = node and
-      nodeCfg = entry.getAReachableNode(event)
+      actionsMayReachForEvent(entry, nodeCfg, event)
     )
   )
 }
@@ -313,6 +356,7 @@ predicate mayExecuteForEvent(AstNode node, Event event) {
  * Holds if `target` may execute after `source` for `event` in the same Actions CFG scope.
  * Reachability of `source` from the scope entry is also required, so its own guards are honored.
  */
+bindingset[source, target, event]
 predicate mayReachForEvent(AstNode source, AstNode target, Event event) {
   source != target and
   (
@@ -343,8 +387,8 @@ predicate mayReachForEvent(AstNode source, AstNode target, Event event) {
         sourceNode.getScope() = targetNode.getScope() and
         sourceNode.getCfgNode().getAstNode() = source and
         targetNode.getCfgNode().getAstNode() = target and
-        sourceNode = entry.getAReachableNode(event) and
-        targetNode = sourceNode.getAReachableNode(event)
+        actionsMayReachForEvent(entry, sourceNode, event) and
+        actionsMayReachForEvent(sourceNode, targetNode, event)
       )
     )
   )

@@ -178,16 +178,20 @@ private predicate expressionSuccessor(Node predecessor, Node successor) {
 
 cached
 private predicate expressionSuccessorForEvent(Node predecessor, Node successor, Event event) {
-  structuralSuccessor(predecessor, successor)
-  or
-  exists(EvaluationNode evaluation, boolean outcome |
-    predecessor = evaluation and
-    isAtomicCondition(evaluation.getExpressionNode()) and
-    exists(If condition |
-      condition.getConditionExpr() = evaluation.getExpressionNode().getExpression() and
-      mayEvaluateConditionToBoolean(condition, evaluation.getExpressionNode(), event, outcome)
-    ) and
-    successor = TCompletionNode(evaluation.getExpressionNode(), outcome)
+  predecessor.getExpression() = successor.getExpression() and
+  predecessor.getExpression().getATriggerEvent() = event and
+  (
+    structuralSuccessor(predecessor, successor)
+    or
+    exists(EvaluationNode evaluation, boolean outcome |
+      predecessor = evaluation and
+      isAtomicCondition(evaluation.getExpressionNode()) and
+      exists(If condition |
+        condition.getConditionExpr() = evaluation.getExpressionNode().getExpression() and
+        mayEvaluateConditionToBoolean(condition, evaluation.getExpressionNode(), event, outcome)
+      ) and
+      successor = TCompletionNode(evaluation.getExpressionNode(), outcome)
+    )
   )
 }
 
