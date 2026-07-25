@@ -369,6 +369,9 @@ abstract class Job extends AstNode instanceof JobImpl {
 abstract class StepsContainer extends AstNode instanceof StepsContainerImpl {
   Step getAStep() { result = super.getAStep() }
 
+  /** Gets any directly or transitively contained step. */
+  Step getAContainedStep() { result = super.getAContainedStep() }
+
   Step getStep(int i) { result = super.getStep(i) }
 }
 
@@ -401,12 +404,51 @@ class Step extends AstNode instanceof StepImpl {
 
   Expression getContinueOnErrorExpr() { result = super.getContinueOnErrorExpr() }
 
+  predicate runsInBackground() { super.runsInBackground() }
+
+  /** Holds if this step may execute synchronously on the foreground path. */
+  predicate mayRunInForeground() { super.mayRunInForeground() }
+
   StepsContainer getContainer() { result = super.getContainer() }
 
   Step getNextStep() { result = super.getNextStep() }
 
   Step getAFollowingStep() { result = super.getAFollowingStep() }
 }
+
+/** A run or action step launched asynchronously with `background: true`. */
+class BackgroundStep extends Step instanceof BackgroundStepImpl {
+  BackgroundCompletion getCompletion() { result = super.getCompletion() }
+
+  Step getBarrier() { result = super.getBarrier() }
+}
+
+/** The completion point of an asynchronously running background step. */
+class BackgroundCompletion extends AstNode instanceof BackgroundCompletionImpl {
+  BackgroundStep getBackgroundStep() { result = super.getBackgroundStep() }
+}
+
+/** A barrier that waits for one or more named background steps. */
+class WaitStep extends Step instanceof WaitStepImpl {
+  string getATargetId() { result = super.getATargetId() }
+
+  BackgroundStep getATargetStep() { result = super.getATargetStep() }
+}
+
+/** A barrier that waits for all active preceding background steps. */
+class WaitAllStep extends Step instanceof WaitAllStepImpl {
+  BackgroundStep getATargetStep() { result = super.getATargetStep() }
+}
+
+/** A step that cancels a named preceding background step. */
+class CancelStep extends Step instanceof CancelStepImpl {
+  string getTargetId() { result = super.getTargetId() }
+
+  BackgroundStep getTargetStep() { result = super.getTargetStep() }
+}
+
+/** A group of run or action steps that execute concurrently and then join. */
+class ParallelStep extends Step, StepsContainer instanceof ParallelStepImpl { }
 
 /**
  * An If node representing a conditional statement.

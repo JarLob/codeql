@@ -65,12 +65,22 @@ private YamlNode getAContainerOccurrence(YamlMapping container) {
   result = container
 }
 
+private predicate getAStepContainer(
+  YamlMapping container, YamlNode containerOccurrence, string field
+) {
+  field = "steps" and containerOccurrence = getAContainerOccurrence(container)
+  or
+  field = "parallel" and
+  getAStepOccurrence(container, _, containerOccurrence) and
+  exists(getRawMappingValue(container, "parallel"))
+}
+
 private predicate getAStepOccurrence(
   YamlMapping step, YamlNode containerOccurrence, YamlNode elementOccurrence
 ) {
-  exists(YamlMapping container, YamlSequence steps, int index |
-    containerOccurrence = getAContainerOccurrence(container) and
-    steps = getEvaluatedAnchorValue(getRawMappingValue(container, "steps")) and
+  exists(YamlMapping container, YamlSequence steps, string field, int index |
+    getAStepContainer(container, containerOccurrence, field) and
+    steps = getEvaluatedAnchorValue(getRawMappingValue(container, field)) and
     elementOccurrence = steps.getElementNode(index) and
     step = getEvaluatedAnchorValue(elementOccurrence)
   )
@@ -90,8 +100,8 @@ private predicate hasAliasExpansion(
 private predicate hasStepAliasContext(
   YamlMapping step, YamlNode containerOccurrence, YamlNode elementOccurrence, YamlNode node
 ) {
-  exists(YamlMapping container |
-    containerOccurrence = getAContainerOccurrence(container) and
+  exists(YamlMapping container, string field |
+    getAStepContainer(container, containerOccurrence, field) and
     getAStepOccurrence(step, containerOccurrence, elementOccurrence) and
     hasAliasExpansion(containerOccurrence, container, node)
   )
@@ -191,6 +201,13 @@ private newtype TAstNode =
   } or
   TStepNode(YamlMapping n, YamlNode containerOccurrence, YamlNode elementOccurrence) {
     getAStepOccurrence(n, containerOccurrence, elementOccurrence)
+  } or
+  TBackgroundCompletionNode(
+    YamlMapping n, YamlNode containerOccurrence, YamlNode elementOccurrence
+  ) {
+    getAStepOccurrence(n, containerOccurrence, elementOccurrence) and
+    n.lookup("background").(YamlScalar).getValue() = "true" and
+    exists(n.lookup(["run", "uses"]))
   } or
   TIfNode(YamlValue n) { exists(YamlMapping m | m.lookup("if") = n) } or
   TEnvironmentNode(YamlValue n) { exists(YamlMapping m | m.lookup("environment") = n) } or
@@ -1653,6 +1670,13 @@ abstract class StepsContainerImpl extends AstNodeImpl {
   /** Gets any steps that are defined within this job. */
   abstract StepImpl getAStep();
 
+  /** Gets any directly or transitively contained step. */
+  StepImpl getAContainedStep() {
+    result = this.getAStep()
+    or
+    result = this.getAStep().(ParallelStepImpl).getAContainedStep()
+  }
+
   /** Gets the step at the given index within this job. */
   abstract StepImpl getStep(int i);
 }
@@ -1745,6 +1769,10 @@ class StepImpl extends AstNodeImpl, TStepNode {
     exists(RunsImpl runs |
       runs.getNode() = containerOccurrence and result = runs
     )
+    or
+    exists(ParallelStepImpl parallel |
+      parallel.getElementOccurrence() = containerOccurrence and result = parallel
+    )
   }
 
   override string getAPrimaryQlClass() { result = "StepImpl" }
@@ -1794,7 +1822,16 @@ class StepImpl extends AstNodeImpl, TStepNode {
   /** Gets the Runs or LocalJob that this step is in. */
   StepsContainerImpl getContainer() {
     result = this.getParentNode().(RunsImpl) or
-    result = this.getParentNode().(LocalJobImpl)
+    result = this.getParentNode().(LocalJobImpl) or
+    result = this.getParentNode().(ParallelStepImpl)
+  }
+
+  predicate runsInBackground() { n.lookup("background").(YamlScalar).getValue() = "true" }
+
+  predicate mayRunInForeground() {
+    not exists(n.lookup("background"))
+    or
+    not n.lookup("background").(YamlScalar).getValue() = "true"
   }
 
   StepImpl getNextStep() {
@@ -1815,8 +1852,12 @@ class StepImpl extends AstNodeImpl, TStepNode {
       caller_container.getStep(i + 1) = result
     )
     or
+    // parallel children join at the containing parallel step
+    this.getContainer() instanceof ParallelStepImpl and result = this.getContainer()
+    or
     // next step in the same job/runs
     exists(int i |
+      not this.getContainer() instanceof ParallelStepImpl and
       this.getContainer().getStep(i) = this and
       result = this.getContainer().getStep(i + 1)
     )
@@ -1827,9 +1868,27 @@ class StepImpl extends AstNodeImpl, TStepNode {
     (
       // next steps in the same job/runs
       exists(int i, int j |
+        not this.getContainer() instanceof ParallelStepImpl and
+        not this instanceof BackgroundStepImpl and
         this.getContainer().getStep(i) = this and
         result = this.getContainer().getStep(j) and
         i < j
+      )
+      or
+      // foreground steps launched before a background barrier do not follow completion
+      this instanceof BackgroundStepImpl and
+      (
+        result = this.(BackgroundStepImpl).getBarrier()
+        or
+        result = this.(BackgroundStepImpl).getBarrier().getAFollowingStep()
+      )
+      or
+      // parallel children all precede their join and the steps after it
+      this.getContainer() instanceof ParallelStepImpl and
+      (
+        result = this.getContainer()
+        or
+        result = this.getContainer().(ParallelStepImpl).getAFollowingStep()
       )
       or
       // next steps of the caller (in a composite action step)
@@ -1842,8 +1901,150 @@ class StepImpl extends AstNodeImpl, TStepNode {
         i < j and
         result = a.getRuns().getAStep()
       )
+      or
+      // a following parallel group may execute any of its children
+      exists(int i, int j, ParallelStepImpl parallel |
+        this.getContainer().getStep(i) = this and
+        this.getContainer().getStep(j) = parallel and
+        i < j and
+        result = parallel.getAStep()
+      )
     )
   }
+}
+
+class BackgroundStepImpl extends StepImpl {
+  BackgroundStepImpl() {
+    this.runsInBackground() and (this instanceof RunImpl or this instanceof UsesStepImpl)
+  }
+
+  BackgroundCompletionImpl getCompletion() {
+    result.getBackgroundStep() = this
+  }
+
+  StepImpl getBarrier() { isFirstBackgroundBarrier(this, result) }
+}
+
+class BackgroundCompletionImpl extends AstNodeImpl, TBackgroundCompletionNode {
+  YamlMapping n;
+  YamlNode containerOccurrence;
+  YamlNode elementOccurrence;
+
+  BackgroundCompletionImpl() {
+    this = TBackgroundCompletionNode(n, containerOccurrence, elementOccurrence)
+  }
+
+  override string toString() { result = "Complete " + this.getBackgroundStep().toString() }
+
+  override AstNodeImpl getAChildNode() { none() }
+
+  override BackgroundStepImpl getParentNode() { result = this.getBackgroundStep() }
+
+  override string getAPrimaryQlClass() { result = "BackgroundCompletionImpl" }
+
+  override Location getLocation() { result = n.getLocation() }
+
+  override YamlMapping getNode() { result = n }
+
+  BackgroundStepImpl getBackgroundStep() {
+    result.getNode() = n and
+    result.getContainerOccurrence() = containerOccurrence and
+    result.getElementOccurrence() = elementOccurrence
+  }
+}
+
+class WaitStepImpl extends StepImpl {
+  WaitStepImpl() { exists(n.lookup("wait")) }
+
+  string getATargetId() {
+    result = n.lookup("wait").(YamlScalar).getValue()
+    or
+    result = n.lookup("wait").(YamlSequence).getElement(_).(YamlScalar).getValue()
+  }
+
+  BackgroundStepImpl getATargetStep() {
+    result.getId() = this.getATargetId() and isFirstBackgroundBarrier(result, this)
+  }
+
+  override string toString() { result = "Wait Step: " + this.getATargetId() }
+}
+
+class WaitAllStepImpl extends StepImpl {
+  WaitAllStepImpl() {
+    n.lookup("wait-all") instanceof YamlNull
+    or
+    n.lookup("wait-all").(YamlScalar).getValue() = "true"
+  }
+
+  BackgroundStepImpl getATargetStep() {
+    isFirstBackgroundBarrier(result, this)
+  }
+
+  override string toString() { result = "Wait All Step" }
+}
+
+class CancelStepImpl extends StepImpl {
+  CancelStepImpl() { exists(n.lookup("cancel").(YamlScalar)) }
+
+  string getTargetId() { result = n.lookup("cancel").(YamlScalar).getValue() }
+
+  BackgroundStepImpl getTargetStep() {
+    result.getId() = this.getTargetId() and isFirstBackgroundBarrier(result, this)
+  }
+
+  override string toString() { result = "Cancel Step: " + this.getTargetId() }
+}
+
+class ParallelStepImpl extends StepImpl, StepsContainerImpl {
+  ParallelStepImpl() { exists(getRawMappingValue(n, "parallel")) }
+
+  override StepImpl getAStep() {
+    exists(YamlSequence steps, YamlNode occurrence, int index |
+      steps = getEvaluatedAnchorValue(getRawMappingValue(n, "parallel")) and
+      occurrence = steps.getElementNode(index) and
+      result.getNode() = getEvaluatedAnchorValue(occurrence) and
+      result.getContainerOccurrence() = this.getElementOccurrence() and
+      result.getElementOccurrence() = occurrence
+    )
+  }
+
+  override StepImpl getStep(int i) {
+    exists(YamlSequence steps, YamlNode occurrence |
+      steps = getEvaluatedAnchorValue(getRawMappingValue(n, "parallel")) and
+      occurrence = steps.getElementNode(i) and
+      result.getNode() = getEvaluatedAnchorValue(occurrence) and
+      result.getContainerOccurrence() = this.getElementOccurrence() and
+      result.getElementOccurrence() = occurrence
+    )
+  }
+
+  override string toString() { result = "Parallel Step" }
+}
+
+private predicate isBackgroundBarrierFor(StepImpl barrier, BackgroundStepImpl background) {
+  barrier.(WaitStepImpl).getATargetId() = background.getId()
+  or
+  barrier instanceof WaitAllStepImpl
+  or
+  barrier.(CancelStepImpl).getTargetId() = background.getId()
+}
+
+private predicate isFirstBackgroundBarrier(
+  BackgroundStepImpl background, StepImpl barrier
+) {
+  exists(int backgroundIndex, int barrierIndex |
+    background.getContainer() = barrier.getContainer() and
+    barrier.getContainer().getStep(backgroundIndex) = background and
+    barrier.getContainer().getStep(barrierIndex) = barrier and
+    backgroundIndex < barrierIndex and
+    isBackgroundBarrierFor(barrier, background) and
+    not exists(int earlierIndex, StepImpl earlier |
+      barrier.getContainer().getStep(earlierIndex) = earlier and
+      backgroundIndex < earlierIndex and
+      earlierIndex < barrierIndex and
+      isBackgroundBarrierFor(earlier, background)
+    )
+  )
 }
 
 class EnvironmentImpl extends AstNodeImpl, TEnvironmentNode {

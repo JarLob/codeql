@@ -27,7 +27,7 @@ class GitHubDownloadArtifactActionStep extends UntrustedArtifactDownloadStep, Us
       // There is an artifact upload step in the same workflow which can be influenced by an attacker on a checkout step
       exists(LocalJob job, SimplePRHeadCheckoutStep checkout, UsesStep upload |
         this.getEnclosingWorkflow().getAJob() = job and
-        job.getAStep() = checkout and
+        job.getAContainedStep() = checkout and
         checkout.getATriggerEvent().getName() = "pull_request_target" and
         checkout.getAFollowingStep() = upload and
         IntegratedCfg::orderedStepsMayReachForAnyEvent(checkout, upload) and

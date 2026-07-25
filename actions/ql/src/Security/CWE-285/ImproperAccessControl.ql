@@ -17,7 +17,7 @@ import codeql.actions.security.ControlChecks
 from LocalJob job, LabelCheck check, MutableRefCheckoutStep checkout, Event event
 where
   job.isPrivilegedExternallyTriggerable(event) and
-  job.getAStep() = checkout and
+  job.getAContainedStep() = checkout and
   check.dominates(checkout, event) and
   (
     job.getATriggerEvent() = event and

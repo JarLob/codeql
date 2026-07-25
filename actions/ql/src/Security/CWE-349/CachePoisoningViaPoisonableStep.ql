@@ -34,7 +34,7 @@ from
   AstNode untrustedInput, string untrustedInputText
 where
   // the job checkouts untrusted code from a pull request or downloads an untrusted artifact
-  job.getAStep() = source and
+  job.getAContainedStep() = source and
   (
     source instanceof PRHeadCheckoutStep and
     message = "due to privilege checkout of untrusted code from" and

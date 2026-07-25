@@ -81,7 +81,7 @@ abstract class ControlCheck extends AstNode {
         or
         (this instanceof Run or this instanceof UsesStep) and
         checkedJob instanceof LocalJob and
-        checkedJob.(LocalJob).getAStep() = this and
+        checkedJob.(LocalJob).getAContainedStep() = this and
         not exists(this.(Step).getIf())
       )
     )

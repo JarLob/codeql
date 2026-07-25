@@ -14,7 +14,7 @@
 
 import actions
 
-Step stepInJob(Job job) { result = job.(LocalJob).getAStep() }
+Step stepInJob(Job job) { result = job.(LocalJob).getAContainedStep() }
 
 string jobNeedsPermission(Job job) {
   actionsPermissionsDataModel(stepInJob(job).(UsesStep).getCallee(), result)

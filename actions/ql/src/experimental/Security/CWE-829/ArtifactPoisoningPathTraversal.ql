@@ -29,7 +29,7 @@ where
   (
     // exists a poisonable upload artifact in the same workflow
     exists(UsesStep checkout, PoisonableStep poison, UsesStep upload |
-      download.getEnclosingWorkflow().getAJob().(LocalJob).getAStep() = checkout and
+      download.getEnclosingWorkflow().getAJob().(LocalJob).getAContainedStep() = checkout and
       download.getEnclosingJob().isPrivilegedExternallyTriggerable(event) and
       checkout.getCallee() = "actions/checkout" and
       checkout.getAFollowingStep() = poison and
@@ -40,6 +40,7 @@ where
     )
     or
     // upload artifact is not used in the same workflow
-    not download.getEnclosingWorkflow().getAJob().(LocalJob).getAStep() instanceof UsesStep
+    not download.getEnclosingWorkflow().getAJob().(LocalJob).getAContainedStep()
+      instanceof UsesStep
   )
 select download, "Potential artifact poisoning"
