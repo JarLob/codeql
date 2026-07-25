@@ -1,0 +1,13 @@
+on:
+  issue_comment:
+
+env:
+  PAYLOAD: &payload ${{ github.event.comment.body }}
+
+jobs:
+  call:
+    permissions:
+      contents: write
+    uses: ./.github/workflows/reusable-callee.yml
+    with:
+      script: *payload

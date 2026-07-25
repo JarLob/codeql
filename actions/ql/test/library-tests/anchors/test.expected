@@ -1,0 +1,41 @@
+stepOwners
+| .github/workflows/forms.yml@12:9:14:6 | clone |
+| .github/workflows/forms.yml@12:9:14:6 | original |
+| .github/workflows/forms.yml@22:9:22:22 | scalar-alias |
+| .github/workflows/reusable-callee.yml@12:9:12:40 | execute |
+| .github/workflows/steps.yml@10:9:12:2 | consumer |
+| .github/workflows/steps.yml@10:9:12:2 | definition |
+expressionOwners
+| github.event.comment.body | call |
+| github.event.comment.body | clone |
+| github.event.comment.body | consumer |
+| github.event.comment.body | definition |
+| github.event.comment.body | original |
+| inputs.script | execute |
+effectivePermissions
+| clone | write |
+| original | write |
+| scalar-alias | none |
+runnerLabels
+| clone | ubuntu-latest |
+| original | ubuntu-latest |
+| scalar-alias | ubuntu-latest |
+stepPositions
+| clone | 0 | .github/workflows/forms.yml@12:9:14:6 |
+| clone | 1 | .github/workflows/forms.yml@12:9:14:6 |
+| original | 0 | .github/workflows/forms.yml@12:9:14:6 |
+| original | 1 | .github/workflows/forms.yml@12:9:14:6 |
+| scalar-alias | 0 | .github/workflows/forms.yml@22:9:22:22 |
+stepCounts
+| clone | 2 |
+| original | 2 |
+| scalar-alias | 1 |
+expressionCfgNodeCounts
+| github.event.comment.body | 4 |
+localFlows
+| github.event.comment.body | github.event.comment.body | clone |
+| github.event.comment.body | github.event.comment.body | consumer |
+| github.event.comment.body | github.event.comment.body | definition |
+| github.event.comment.body | github.event.comment.body | original |
+reusableFlows
+| .github/workflows/reusable-caller.yml:5:13:5:44 | github.event.comment.body | .github/workflows/reusable-callee.yml:12:21:12:40 | inputs.script |

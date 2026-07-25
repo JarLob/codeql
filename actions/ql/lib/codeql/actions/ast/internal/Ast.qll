@@ -22,6 +22,106 @@ int partialLineLengthSum(string text, int i) {
   result = sum(int j, int length | j in [0 .. i] and length = lineLength(text, j) | length)
 }
 
+private YamlValue getEvaluatedAnchorValue(YamlNode node) {
+  node instanceof YamlValue and result = node
+  or
+  node instanceof YamlAliasNode and
+  result.getAnchor() = node.(YamlAliasNode).getTarget() and
+  result.getDocument() = node.getDocument()
+}
+
+private YamlNode getAnExpandedYamlChild(YamlNode parent) {
+  result = parent.getAChildNode()
+  or
+  parent instanceof YamlAliasNode and result = getEvaluatedAnchorValue(parent)
+}
+
+private YamlNode getRawMappingValue(YamlMapping mapping, string key) {
+  exists(int index, YamlScalar keyNode |
+    keyNode = mapping.getKeyNode(index) and
+    keyNode.getValue() = key and
+    result = mapping.getValueNode(index)
+  )
+}
+
+private predicate getAJobOccurrence(
+  YamlMapping workflow, YamlMapping job, YamlNode occurrence, string jobId
+) {
+  exists(YamlMapping jobs, int index, YamlScalar key |
+    workflow instanceof YamlDocument and
+    jobs = getEvaluatedAnchorValue(getRawMappingValue(workflow, "jobs")) and
+    key = jobs.getKeyNode(index) and
+    jobId = key.getValue() and
+    occurrence = jobs.getValueNode(index) and
+    job = getEvaluatedAnchorValue(occurrence)
+  )
+}
+
+private YamlNode getAContainerOccurrence(YamlMapping container) {
+  exists(YamlMapping workflow, string jobId |
+    getAJobOccurrence(workflow, container, result, jobId)
+  )
+  or
+  result = container
+}
+
+private predicate getAStepOccurrence(
+  YamlMapping step, YamlNode containerOccurrence, YamlNode elementOccurrence
+) {
+  exists(YamlMapping container, YamlSequence steps, int index |
+    containerOccurrence = getAContainerOccurrence(container) and
+    steps = getEvaluatedAnchorValue(getRawMappingValue(container, "steps")) and
+    elementOccurrence = steps.getElementNode(index) and
+    step = getEvaluatedAnchorValue(elementOccurrence)
+  )
+}
+
+private predicate hasAliasExpansion(
+  YamlNode occurrenceRoot, YamlNode semanticRoot, YamlNode node
+) {
+  occurrenceRoot instanceof YamlAliasNode and node = getAnExpandedYamlChild*(semanticRoot)
+  or
+  exists(YamlAliasNode alias |
+    alias = semanticRoot.getAChildNode*() and
+    node = getAnExpandedYamlChild*(alias)
+  )
+}
+
+private predicate hasStepAliasContext(
+  YamlMapping step, YamlNode containerOccurrence, YamlNode elementOccurrence, YamlNode node
+) {
+  exists(YamlMapping container |
+    containerOccurrence = getAContainerOccurrence(container) and
+    getAStepOccurrence(step, containerOccurrence, elementOccurrence) and
+    hasAliasExpansion(containerOccurrence, container, node)
+  )
+}
+
+private predicate getAnAstContext(
+  YamlNode node, YamlNode containerOccurrence, YamlNode elementOccurrence
+) {
+  exists(YamlMapping step |
+    getAStepOccurrence(step, containerOccurrence, elementOccurrence) and
+    node = getAnExpandedYamlChild*(step) and
+    hasStepAliasContext(step, containerOccurrence, elementOccurrence, node)
+  )
+  or
+  exists(YamlMapping workflow, YamlMapping job, YamlNode jobOccurrence, string jobId |
+    getAJobOccurrence(workflow, job, jobOccurrence, jobId) and
+    node = getAnExpandedYamlChild*(job) and
+    hasAliasExpansion(jobOccurrence, job, node) and
+    not exists(YamlMapping step, YamlNode stepOccurrence |
+      getAStepOccurrence(step, jobOccurrence, stepOccurrence) and
+      node = getAnExpandedYamlChild*(step)
+    ) and
+    containerOccurrence = jobOccurrence and
+    elementOccurrence = jobOccurrence
+  )
+  or
+  containerOccurrence = node and
+  elementOccurrence = node
+}
+
 string getADelimitedExpression(YamlString s, int offset) {
   // We use `regexpFind` to obtain *all* matches of `${{...}}`,
   // not just the last (greedy match) or first (reluctant match).
@@ -33,24 +133,30 @@ string getADelimitedExpression(YamlString s, int offset) {
 }
 
 private newtype TAstNode =
-  TExpressionNode(YamlNode key, YamlScalar value, string raw, int exprOffset) {
-    raw = getADelimitedExpression(value, exprOffset) and
-    exists(YamlMapping m |
-      (
-        exists(int i | value = m.getValueNode(i) and key = m.getKeyNode(i))
-        or
-        exists(int i |
-          m.getValueNode(i).(YamlSequence).getElementNode(_) = value and key = m.getKeyNode(i)
+  TExpressionNode(
+    YamlNode key, YamlScalar value, string raw, int exprOffset, YamlNode containerOccurrence,
+    YamlNode elementOccurrence
+  ) {
+    getAnAstContext(value, containerOccurrence, elementOccurrence) and
+    (
+      raw = getADelimitedExpression(value, exprOffset) and
+      exists(YamlMapping m |
+        (
+          exists(int i | value = m.getValueNode(i) and key = m.getKeyNode(i))
+          or
+          exists(int i |
+            m.getValueNode(i).(YamlSequence).getElement(_) = value and key = m.getKeyNode(i)
+          )
         )
       )
-    )
-    or
-    // `if`'s conditions do not need to be delimted with ${{}}
-    exists(YamlMapping m |
-      m.maps(key, value) and
-      key.(YamlScalar).getValue() = ["if"] and
-      value.getValue() = raw and
-      exprOffset = 1
+      or
+      // `if`'s conditions do not need to be delimted with ${{}}
+      exists(YamlMapping m |
+        m.maps(key, value) and
+        key.(YamlScalar).getValue() = ["if"] and
+        value.getValue() = raw and
+        exprOffset = 1
+      )
     )
   } or
   TCompositeAction(YamlMapping n) {
@@ -70,25 +176,30 @@ private newtype TAstNode =
   TPermissionsNode(YamlMappingLikeNode n) { exists(YamlMapping m | m.lookup("permissions") = n) } or
   TStrategyNode(YamlMapping n) { exists(YamlMapping m | m.lookup("strategy") = n) } or
   TNeedsNode(YamlMappingLikeNode n) { exists(YamlMapping m | m.lookup("needs") = n) } or
-  TJobNode(YamlMapping n) { exists(YamlMapping w | w.lookup("jobs").(YamlMapping).lookup(_) = n) } or
+  TJobNode(YamlMapping n, YamlNode occurrence, string jobId) {
+    exists(YamlMapping workflow | getAJobOccurrence(workflow, n, occurrence, jobId))
+  } or
   TOnNode(YamlMappingLikeNode n) { exists(YamlMapping w | w.lookup("on") = n) } or
   TEventNode(YamlScalar event, YamlMappingLikeNode n) {
     exists(OnImpl o |
       o.getNode().(YamlMapping).maps(event, n)
       or
-      o.getNode().(YamlSequence).getAChildNode() = event and event = n
+      o.getNode().(YamlSequence).getElement(_) = event and event = n
       or
       o.getNode().(YamlScalar) = n and event = n
     )
   } or
-  TStepNode(YamlMapping n) {
-    exists(YamlMapping m | m.lookup("steps").(YamlSequence).getElementNode(_) = n)
+  TStepNode(YamlMapping n, YamlNode containerOccurrence, YamlNode elementOccurrence) {
+    getAStepOccurrence(n, containerOccurrence, elementOccurrence)
   } or
   TIfNode(YamlValue n) { exists(YamlMapping m | m.lookup("if") = n) } or
   TEnvironmentNode(YamlValue n) { exists(YamlMapping m | m.lookup("environment") = n) } or
   TEnvNode(YamlMapping n) { exists(YamlMapping m | m.lookup("env") = n) } or
-  TScalarValueNode(YamlScalar n) {
-    exists(YamlMapping m | m.maps(_, n) or m.lookup(_).(YamlSequence).getElementNode(_) = n)
+  TScalarValueNode(
+    YamlScalar n, YamlNode containerOccurrence, YamlNode elementOccurrence
+  ) {
+    getAnAstContext(n, containerOccurrence, elementOccurrence) and
+    exists(YamlMapping m | m.maps(_, n) or m.lookup(_).(YamlSequence).getElement(_) = n)
   }
 
 abstract class AstNodeImpl extends TAstNode {
@@ -168,14 +279,27 @@ abstract class AstNodeImpl extends TAstNode {
 
 class ScalarValueImpl extends AstNodeImpl, TScalarValueNode {
   YamlScalar value;
+  YamlNode containerOccurrence;
+  YamlNode elementOccurrence;
 
-  ScalarValueImpl() { this = TScalarValueNode(value) }
+  ScalarValueImpl() { this = TScalarValueNode(value, containerOccurrence, elementOccurrence) }
 
   override string toString() { result = value.getValue() }
 
   override ExpressionImpl getAChildNode() { result.getParentNode() = this }
 
   override AstNodeImpl getParentNode() {
+    exists(StepImpl step |
+      step.getContainerOccurrence() = containerOccurrence and
+      step.getElementOccurrence() = elementOccurrence and
+      value = getAnExpandedYamlChild*(step.getNode()) and
+      result = step
+    )
+    or
+    not exists(YamlMapping step |
+      getAStepOccurrence(step, containerOccurrence, elementOccurrence) and
+      value = getAnExpandedYamlChild*(step)
+    ) and
     exists(AstNodeImpl n | n.getAChildNode() = this and result = n)
   }
 
@@ -186,6 +310,27 @@ class ScalarValueImpl extends AstNodeImpl, TScalarValueNode {
   override YamlScalar getNode() { result = value }
 
   string getValue() { result = value.getValue() }
+
+  YamlNode getContainerOccurrence() { result = containerOccurrence }
+
+  YamlNode getElementOccurrence() { result = elementOccurrence }
+
+  override JobImpl getEnclosingJob() {
+    result.getOccurrence() = containerOccurrence
+    or
+    exists(StepImpl step |
+      step.getContainerOccurrence() = containerOccurrence and
+      step.getElementOccurrence() = elementOccurrence and
+      result = step.getEnclosingJob()
+    )
+    or
+    containerOccurrence = value and result = super.getEnclosingJob()
+  }
+
+  override StepImpl getEnclosingStep() {
+    result.getContainerOccurrence() = containerOccurrence and
+    result.getElementOccurrence() = elementOccurrence
+  }
 }
 
 class ShellScriptImpl extends ScalarValueImpl {
@@ -193,7 +338,11 @@ class ShellScriptImpl extends ScalarValueImpl {
 
   string getRawScript() { result = this.getValue().regexpReplaceAll("\\\\\\s*\n", "") }
 
-  RunImpl getEnclosingRun() { result.getNode().lookup("run") = this.getNode() }
+  RunImpl getEnclosingRun() {
+    result.getNode().lookup("run") = this.getNode() and
+    result.getContainerOccurrence() = this.getContainerOccurrence() and
+    result.getElementOccurrence() = this.getElementOccurrence()
+  }
 
   abstract string getStmt(int i);
 
@@ -257,9 +406,12 @@ class ExpressionImpl extends AstNodeImpl, TExpressionNode {
   string rawExpression;
   string fullExpression;
   int exprOffset;
+  YamlNode containerOccurrence;
+  YamlNode elementOccurrence;
 
   ExpressionImpl() {
-    this = TExpressionNode(key, value, rawExpression, exprOffset - 1) and
+    this = TExpressionNode(key, value, rawExpression, exprOffset - 1, containerOccurrence,
+      elementOccurrence) and
     exists(string trimmedExpression |
       trimmedExpression = rawExpression.trim() and
       if
@@ -274,11 +426,23 @@ class ExpressionImpl extends AstNodeImpl, TExpressionNode {
 
   override AstNodeImpl getAChildNode() { none() }
 
-  override ScalarValueImpl getParentNode() { result.getNode() = value }
+  override ScalarValueImpl getParentNode() {
+    result.getNode() = value and
+    result.getContainerOccurrence() = containerOccurrence and
+    result.getElementOccurrence() = elementOccurrence
+  }
 
   override string getAPrimaryQlClass() { result = "ExpressionImpl" }
 
   override YamlNode getNode() { none() }
+
+  YamlNode getContainerOccurrence() { result = containerOccurrence }
+
+  YamlNode getElementOccurrence() { result = elementOccurrence }
+
+  override JobImpl getEnclosingJob() { result = this.getParentNode().getEnclosingJob() }
+
+  override StepImpl getEnclosingStep() { result = this.getParentNode().getEnclosingStep() }
 
   string getExpression() { result = fullExpression }
 
@@ -450,7 +614,7 @@ class CompositeActionImpl extends AstNodeImpl, TCompositeAction {
 
   override string toString() { result = n.toString() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override AstNodeImpl getParentNode() { none() }
 
@@ -560,7 +724,7 @@ class WorkflowImpl extends AstNodeImpl, TWorkflowNode {
 
   override string toString() { result = n.toString() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override AstNodeImpl getParentNode() { none() }
 
@@ -602,7 +766,7 @@ class ReusableWorkflowImpl extends AstNodeImpl, WorkflowImpl {
     n.lookup("on").(YamlMappingLikeNode).getNode("workflow_call") = workflow_call
   }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override EventImpl getATriggerEvent() {
     // The trigger event for a reusable workflow is the trigger event of the caller workflow
@@ -714,7 +878,7 @@ class InputsImpl extends AstNodeImpl, TInputsNode {
 
   override string toString() { result = n.toString() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   //override AstNodeImpl getAChildNode() { result = this.getAnInput() }
   override AstNodeImpl getParentNode() { result.getAChildNode() = this }
@@ -740,7 +904,7 @@ class DefaultsImpl extends AstNodeImpl, TDefaultsNode {
 
   override string toString() { result = n.toString() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override AstNodeImpl getParentNode() { result.getAChildNode() = this }
 
@@ -762,7 +926,7 @@ class InputImpl extends AstNodeImpl, TInputNode {
 
   override string toString() { result = n.toString() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override InputsImpl getParentNode() { result.getAChildNode() = this }
 
@@ -780,7 +944,7 @@ class OutputsImpl extends AstNodeImpl, TOutputsNode {
 
   override string toString() { result = n.toString() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override AstNodeImpl getParentNode() { result.getAChildNode() = this }
 
@@ -866,7 +1030,7 @@ class PermissionsImpl extends AstNodeImpl, TPermissionsNode {
 
   override string toString() { result = n.toString() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override AstNodeImpl getParentNode() { result.getAChildNode() = this }
 
@@ -949,7 +1113,7 @@ class StrategyImpl extends AstNodeImpl, TStrategyNode {
 
   override string toString() { result = n.toString() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override AstNodeImpl getParentNode() { result.getAChildNode() = this }
 
@@ -973,7 +1137,7 @@ class StrategyImpl extends AstNodeImpl, TStrategyNode {
 
   int getMatrixDimensionValueCount(string name) {
     name = this.getAMatrixDimensionName() and
-    result = count(n.lookup("matrix").(YamlMapping).lookup(name).(YamlSequence).getElementNode(_))
+    result = count(n.lookup("matrix").(YamlMapping).lookup(name).(YamlSequence).getElement(_))
   }
 
   string getMatrixDimensionValue(string name, int index) {
@@ -983,7 +1147,7 @@ class StrategyImpl extends AstNodeImpl, TStrategyNode {
           .(YamlMapping)
           .lookup(name)
           .(YamlSequence)
-          .getElementNode(index)
+          .getElement(index)
           .(YamlScalar)
           .getValue()
   }
@@ -1021,7 +1185,7 @@ class NeedsImpl extends AstNodeImpl, TNeedsNode {
 
   override string toString() { result = n.toString() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override JobImpl getParentNode() { result.getNode().lookup("needs") = n }
 
@@ -1045,7 +1209,7 @@ class OnImpl extends AstNodeImpl, TOnNode {
 
   override string toString() { result = n.toString() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override WorkflowImpl getParentNode() { result.getAChildNode() = this }
 
@@ -1067,7 +1231,7 @@ class EventImpl extends AstNodeImpl, TEventNode {
 
   override string toString() { result = e.getValue() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override OnImpl getParentNode() { result.getAChildNode() = this }
 
@@ -1144,19 +1308,22 @@ class EventImpl extends AstNodeImpl, TEventNode {
 
 class JobImpl extends AstNodeImpl, TJobNode {
   YamlMapping n;
+  YamlNode jobOccurrence;
   string jobId;
   WorkflowImpl workflow;
 
   JobImpl() {
-    this = TJobNode(n) and
-    workflow.getNode().lookup("jobs").(YamlMapping).lookup(jobId) = n
+    this = TJobNode(n, jobOccurrence, jobId) and
+    getAJobOccurrence(workflow.getNode(), n, jobOccurrence, jobId)
   }
 
   override string toString() { result = "Job: " + jobId }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
-  override WorkflowImpl getParentNode() { result.getAChildNode() = this }
+  override WorkflowImpl getParentNode() {
+    getAJobOccurrence(result.getNode(), n, jobOccurrence, jobId)
+  }
 
   override string getAPrimaryQlClass() { result = "JobImpl" }
 
@@ -1166,6 +1333,18 @@ class JobImpl extends AstNodeImpl, TJobNode {
 
   /** Gets the ID of this job, as a string. */
   string getId() { result = jobId }
+
+  YamlNode getOccurrence() { result = jobOccurrence }
+
+  predicate matchesOccurrence(ScalarValueImpl scalar) {
+    hasAliasExpansion(jobOccurrence, n, scalar.getNode()) and
+    scalar.getContainerOccurrence() = jobOccurrence and
+    scalar.getElementOccurrence() = jobOccurrence
+    or
+    not hasAliasExpansion(jobOccurrence, n, scalar.getNode()) and
+    scalar.getContainerOccurrence() = scalar.getNode() and
+    scalar.getElementOccurrence() = scalar.getNode()
+  }
 
   /** Gets the workflow this job belongs to. */
   WorkflowImpl getWorkflow() { result = workflow }
@@ -1485,7 +1664,7 @@ class RunsImpl extends StepsContainerImpl, TRunsNode {
 
   override string toString() { result = n.toString() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override CompositeActionImpl getParentNode() { result.getAChildNode() = this }
 
@@ -1500,12 +1679,24 @@ class RunsImpl extends StepsContainerImpl, TRunsNode {
 
   /** Gets any steps that are defined within this job. */
   override StepImpl getAStep() {
-    result.getNode() = n.lookup("steps").(YamlSequence).getElementNode(_)
+    exists(YamlSequence steps, YamlNode occurrence, int index |
+      steps = getEvaluatedAnchorValue(getRawMappingValue(n, "steps")) and
+      occurrence = steps.getElementNode(index) and
+      result.getNode() = getEvaluatedAnchorValue(occurrence) and
+      result.getContainerOccurrence() = n and
+      result.getElementOccurrence() = occurrence
+    )
   }
 
   /** Gets the step at the given index within this job. */
   override StepImpl getStep(int i) {
-    result.getNode() = n.lookup("steps").(YamlSequence).getElementNode(i)
+    exists(YamlSequence steps, YamlNode occurrence |
+      steps = getEvaluatedAnchorValue(getRawMappingValue(n, "steps")) and
+      occurrence = steps.getElementNode(i) and
+      result.getNode() = getEvaluatedAnchorValue(occurrence) and
+      result.getContainerOccurrence() = n and
+      result.getElementOccurrence() = occurrence
+    )
   }
 }
 
@@ -1514,27 +1705,46 @@ class LocalJobImpl extends JobImpl, StepsContainerImpl {
 
   /** Gets any steps that are defined within this job. */
   override StepImpl getAStep() {
-    result.getNode() = n.lookup("steps").(YamlSequence).getElementNode(_)
+    exists(YamlSequence steps, YamlNode occurrence, int index |
+      steps = getEvaluatedAnchorValue(getRawMappingValue(n, "steps")) and
+      occurrence = steps.getElementNode(index) and
+      result.getNode() = getEvaluatedAnchorValue(occurrence) and
+      result.getContainerOccurrence() = this.getOccurrence() and
+      result.getElementOccurrence() = occurrence
+    )
   }
 
   /** Gets the step at the given index within this job. */
   override StepImpl getStep(int i) {
-    result.getNode() = n.lookup("steps").(YamlSequence).getElementNode(i)
+    exists(YamlSequence steps, YamlNode occurrence |
+      steps = getEvaluatedAnchorValue(getRawMappingValue(n, "steps")) and
+      occurrence = steps.getElementNode(i) and
+      result.getNode() = getEvaluatedAnchorValue(occurrence) and
+      result.getContainerOccurrence() = this.getOccurrence() and
+      result.getElementOccurrence() = occurrence
+    )
   }
 }
 
 class StepImpl extends AstNodeImpl, TStepNode {
   YamlMapping n;
+  YamlNode containerOccurrence;
+  YamlNode elementOccurrence;
 
-  StepImpl() { this = TStepNode(n) }
+  StepImpl() { this = TStepNode(n, containerOccurrence, elementOccurrence) }
 
   override string toString() { result = n.toString() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override AstNodeImpl getParentNode() {
-    result.getAChildNode() = this and
-    (result instanceof LocalJobImpl or result instanceof RunsImpl)
+    exists(LocalJobImpl job |
+      job.getOccurrence() = containerOccurrence and result = job
+    )
+    or
+    exists(RunsImpl runs |
+      runs.getNode() = containerOccurrence and result = runs
+    )
   }
 
   override string getAPrimaryQlClass() { result = "StepImpl" }
@@ -1542,6 +1752,20 @@ class StepImpl extends AstNodeImpl, TStepNode {
   override Location getLocation() { result = n.getLocation() }
 
   override YamlMapping getNode() { result = n }
+
+  YamlNode getContainerOccurrence() { result = containerOccurrence }
+
+  YamlNode getElementOccurrence() { result = elementOccurrence }
+
+  predicate matchesOccurrence(ScalarValueImpl scalar) {
+    hasStepAliasContext(n, containerOccurrence, elementOccurrence, scalar.getNode()) and
+    scalar.getContainerOccurrence() = containerOccurrence and
+    scalar.getElementOccurrence() = elementOccurrence
+    or
+    not hasStepAliasContext(n, containerOccurrence, elementOccurrence, scalar.getNode()) and
+    scalar.getContainerOccurrence() = scalar.getNode() and
+    scalar.getElementOccurrence() = scalar.getNode()
+  }
 
   override JobImpl getEnclosingJob() {
     // if a step is within a composite action, we should follow the caller job
@@ -1629,7 +1853,7 @@ class EnvironmentImpl extends AstNodeImpl, TEnvironmentNode {
 
   override string toString() { result = n.toString() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override AstNodeImpl getParentNode() { result.getAChildNode() = this }
 
@@ -1653,7 +1877,7 @@ class IfImpl extends AstNodeImpl, TIfNode {
 
   override string toString() { result = n.toString() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override AstNodeImpl getParentNode() { result.getAChildNode() = this }
 
@@ -1680,7 +1904,7 @@ class EnvImpl extends AstNodeImpl, TEnvNode {
 
   override string toString() { result = n.toString() }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override AstNodeImpl getParentNode() {
     result.(JobImpl).getEnv() = this or
@@ -1718,6 +1942,18 @@ abstract class UsesImpl extends AstNodeImpl {
 
   abstract string getVersion();
 
+  private predicate hasOccurrenceContext(ScalarValueImpl scalar) {
+    exists(StepImpl step |
+      this = step and
+      step.matchesOccurrence(scalar)
+    )
+    or
+    exists(JobImpl job |
+      this = job and
+      job.matchesOccurrence(scalar)
+    )
+  }
+
   int getMajorVersion() {
     result = this.getVersion().regexpReplaceAll("^v", "").regexpReplaceAll("\\..*", "").toInt()
   }
@@ -1726,14 +1962,18 @@ abstract class UsesImpl extends AstNodeImpl {
   string getArgument(string key) {
     exists(ScalarValueImpl scalar |
       scalar.getNode() = this.getNode().(YamlMapping).lookup("with").(YamlMapping).lookup(key) and
+      this.hasOccurrenceContext(scalar) and
       result = scalar.getValue()
     )
   }
 
   /** Gets the argument expression for the given key (if it exists). */
   ExpressionImpl getArgumentExpr(string key) {
-    result.getParentNode().getNode() =
-      this.getNode().(YamlMapping).lookup("with").(YamlMapping).lookup(key)
+    exists(ScalarValueImpl scalar |
+      scalar.getNode() = this.getNode().(YamlMapping).lookup("with").(YamlMapping).lookup(key) and
+      this.hasOccurrenceContext(scalar) and
+      result.getParentNode() = scalar
+    )
   }
 }
 
@@ -1743,7 +1983,7 @@ class UsesStepImpl extends StepImpl, UsesImpl {
 
   UsesStepImpl() { this.getNode().lookup("uses") = u }
 
-  override AstNodeImpl getAChildNode() { result.getNode() = n.getAChildNode*() }
+  override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   /** Gets the owner and name of the repository where the Action comes from, e.g. `actions/checkout` in `actions/checkout@v2`. */
   override string getCallee() {
@@ -1795,7 +2035,10 @@ class UsesStepImpl extends StepImpl, UsesImpl {
     result = this.getCallee() + "@" + this.getVersion()
   }
 
-  override ScalarValueImpl getCalleeNode() { result.getNode() = u }
+  override ScalarValueImpl getCalleeNode() {
+    result.getNode() = u and
+    this.matchesOccurrence(result)
+  }
 
   /** Gets the version reference used when checking out the Action, e.g. `v2` in `actions/checkout@v2`. */
   override string getVersion() { result = u.getValue().suffix(u.getValue().indexOf("@") + 1) }
@@ -1823,6 +2066,7 @@ class ExternalJobImpl extends JobImpl, UsesImpl {
   string getSecret(string key) {
     exists(ScalarValueImpl scalar |
       scalar.getNode() = n.lookup("secrets").(YamlMapping).lookup(key) and
+      this.matchesOccurrence(scalar) and
       result = scalar.getValue()
     )
   }
@@ -1830,7 +2074,11 @@ class ExternalJobImpl extends JobImpl, UsesImpl {
   ExpressionImpl getASecretExpr() { result = this.getSecretExpr(_) }
 
   ExpressionImpl getSecretExpr(string key) {
-    result.getParentNode().getNode() = n.lookup("secrets").(YamlMapping).lookup(key)
+    exists(ScalarValueImpl scalar |
+      scalar.getNode() = n.lookup("secrets").(YamlMapping).lookup(key) and
+      this.matchesOccurrence(scalar) and
+      result.getParentNode() = scalar
+    )
   }
 
   predicate inheritsSecrets() { n.lookup("secrets").(YamlScalar).getValue() = "inherit" }
@@ -1886,7 +2134,10 @@ class ExternalJobImpl extends JobImpl, UsesImpl {
     result = this.getCallee() + "@" + this.getVersion()
   }
 
-  override ScalarValueImpl getCalleeNode() { result.getNode() = u }
+  override ScalarValueImpl getCalleeNode() {
+    result.getNode() = u and
+    this.matchesOccurrence(result)
+  }
 
   /** Gets the version reference used when checking out the Action, e.g. `v2` in `actions/checkout@v2`. */
   override string getVersion() {
@@ -1904,7 +2155,8 @@ class RunImpl extends StepImpl {
 
   RunImpl() {
     this.getNode().lookup("run") = script and
-    scriptScalar = TScalarValueNode(script)
+    scriptScalar = TScalarValueNode(script, _, _) and
+    this.matchesOccurrence(scriptScalar)
   }
 
   override string toString() {
@@ -1941,7 +2193,7 @@ class RunImpl extends StepImpl {
 
   ShellScriptImpl getScript() { result = scriptScalar }
 
-  ExpressionImpl getAnScriptExpr() { result.getParentNode().getNode() = script }
+  ExpressionImpl getAnScriptExpr() { result.getParentNode() = scriptScalar }
 }
 
 /**
@@ -2393,7 +2645,7 @@ private YamlMappingLikeNode resolveMatrixAccessPath(
     rest.toString() = accessPath.toString().suffix(first.toString().length() + 1) and
     newRoot = root.getNode(first.toString()) and
     if newRoot instanceof YamlSequence
-    then result = resolveMatrixAccessPath(newRoot.(YamlSequence).getElementNode(_), rest)
+    then result = resolveMatrixAccessPath(newRoot.(YamlSequence).getElement(_), rest)
     else result = resolveMatrixAccessPath(newRoot, rest)
   )
 }
