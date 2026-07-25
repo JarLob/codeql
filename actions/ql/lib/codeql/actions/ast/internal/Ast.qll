@@ -535,17 +535,9 @@ class CompositeActionImpl extends AstNodeImpl, TCompositeAction {
     )
   }
 
-  private predicate hasExplicitWritePermission() {
-    // a calling job has an explicit write permission
-    this.getACallerJob().getPermissions().getAPermission().matches("%write")
-  }
-
   /** Holds if the action is privileged. */
   predicate isPrivileged() {
-    // there is a calling job that defines explicit write permissions
-    this.hasExplicitWritePermission()
-    or
-    // the actions has an explicit secret accesses
+    // the action explicitly accesses a secret
     this.hasExplicitSecretAccess()
     or
     // there is a privileged caller job
@@ -553,6 +545,7 @@ class CompositeActionImpl extends AstNodeImpl, TCompositeAction {
       this.getACallerJob().isPrivileged()
       or
       not this.getACallerJob().isPrivileged() and
+      not this.getACallerJob().hasKnownEffectivePermissions() and
       this.getACallerJob().getATriggerEvent().isPrivileged()
     )
   }
@@ -821,6 +814,51 @@ class OutputsImpl extends AstNodeImpl, TOutputsNode {
   string getAnOutputName() { n.maps(any(YamlString s | s.getValue() = result), _) }
 }
 
+private string permissionScope() {
+  result =
+    [
+      "actions", "artifact-metadata", "attestations", "checks", "code-quality", "contents",
+      "copilot-requests", "deployments", "discussions", "drives", "id-token", "issues",
+      "models", "packages", "pages", "pull-requests", "repository-projects", "security-events",
+      "statuses", "vulnerability-alerts"
+    ]
+}
+
+private predicate isReadOnlyPermissionScope(string scope) {
+  scope = ["models", "vulnerability-alerts"]
+}
+
+private predicate isWriteOnlyPermissionScope(string scope) {
+  scope = ["copilot-requests", "id-token"]
+}
+
+bindingset[scope]
+private string maximumPermission(string scope) {
+  scope = permissionScope() and
+  (
+    isWriteOnlyPermissionScope(scope) and result = "none"
+    or
+    isReadOnlyPermissionScope(scope) and result = "read"
+    or
+    not isWriteOnlyPermissionScope(scope) and not isReadOnlyPermissionScope(scope) and
+    result = "write"
+  )
+}
+
+private int permissionLevel(string permission) {
+  permission = "none" and result = 0
+  or
+  permission = "read" and result = 1
+  or
+  permission = "write" and result = 2
+}
+
+private string restrictPermission(string requested, string cap) {
+  permissionLevel(requested) <= permissionLevel(cap) and result = requested
+  or
+  permissionLevel(cap) < permissionLevel(requested) and result = cap
+}
+
 class PermissionsImpl extends AstNodeImpl, TPermissionsNode {
   YamlMappingLikeNode n;
 
@@ -838,30 +876,26 @@ class PermissionsImpl extends AstNodeImpl, TPermissionsNode {
 
   override YamlMappingLikeNode getNode() { result = n }
 
-  string getAScope() {
-    result =
-      [
-        "actions", "attestations", "checks", "contents", "deployments", "discussions", "id-token",
-        "issues", "packages", "pages", "pull-requests", "repository-projects", "security-events",
-        "statuses"
-      ]
-  }
+  string getAScope() { result = permissionScope() }
 
   string getAPermission() {
-    exists(YamlMapping mapping, string scope |
+    exists(YamlMapping mapping, YamlScalar scope, YamlScalar permission |
       mapping = n and
-      result = scope + ": " + mapping.lookup(scope).(YamlScalar).getValue()
+      mapping.maps(scope, permission) and
+      result = scope.getValue() + ": " + permission.getValue()
     )
     or
-    exists(YamlScalar scalar |
+    exists(YamlScalar scalar, string scope, string permission |
       scalar = n and
+      scope = this.getAScope() and
+      permission = this.getConfiguredPermission(scope) and
+      not permission = "none" and
       (
-        scalar.getValue() = "write-all" and
-        result = this.getAScope() + ":write"
+        scalar.getValue() = "write-all"
         or
-        scalar.getValue() = "read-all" and
-        result = this.getAScope() + ":read"
-      )
+        scalar.getValue() = "read-all"
+      ) and
+      result = scope + ": " + permission
     )
   }
 
@@ -869,6 +903,41 @@ class PermissionsImpl extends AstNodeImpl, TPermissionsNode {
   string getPermission(string perm) {
     exists(string p |
       p = this.getAPermission() and p.matches(perm + ":%") and result = p.splitAt(":", 1).trim()
+    )
+  }
+
+  bindingset[scope]
+  pragma[inline_late]
+  string getConfiguredPermission(string scope) {
+    scope = this.getAScope() and
+    (
+      exists(YamlMapping mapping |
+        mapping = n and
+        (
+          result = mapping.lookup(scope).(YamlScalar).getValue().trim().toLowerCase()
+          or
+          not exists(mapping.lookup(scope)) and result = "none"
+        )
+      )
+      or
+      exists(YamlScalar scalar |
+        scalar = n and
+        (
+          scalar.getValue() = "read-all" and
+          (
+            isWriteOnlyPermissionScope(scope) and result = "none"
+            or
+            not isWriteOnlyPermissionScope(scope) and result = "read"
+          )
+          or
+          scalar.getValue() = "write-all" and
+          (
+            isReadOnlyPermissionScope(scope) and result = "read"
+            or
+            not isReadOnlyPermissionScope(scope) and result = "write"
+          )
+        )
+      )
     )
   }
 }
@@ -1137,6 +1206,37 @@ class JobImpl extends AstNodeImpl, TJobNode {
   /** Gets the permissions for this job. */
   PermissionsImpl getPermissions() { result.getNode() = n.lookup("permissions") }
 
+  predicate hasRequestedPermissions() {
+    exists(this.getPermissions()) or
+    not exists(this.getPermissions()) and exists(this.getEnclosingWorkflow().getPermissions())
+  }
+
+  bindingset[scope]
+  pragma[inline_late]
+  string getRequestedPermission(string scope) {
+    exists(this.getPermissions()) and result = this.getPermissions().getConfiguredPermission(scope)
+    or
+    not exists(this.getPermissions()) and
+    result = this.getEnclosingWorkflow().getPermissions().getConfiguredPermission(scope)
+  }
+
+  predicate mayRunWithoutReusableCaller() {
+    not this.getEnclosingWorkflow() instanceof ReusableWorkflowImpl
+    or
+    not exists(this.getEnclosingWorkflow().(ReusableWorkflowImpl).getACaller())
+    or
+    exists(EventImpl event |
+      this.getEnclosingWorkflow().getOn().getAnEvent() = event and
+      not event.getName() = "workflow_call"
+    )
+  }
+
+  bindingset[scope]
+  pragma[inline_late]
+  string getEffectivePermission(string scope) {
+    effectivePermission(this, scope, result)
+  }
+
   /** Gets the strategy for this job. */
   StrategyImpl getStrategy() { result.getNode() = n.lookup("strategy") }
 
@@ -1190,74 +1290,34 @@ class JobImpl extends AstNodeImpl, TJobNode {
     )
   }
 
-  private predicate hasExplicitNonePermission() {
-    exists(this.getPermissions()) and not exists(this.getPermissions().getAPermission())
+  predicate hasKnownEffectivePermissions() {
+    exists(string scope | scope = permissionScope() and exists(this.getEffectivePermission(scope)))
   }
 
-  private predicate hasExplicitReadPermission() {
-    // the job has not an explicit write permission
-    exists(this.getPermissions().getAPermission()) and
-    not this.getPermissions().getAPermission().matches("%write")
-  }
-
-  private predicate hasExplicitWritePermission() {
-    // the job has an explicit write permission
-    this.getPermissions().getAPermission().matches("%write")
-  }
-
-  private predicate hasImplicitNonePermission() {
-    not exists(this.getPermissions()) and
-    exists(this.getEnclosingWorkflow().getPermissions()) and
-    not exists(this.getEnclosingWorkflow().getPermissions().getAPermission())
-    or
-    not exists(this.getPermissions()) and
-    not exists(this.getEnclosingWorkflow().getPermissions()) and
-    exists(this.getEnclosingWorkflow().(ReusableWorkflowImpl).getACaller().getPermissions()) and
-    not exists(
-      this.getEnclosingWorkflow()
-          .(ReusableWorkflowImpl)
-          .getACaller()
-          .getPermissions()
-          .getAPermission()
+  private predicate hasKnownEffectivePermissionsForEvent(EventImpl event) {
+    exists(string scope, string permission |
+      scope = permissionScope() and
+      effectivePermissionForEvent(this, event, scope, permission)
     )
   }
 
-  private predicate hasImplicitReadPermission() {
-    // the job has not an explicit write permission
-    not exists(this.getPermissions()) and
-    exists(this.getEnclosingWorkflow().getPermissions().getAPermission()) and
-    not this.getEnclosingWorkflow().getPermissions().getAPermission().matches("%write")
-    or
-    not exists(this.getPermissions()) and
-    not exists(this.getEnclosingWorkflow().getPermissions()) and
-    this.getEnclosingWorkflow()
-        .(ReusableWorkflowImpl)
-        .getACaller()
-        .getPermissions()
-        .getAPermission()
-        .matches("%read")
+  private predicate hasEffectiveWritePermission() {
+    exists(string scope | scope = permissionScope() and this.getEffectivePermission(scope) = "write")
   }
 
-  private predicate hasImplicitWritePermission() {
-    // the job has an explicit write permission
-    not exists(this.getPermissions()) and
-    this.getEnclosingWorkflow().getPermissions().getAPermission().matches("%write")
-    or
-    not exists(this.getPermissions()) and
-    not exists(this.getEnclosingWorkflow().getPermissions()) and
-    this.getEnclosingWorkflow()
-        .(ReusableWorkflowImpl)
-        .getACaller()
-        .getPermissions()
-        .getAPermission()
-        .matches("%write")
+  private predicate hasEffectiveWritePermissionForEvent(EventImpl event) {
+    exists(string scope |
+      scope = permissionScope() and
+      effectivePermissionForEvent(this, event, scope, "write")
+    )
   }
 
-  private predicate hasRuntimeData() {
+  private predicate hasRuntimeDataForEvent(EventImpl event) {
     exists(string path, string trigger, string name, string secrets_source, string perms |
       workflowDataModel(path, trigger, name, secrets_source, perms, _) and
       path.trim() = this.getLocation().getFile().getRelativePath() and
-      name.trim().matches(this.getId() + "%")
+      name.trim().matches(this.getId() + "%") and
+      trigger.trim() = event.getName()
     )
   }
 
@@ -1274,6 +1334,17 @@ class JobImpl extends AstNodeImpl, TJobNode {
     )
   }
 
+  private predicate hasRuntimeWritePermissionsForEvent(EventImpl event) {
+    exists(string path, string trigger, string name, string secrets_source, string perms |
+      workflowDataModel(path, trigger, name, secrets_source, perms, _) and
+      path.trim() = this.getLocation().getFile().getRelativePath() and
+      name.trim().matches(this.getId() + "%") and
+      trigger.trim() = event.getName() and
+      not trigger.trim() = "pull_request" and
+      perms.toLowerCase().matches("%write%")
+    )
+  }
+
   /** Holds if the job is privileged. */
   predicate isPrivileged() {
     // the job has privileged runtime permissions
@@ -1282,42 +1353,121 @@ class JobImpl extends AstNodeImpl, TJobNode {
     // the job has an explicit secret accesses
     this.hasExplicitSecretAccess()
     or
-    // the job has an explicit write permission
-    this.hasExplicitWritePermission()
-    or
-    // the job has no explicit permissions but the workflow has write permissions
-    not exists(this.getPermissions()) and
-    this.hasImplicitWritePermission()
+    // the job has effective write permissions
+    this.hasEffectiveWritePermission()
   }
 
   /** Holds if the action is privileged and externally triggerable. */
   predicate isPrivilegedExternallyTriggerable(EventImpl event) {
     this.getATriggerEvent() = event and
-    // job is triggereable by an external user
+    // the job is triggerable by an external user
     event.isExternallyTriggerable() and
     // no matter if `pull_request` is granted write permissions or access to secrets
     // when the job is triggered by a `pull_request` event from a fork, they will get revoked
     not event.getName() = "pull_request" and
     (
-      // job is privileged (write access or access to secrets)
-      this.isPrivileged()
+      // the job accesses secrets
+      this.hasExplicitSecretAccess()
+      or
+      // runtime data grants write access for this event
+      this.hasRuntimeWritePermissionsForEvent(event)
+      or
+      // static permissions grant write access for this event
+      this.hasEffectiveWritePermissionForEvent(event)
       or
       // the trigger event is __normally__ privileged
       event.isPrivileged() and
       // and we have no runtime data to prove otherwise
-      not this.hasRuntimeData() and
-      // and the job is not explicitly non-privileged
-      not (
-        (
-          this.hasExplicitNonePermission() or
-          this.hasImplicitNonePermission() or
-          this.hasExplicitReadPermission() or
-          this.hasImplicitReadPermission()
-        ) and
-        not this.hasExplicitSecretAccess()
-      )
+      not this.hasRuntimeDataForEvent(event) and
+      // and static permissions do not prove that the job is non-privileged
+      not this.hasKnownEffectivePermissionsForEvent(event)
     )
   }
+}
+
+private predicate effectivePermission(JobImpl job, string scope, string permission) {
+  scope = permissionScope() and
+  (
+    job.hasRequestedPermissions() and
+    maximumEffectivePermission(job, scope, permission)
+    or
+    not job.hasRequestedPermissions() and
+    exists(ExternalJobImpl caller |
+      job.getEnclosingWorkflow().(ReusableWorkflowImpl).getACaller() = caller and
+      maximumEffectivePermission(caller, scope, permission)
+    )
+  )
+}
+
+private predicate maximumEffectivePermission(JobImpl job, string scope, string permission) {
+  scope = permissionScope() and
+  (
+    job.mayRunWithoutReusableCaller() and
+    (
+      job.hasRequestedPermissions() and permission = job.getRequestedPermission(scope)
+      or
+      not job.hasRequestedPermissions() and permission = maximumPermission(scope)
+    )
+    or
+    exists(ExternalJobImpl caller, string cap |
+      job.getEnclosingWorkflow().(ReusableWorkflowImpl).getACaller() = caller and
+      maximumEffectivePermission(caller, scope, cap) and
+      (
+        exists(string requested |
+          job.hasRequestedPermissions() and
+          requested = job.getRequestedPermission(scope) and
+          permission = restrictPermission(requested, cap)
+        )
+        or
+        not job.hasRequestedPermissions() and permission = cap
+      )
+    )
+  )
+}
+
+private predicate effectivePermissionForEvent(
+  JobImpl job, EventImpl event, string scope, string permission
+) {
+  scope = permissionScope() and
+  (
+    job.hasRequestedPermissions() and
+    maximumEffectivePermissionForEvent(job, event, scope, permission)
+    or
+    not job.hasRequestedPermissions() and
+    exists(ExternalJobImpl caller |
+      job.getEnclosingWorkflow().(ReusableWorkflowImpl).getACaller() = caller and
+      maximumEffectivePermissionForEvent(caller, event, scope, permission)
+    )
+  )
+}
+
+private predicate maximumEffectivePermissionForEvent(
+  JobImpl job, EventImpl event, string scope, string permission
+) {
+  scope = permissionScope() and
+  (
+    job.getEnclosingWorkflow().getOn().getAnEvent() = event and
+    not event.getName() = "workflow_call" and
+    (
+      job.hasRequestedPermissions() and permission = job.getRequestedPermission(scope)
+      or
+      not job.hasRequestedPermissions() and permission = maximumPermission(scope)
+    )
+    or
+    exists(ExternalJobImpl caller, string cap |
+      job.getEnclosingWorkflow().(ReusableWorkflowImpl).getACaller() = caller and
+      maximumEffectivePermissionForEvent(caller, event, scope, cap) and
+      (
+        exists(string requested |
+          job.hasRequestedPermissions() and
+          requested = job.getRequestedPermission(scope) and
+          permission = restrictPermission(requested, cap)
+        )
+        or
+        not job.hasRequestedPermissions() and permission = cap
+      )
+    )
+  )
 }
 
 abstract class StepsContainerImpl extends AstNodeImpl {

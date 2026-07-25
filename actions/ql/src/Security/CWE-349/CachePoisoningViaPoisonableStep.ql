@@ -63,7 +63,11 @@ where
   IntegratedCfg::orderedStepsMayReachForEvent(source, step, event) and
   step instanceof PoisonableStep and
   // excluding privileged workflows since they can be exploited in easier circumstances
-  not job.isPrivileged()
+  (
+    not job.isPrivileged()
+    or
+    not job.isPrivilegedExternallyTriggerable(event)
+  )
 select step, untrustedInput, step,
   "Potential cache poisoning in the context of the default branch " + message + " $@. ($@).",
   untrustedInput, untrustedInputText, event, event.getName()

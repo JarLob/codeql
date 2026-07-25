@@ -1,0 +1,14 @@
+on:
+  workflow_dispatch:
+    inputs:
+      head_sha:
+        required: true
+        type: string
+
+jobs:
+  call:
+    permissions:
+      contents: write
+    uses: ./.github/workflows/reusable-cache-callee.yml
+    with:
+      head_sha: ${{ github.event.inputs.head_sha }}

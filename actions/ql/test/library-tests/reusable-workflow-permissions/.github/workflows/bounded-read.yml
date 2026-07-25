@@ -1,0 +1,10 @@
+on:
+  workflow_call:
+
+jobs:
+  target:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo bounded-read

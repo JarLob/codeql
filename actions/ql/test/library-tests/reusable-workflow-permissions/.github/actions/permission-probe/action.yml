@@ -1,0 +1,6 @@
+name: Permission probe
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: echo probe

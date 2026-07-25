@@ -1,0 +1,10 @@
+on:
+  pull_request_target:
+    types: [synchronize]
+
+jobs:
+  call:
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: ./.github/workflows/reusable-write-callee.yml

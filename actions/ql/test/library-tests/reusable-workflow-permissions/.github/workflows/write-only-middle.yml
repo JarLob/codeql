@@ -1,0 +1,11 @@
+on:
+  workflow_call:
+
+jobs:
+  inherit:
+    uses: ./.github/workflows/write-only-leaf.yml
+
+  narrow:
+    permissions:
+      id-token: write
+    uses: ./.github/workflows/write-only-narrowed-leaf.yml
