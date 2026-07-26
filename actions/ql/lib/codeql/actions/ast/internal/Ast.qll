@@ -86,6 +86,35 @@ private predicate getAStepOccurrence(
   )
 }
 
+private newtype TAstOccurrence =
+  MkAstOccurrence(YamlNode containerOccurrence, YamlNode elementOccurrence) {
+    containerOccurrence = elementOccurrence
+    or
+    exists(YamlMapping step |
+      getAStepOccurrence(step, containerOccurrence, elementOccurrence)
+    )
+  }
+
+private class AstOccurrence extends TAstOccurrence {
+  YamlNode containerOccurrence;
+  YamlNode elementOccurrence;
+
+  AstOccurrence() { this = MkAstOccurrence(containerOccurrence, elementOccurrence) }
+
+  YamlNode getContainer() { result = containerOccurrence }
+
+  YamlNode getElement() { result = elementOccurrence }
+
+  string toString() { result = containerOccurrence + ":" + elementOccurrence }
+}
+
+bindingset[containerOccurrence, elementOccurrence]
+private AstOccurrence getAstOccurrence(
+  YamlNode containerOccurrence, YamlNode elementOccurrence
+) {
+  result.getContainer() = containerOccurrence and result.getElement() = elementOccurrence
+}
+
 private predicate hasAliasExpansion(
   YamlNode occurrenceRoot, YamlNode semanticRoot, YamlNode node
 ) {
@@ -107,13 +136,13 @@ private predicate hasStepAliasContext(
   )
 }
 
-private predicate getAnAstContext(
-  YamlNode node, YamlNode containerOccurrence, YamlNode elementOccurrence
-) {
-  exists(YamlMapping step |
+bindingset[node]
+private predicate getAnAstContext(YamlNode node, AstOccurrence occurrence) {
+  exists(YamlMapping step, YamlNode containerOccurrence, YamlNode elementOccurrence |
     getAStepOccurrence(step, containerOccurrence, elementOccurrence) and
     node = getAnExpandedYamlChild*(step) and
-    hasStepAliasContext(step, containerOccurrence, elementOccurrence, node)
+    hasStepAliasContext(step, containerOccurrence, elementOccurrence, node) and
+    occurrence = MkAstOccurrence(containerOccurrence, elementOccurrence)
   )
   or
   exists(YamlMapping workflow, YamlMapping job, YamlNode jobOccurrence, string jobId |
@@ -124,12 +153,10 @@ private predicate getAnAstContext(
       getAStepOccurrence(step, jobOccurrence, stepOccurrence) and
       node = getAnExpandedYamlChild*(step)
     ) and
-    containerOccurrence = jobOccurrence and
-    elementOccurrence = jobOccurrence
+    occurrence = MkAstOccurrence(jobOccurrence, jobOccurrence)
   )
   or
-  containerOccurrence = node and
-  elementOccurrence = node
+  occurrence = MkAstOccurrence(node, node)
 }
 
 string getADelimitedExpression(YamlString s, int offset) {
@@ -144,10 +171,9 @@ string getADelimitedExpression(YamlString s, int offset) {
 
 private newtype TAstNode =
   TExpressionNode(
-    YamlNode key, YamlScalar value, string raw, int exprOffset, YamlNode containerOccurrence,
-    YamlNode elementOccurrence
+    YamlNode key, YamlScalar value, string raw, int exprOffset, AstOccurrence occurrence
   ) {
-    getAnAstContext(value, containerOccurrence, elementOccurrence) and
+    getAnAstContext(value, occurrence) and
     (
       raw = getADelimitedExpression(value, exprOffset) and
       exists(YamlMapping m |
@@ -199,23 +225,25 @@ private newtype TAstNode =
       o.getNode().(YamlScalar) = n and event = n
     )
   } or
-  TStepNode(YamlMapping n, YamlNode containerOccurrence, YamlNode elementOccurrence) {
-    getAStepOccurrence(n, containerOccurrence, elementOccurrence)
+  TStepNode(YamlMapping n, AstOccurrence occurrence) {
+    exists(YamlNode containerOccurrence, YamlNode elementOccurrence |
+      getAStepOccurrence(n, containerOccurrence, elementOccurrence) and
+      occurrence = MkAstOccurrence(containerOccurrence, elementOccurrence)
+    )
   } or
-  TBackgroundCompletionNode(
-    YamlMapping n, YamlNode containerOccurrence, YamlNode elementOccurrence
-  ) {
-    getAStepOccurrence(n, containerOccurrence, elementOccurrence) and
+  TBackgroundCompletionNode(YamlMapping n, AstOccurrence occurrence) {
+    exists(YamlNode containerOccurrence, YamlNode elementOccurrence |
+      getAStepOccurrence(n, containerOccurrence, elementOccurrence) and
+      occurrence = MkAstOccurrence(containerOccurrence, elementOccurrence)
+    ) and
     n.lookup("background").(YamlScalar).getValue() = "true" and
     exists(n.lookup(["run", "uses"]))
   } or
   TIfNode(YamlValue n) { exists(YamlMapping m | m.lookup("if") = n) } or
   TEnvironmentNode(YamlValue n) { exists(YamlMapping m | m.lookup("environment") = n) } or
   TEnvNode(YamlMapping n) { exists(YamlMapping m | m.lookup("env") = n) } or
-  TScalarValueNode(
-    YamlScalar n, YamlNode containerOccurrence, YamlNode elementOccurrence
-  ) {
-    getAnAstContext(n, containerOccurrence, elementOccurrence) and
+  TScalarValueNode(YamlScalar n, AstOccurrence occurrence) {
+    getAnAstContext(n, occurrence) and
     exists(YamlMapping m | m.maps(_, n) or m.lookup(_).(YamlSequence).getElement(_) = n)
   }
 
@@ -236,18 +264,15 @@ abstract class AstNodeImpl extends TAstNode {
    * Gets the enclosing Job.
    */
   JobImpl getEnclosingJob() {
-    result.getAChildNode*() = this.getParentNode() or
-    result = this.getEnclosingCompositeAction().getACallerJob()
+    result = this or
+    result = this.getParentNode().getEnclosingJob() or
+    result = this.(CompositeActionImpl).getACallerJob()
   }
 
   /**
    * Gets and Event triggering this node.
    */
-  EventImpl getATriggerEvent() {
-    result = this.getEnclosingJob().getATriggerEvent()
-    or
-    not exists(this.getEnclosingJob()) and result = this.getEnclosingWorkflow().getATriggerEvent()
-  }
+  EventImpl getATriggerEvent() { result = this.getParentNode().getATriggerEvent() }
 
   /**
    * Gets the enclosing Step.
@@ -263,12 +288,18 @@ abstract class AstNodeImpl extends TAstNode {
   /**
    * Gets the enclosing workflow if any.
    */
-  WorkflowImpl getEnclosingWorkflow() { this = result.getAChildNode*() }
+  WorkflowImpl getEnclosingWorkflow() {
+    result = this or
+    result = this.getParentNode().getEnclosingWorkflow()
+  }
 
   /**
    * Gets the enclosing composite action if any.
    */
-  CompositeActionImpl getEnclosingCompositeAction() { this = result.getAChildNode*() }
+  CompositeActionImpl getEnclosingCompositeAction() {
+    result = this or
+    result = this.getParentNode().getEnclosingCompositeAction()
+  }
 
   /**
    * Gets a environment variable expression by name in the scope of the current node.
@@ -294,12 +325,19 @@ abstract class AstNodeImpl extends TAstNode {
   }
 }
 
+bindingset[occurrence]
+private StepImpl getStepAtOccurrence(AstOccurrence occurrence) {
+  result.getOccurrence() = occurrence
+}
+
+bindingset[occurrence]
+private JobImpl getJobAtOccurrence(YamlNode occurrence) { result.getOccurrence() = occurrence }
+
 class ScalarValueImpl extends AstNodeImpl, TScalarValueNode {
   YamlScalar value;
-  YamlNode containerOccurrence;
-  YamlNode elementOccurrence;
+  AstOccurrence occurrence;
 
-  ScalarValueImpl() { this = TScalarValueNode(value, containerOccurrence, elementOccurrence) }
+  ScalarValueImpl() { this = TScalarValueNode(value, occurrence) }
 
   override string toString() { result = value.getValue() }
 
@@ -307,14 +345,13 @@ class ScalarValueImpl extends AstNodeImpl, TScalarValueNode {
 
   override AstNodeImpl getParentNode() {
     exists(StepImpl step |
-      step.getContainerOccurrence() = containerOccurrence and
-      step.getElementOccurrence() = elementOccurrence and
+      step = getStepAtOccurrence(occurrence) and
       value = getAnExpandedYamlChild*(step.getNode()) and
       result = step
     )
     or
     not exists(YamlMapping step |
-      getAStepOccurrence(step, containerOccurrence, elementOccurrence) and
+      getAStepOccurrence(step, occurrence.getContainer(), occurrence.getElement()) and
       value = getAnExpandedYamlChild*(step)
     ) and
     exists(AstNodeImpl n | n.getAChildNode() = this and result = n)
@@ -328,26 +365,40 @@ class ScalarValueImpl extends AstNodeImpl, TScalarValueNode {
 
   string getValue() { result = value.getValue() }
 
-  YamlNode getContainerOccurrence() { result = containerOccurrence }
+  AstOccurrence getOccurrence() { result = occurrence }
 
-  YamlNode getElementOccurrence() { result = elementOccurrence }
+  YamlNode getContainerOccurrence() { result = occurrence.getContainer() }
+
+  YamlNode getElementOccurrence() { result = occurrence.getElement() }
 
   override JobImpl getEnclosingJob() {
-    result.getOccurrence() = containerOccurrence
+    result = getJobAtOccurrence(occurrence.getContainer())
     or
     exists(StepImpl step |
-      step.getContainerOccurrence() = containerOccurrence and
-      step.getElementOccurrence() = elementOccurrence and
+      step = getStepAtOccurrence(occurrence) and
       result = step.getEnclosingJob()
     )
     or
-    containerOccurrence = value and result = super.getEnclosingJob()
+    occurrence = MkAstOccurrence(value, value) and result = super.getEnclosingJob()
   }
 
-  override StepImpl getEnclosingStep() {
-    result.getContainerOccurrence() = containerOccurrence and
-    result.getElementOccurrence() = elementOccurrence
+  override WorkflowImpl getEnclosingWorkflow() {
+    result = this.getEnclosingJob().getWorkflow()
+    or
+    occurrence = MkAstOccurrence(value, value) and result = super.getEnclosingWorkflow()
   }
+
+  override StepImpl getEnclosingStep() { result = getStepAtOccurrence(occurrence) }
+}
+
+bindingset[value, occurrence]
+private ScalarValueImpl getScalarAtOccurrence(YamlScalar value, AstOccurrence occurrence) {
+  result.getNode() = value and result.getOccurrence() = occurrence
+}
+
+bindingset[value, occurrence]
+private ExpressionImpl getExpressionAtOccurrence(YamlScalar value, AstOccurrence occurrence) {
+  result = TExpressionNode(_, value, _, _, occurrence)
 }
 
 class ShellScriptImpl extends ScalarValueImpl {
@@ -357,8 +408,7 @@ class ShellScriptImpl extends ScalarValueImpl {
 
   RunImpl getEnclosingRun() {
     result.getNode().lookup("run") = this.getNode() and
-    result.getContainerOccurrence() = this.getContainerOccurrence() and
-    result.getElementOccurrence() = this.getElementOccurrence()
+    result = getStepAtOccurrence(this.getOccurrence())
   }
 
   abstract string getStmt(int i);
@@ -423,12 +473,10 @@ class ExpressionImpl extends AstNodeImpl, TExpressionNode {
   string rawExpression;
   string fullExpression;
   int exprOffset;
-  YamlNode containerOccurrence;
-  YamlNode elementOccurrence;
+  AstOccurrence occurrence;
 
   ExpressionImpl() {
-    this = TExpressionNode(key, value, rawExpression, exprOffset - 1, containerOccurrence,
-      elementOccurrence) and
+    this = TExpressionNode(key, value, rawExpression, exprOffset - 1, occurrence) and
     exists(string trimmedExpression |
       trimmedExpression = rawExpression.trim() and
       if
@@ -445,19 +493,22 @@ class ExpressionImpl extends AstNodeImpl, TExpressionNode {
 
   override ScalarValueImpl getParentNode() {
     result.getNode() = value and
-    result.getContainerOccurrence() = containerOccurrence and
-    result.getElementOccurrence() = elementOccurrence
+    result.getOccurrence() = occurrence
   }
 
   override string getAPrimaryQlClass() { result = "ExpressionImpl" }
 
   override YamlNode getNode() { none() }
 
-  YamlNode getContainerOccurrence() { result = containerOccurrence }
+  AstOccurrence getOccurrence() { result = occurrence }
 
-  YamlNode getElementOccurrence() { result = elementOccurrence }
+  YamlNode getContainerOccurrence() { result = occurrence.getContainer() }
+
+  YamlNode getElementOccurrence() { result = occurrence.getElement() }
 
   override JobImpl getEnclosingJob() { result = this.getParentNode().getEnclosingJob() }
+
+  override WorkflowImpl getEnclosingWorkflow() { result = this.getParentNode().getEnclosingWorkflow() }
 
   override StepImpl getEnclosingStep() { result = this.getParentNode().getEnclosingStep() }
 
@@ -749,6 +800,8 @@ class WorkflowImpl extends AstNodeImpl, TWorkflowNode {
   override Location getLocation() { result = n.getLocation() }
 
   override YamlMapping getNode() { result = n }
+
+  override WorkflowImpl getEnclosingWorkflow() { result = this }
 
   /** Gets the `on` trigger events for this workflow. */
   OnImpl getOn() { result.getNode() = n.lookup("on") }
@@ -1351,18 +1404,19 @@ class JobImpl extends AstNodeImpl, TJobNode {
 
   YamlNode getOccurrence() { result = jobOccurrence }
 
-  predicate matchesOccurrence(ScalarValueImpl scalar) {
-    hasAliasExpansion(jobOccurrence, n, scalar.getNode()) and
-    scalar.getContainerOccurrence() = jobOccurrence and
-    scalar.getElementOccurrence() = jobOccurrence
+  bindingset[this, value]
+  ScalarValueImpl getScalarValue(YamlScalar value) {
+    hasAliasExpansion(jobOccurrence, n, value) and
+    result = getScalarAtOccurrence(value, getAstOccurrence(jobOccurrence, jobOccurrence))
     or
-    not hasAliasExpansion(jobOccurrence, n, scalar.getNode()) and
-    scalar.getContainerOccurrence() = scalar.getNode() and
-    scalar.getElementOccurrence() = scalar.getNode()
+    not hasAliasExpansion(jobOccurrence, n, value) and
+    result = getScalarAtOccurrence(value, getAstOccurrence(value, value))
   }
 
   /** Gets the workflow this job belongs to. */
   WorkflowImpl getWorkflow() { result = workflow }
+
+  override WorkflowImpl getEnclosingWorkflow() { result = workflow }
 
   EnvImpl getEnv() { result.getNode() = n.lookup("env") }
 
@@ -1445,15 +1499,15 @@ class JobImpl extends AstNodeImpl, TJobNode {
 
   /** Gets the runs-on field of the job. */
   string getARunsOnLabel() {
-    exists(ScalarValueImpl lbl, YamlMappingLikeNode runson |
+    exists(ScalarValueImpl lbl, YamlScalar label, YamlMappingLikeNode runson |
       runson = n.lookup("runs-on").(YamlMappingLikeNode)
     |
       (
-        lbl.getNode() = runson.getNode(_) and
-        not lbl.getNode() = runson.getNode("group")
+        label = runson.getNode(_) and
+        not label = runson.getNode("group")
         or
-        lbl.getNode() = runson.getNode("labels").(YamlMappingLikeNode).getNode(_)
-      ) and
+        label = runson.getNode("labels").(YamlMappingLikeNode).getNode(_)
+      ) and lbl = this.getScalarValue(label) and
       (
         not exists(MatrixExpressionImpl e | e.getParentNode() = lbl) and
         result =
@@ -1482,54 +1536,62 @@ class JobImpl extends AstNodeImpl, TJobNode {
         )
   }
 
-  private ScalarValueImpl getContainerImageValue(YamlValue container) {
-    (
-      result.getNode() = container.(YamlScalar)
+  bindingset[this, container]
+  private ExpressionImpl getContainerImageExpr(YamlValue container) {
+    exists(YamlScalar value |
+      value = container.(YamlScalar)
       or
-      result.getNode() =
-        getEvaluatedAnchorValue(container.(YamlMapping).lookup("image")).(YamlScalar)
-    ) and
-    this.matchesOccurrence(result)
+      value = getEvaluatedAnchorValue(container.(YamlMapping).lookup("image")).(YamlScalar)
+    |
+      hasAliasExpansion(jobOccurrence, n, value) and
+      result =
+        getExpressionAtOccurrence(value, getAstOccurrence(jobOccurrence, jobOccurrence))
+      or
+      not hasAliasExpansion(jobOccurrence, n, value) and
+      result = getExpressionAtOccurrence(value, getAstOccurrence(value, value))
+    )
   }
 
   ExpressionImpl getJobContainerImageExpr() {
-    result.getParentNode() = this.getContainerImageValue(this.getJobContainerDefinition())
+    result = this.getContainerImageExpr(this.getJobContainerDefinition())
   }
 
   ExpressionImpl getAServiceContainerImageExpr() {
-    result.getParentNode() = this.getContainerImageValue(this.getAServiceContainerDefinition())
+    result = this.getContainerImageExpr(this.getAServiceContainerDefinition())
   }
 
   private YamlValue getContainerDefinitionForImage(ExpressionImpl image) {
-    image.getParentNode() = this.getContainerImageValue(result) and
+    image = this.getContainerImageExpr(result) and
     result = [this.getJobContainerDefinition(), this.getAServiceContainerDefinition()]
   }
 
   ScalarValueImpl getRegistryUsernameForContainerImage(ExpressionImpl image) {
-    result.getNode() =
-      getEvaluatedAnchorValue(
+    result =
+      this.getScalarValue(
+        getEvaluatedAnchorValue(
           this
               .getContainerDefinitionForImage(image)
               .(YamlMapping)
               .lookup("credentials")
               .(YamlMapping)
               .lookup("username")
-        ).(YamlScalar) and
-    this.matchesOccurrence(result)
+                ).(YamlScalar)
+              )
   }
 
   ExpressionImpl getRegistryPasswordExprForContainerImage(ExpressionImpl image) {
     exists(ScalarValueImpl password |
-      password.getNode() =
-        getEvaluatedAnchorValue(
+      password =
+        this.getScalarValue(
+          getEvaluatedAnchorValue(
             this
                 .getContainerDefinitionForImage(image)
                 .(YamlMapping)
                 .lookup("credentials")
                 .(YamlMapping)
                 .lookup("password")
-          ).(YamlScalar) and
-      this.matchesOccurrence(password) and
+                ).(YamlScalar)
+                  ) and
       result.getParentNode() = password
     )
   }
@@ -1811,10 +1873,9 @@ class LocalJobImpl extends JobImpl, StepsContainerImpl {
 
 class StepImpl extends AstNodeImpl, TStepNode {
   YamlMapping n;
-  YamlNode containerOccurrence;
-  YamlNode elementOccurrence;
+  AstOccurrence occurrence;
 
-  StepImpl() { this = TStepNode(n, containerOccurrence, elementOccurrence) }
+  StepImpl() { this = TStepNode(n, occurrence) }
 
   override string toString() { result = n.toString() }
 
@@ -1822,15 +1883,15 @@ class StepImpl extends AstNodeImpl, TStepNode {
 
   override AstNodeImpl getParentNode() {
     exists(LocalJobImpl job |
-      job.getOccurrence() = containerOccurrence and result = job
+      job.getOccurrence() = occurrence.getContainer() and result = job
     )
     or
     exists(RunsImpl runs |
-      runs.getNode() = containerOccurrence and result = runs
+      runs.getNode() = occurrence.getContainer() and result = runs
     )
     or
     exists(ParallelStepImpl parallel |
-      parallel.getElementOccurrence() = containerOccurrence and result = parallel
+      parallel.getElementOccurrence() = occurrence.getContainer() and result = parallel
     )
   }
 
@@ -1840,25 +1901,35 @@ class StepImpl extends AstNodeImpl, TStepNode {
 
   override YamlMapping getNode() { result = n }
 
-  YamlNode getContainerOccurrence() { result = containerOccurrence }
+  AstOccurrence getOccurrence() { result = occurrence }
 
-  YamlNode getElementOccurrence() { result = elementOccurrence }
+  YamlNode getContainerOccurrence() { result = occurrence.getContainer() }
 
-  predicate matchesOccurrence(ScalarValueImpl scalar) {
-    hasStepAliasContext(n, containerOccurrence, elementOccurrence, scalar.getNode()) and
-    scalar.getContainerOccurrence() = containerOccurrence and
-    scalar.getElementOccurrence() = elementOccurrence
+  YamlNode getElementOccurrence() { result = occurrence.getElement() }
+
+  bindingset[this, value]
+  ScalarValueImpl getScalarValue(YamlScalar value) {
+    hasStepAliasContext(n, occurrence.getContainer(), occurrence.getElement(), value) and
+    result = getScalarAtOccurrence(value, occurrence)
     or
-    not hasStepAliasContext(n, containerOccurrence, elementOccurrence, scalar.getNode()) and
-    scalar.getContainerOccurrence() = scalar.getNode() and
-    scalar.getElementOccurrence() = scalar.getNode()
+    not hasStepAliasContext(n, occurrence.getContainer(), occurrence.getElement(), value) and
+    result = getScalarAtOccurrence(value, getAstOccurrence(value, value))
   }
 
   override JobImpl getEnclosingJob() {
-    // if a step is within a composite action, we should follow the caller job
-    result = this.getEnclosingCompositeAction().getACallerJob() or
-    result = super.getEnclosingJob()
+    result = getJobAtOccurrence(occurrence.getContainer())
+    or
+    exists(RunsImpl runs |
+      runs.getNode() = occurrence.getContainer() and result = runs.getAction().getACallerJob()
+    )
+    or
+    exists(ParallelStepImpl parallel |
+      parallel.getElementOccurrence() = occurrence.getContainer() and
+      result = parallel.getEnclosingJob()
+    )
   }
+
+  override WorkflowImpl getEnclosingWorkflow() { result = this.getEnclosingJob().getWorkflow() }
 
   override EventImpl getATriggerEvent() { result = this.getEnclosingJob().getATriggerEvent() }
 
@@ -1986,12 +2057,9 @@ class BackgroundStepImpl extends StepImpl {
 
 class BackgroundCompletionImpl extends AstNodeImpl, TBackgroundCompletionNode {
   YamlMapping n;
-  YamlNode containerOccurrence;
-  YamlNode elementOccurrence;
+  AstOccurrence occurrence;
 
-  BackgroundCompletionImpl() {
-    this = TBackgroundCompletionNode(n, containerOccurrence, elementOccurrence)
-  }
+  BackgroundCompletionImpl() { this = TBackgroundCompletionNode(n, occurrence) }
 
   override string toString() { result = "Complete " + this.getBackgroundStep().toString() }
 
@@ -2007,8 +2075,7 @@ class BackgroundCompletionImpl extends AstNodeImpl, TBackgroundCompletionNode {
 
   BackgroundStepImpl getBackgroundStep() {
     result.getNode() = n and
-    result.getContainerOccurrence() = containerOccurrence and
-    result.getElementOccurrence() = elementOccurrence
+    result.getOccurrence() = occurrence
   }
 }
 
@@ -2058,22 +2125,22 @@ class ParallelStepImpl extends StepImpl, StepsContainerImpl {
   ParallelStepImpl() { exists(getRawMappingValue(n, "parallel")) }
 
   override StepImpl getAStep() {
-    exists(YamlSequence steps, YamlNode occurrence, int index |
+    exists(YamlSequence steps, YamlNode childOccurrence, int index |
       steps = getEvaluatedAnchorValue(getRawMappingValue(n, "parallel")) and
-      occurrence = steps.getElementNode(index) and
-      result.getNode() = getEvaluatedAnchorValue(occurrence) and
+      childOccurrence = steps.getElementNode(index) and
+      result.getNode() = getEvaluatedAnchorValue(childOccurrence) and
       result.getContainerOccurrence() = this.getElementOccurrence() and
-      result.getElementOccurrence() = occurrence
+      result.getElementOccurrence() = childOccurrence
     )
   }
 
   override StepImpl getStep(int i) {
-    exists(YamlSequence steps, YamlNode occurrence |
+    exists(YamlSequence steps, YamlNode childOccurrence |
       steps = getEvaluatedAnchorValue(getRawMappingValue(n, "parallel")) and
-      occurrence = steps.getElementNode(i) and
-      result.getNode() = getEvaluatedAnchorValue(occurrence) and
+      childOccurrence = steps.getElementNode(i) and
+      result.getNode() = getEvaluatedAnchorValue(childOccurrence) and
       result.getContainerOccurrence() = this.getElementOccurrence() and
-      result.getElementOccurrence() = occurrence
+      result.getElementOccurrence() = childOccurrence
     )
   }
 
@@ -2224,15 +2291,16 @@ abstract class UsesImpl extends AstNodeImpl {
 
   abstract string getVersion();
 
-  private predicate hasOccurrenceContext(ScalarValueImpl scalar) {
+  bindingset[this, value]
+  private ScalarValueImpl getScalarValue(YamlScalar value) {
     exists(StepImpl step |
       this = step and
-      step.matchesOccurrence(scalar)
+      result = step.getScalarValue(value)
     )
     or
     exists(JobImpl job |
       this = job and
-      job.matchesOccurrence(scalar)
+      result = job.getScalarValue(value)
     )
   }
 
@@ -2242,18 +2310,18 @@ abstract class UsesImpl extends AstNodeImpl {
 
   /** Gets the argument expression for the given key. */
   string getArgument(string key) {
-    exists(ScalarValueImpl scalar |
-      scalar.getNode() = this.getNode().(YamlMapping).lookup("with").(YamlMapping).lookup(key) and
-      this.hasOccurrenceContext(scalar) and
+    exists(ScalarValueImpl scalar, YamlScalar value |
+      value = this.getNode().(YamlMapping).lookup("with").(YamlMapping).lookup(key) and
+      scalar = this.getScalarValue(value) and
       result = scalar.getValue()
     )
   }
 
   /** Gets the argument expression for the given key (if it exists). */
   ExpressionImpl getArgumentExpr(string key) {
-    exists(ScalarValueImpl scalar |
-      scalar.getNode() = this.getNode().(YamlMapping).lookup("with").(YamlMapping).lookup(key) and
-      this.hasOccurrenceContext(scalar) and
+    exists(ScalarValueImpl scalar, YamlScalar value |
+      value = this.getNode().(YamlMapping).lookup("with").(YamlMapping).lookup(key) and
+      scalar = this.getScalarValue(value) and
       result.getParentNode() = scalar
     )
   }
@@ -2317,10 +2385,7 @@ class UsesStepImpl extends StepImpl, UsesImpl {
     result = this.getCallee() + "@" + this.getVersion()
   }
 
-  override ScalarValueImpl getCalleeNode() {
-    result.getNode() = u and
-    this.matchesOccurrence(result)
-  }
+  override ScalarValueImpl getCalleeNode() { result = this.getScalarValue(u) }
 
   /** Gets the version reference used when checking out the Action, e.g. `v2` in `actions/checkout@v2`. */
   override string getVersion() { result = u.getValue().suffix(u.getValue().indexOf("@") + 1) }
@@ -2346,9 +2411,9 @@ class ExternalJobImpl extends JobImpl, UsesImpl {
   ExternalJobImpl() { n.lookup("uses") = u }
 
   string getSecret(string key) {
-    exists(ScalarValueImpl scalar |
-      scalar.getNode() = n.lookup("secrets").(YamlMapping).lookup(key) and
-      this.matchesOccurrence(scalar) and
+    exists(ScalarValueImpl scalar, YamlScalar value |
+      value = n.lookup("secrets").(YamlMapping).lookup(key) and
+      scalar = this.getScalarValue(value) and
       result = scalar.getValue()
     )
   }
@@ -2356,9 +2421,9 @@ class ExternalJobImpl extends JobImpl, UsesImpl {
   ExpressionImpl getASecretExpr() { result = this.getSecretExpr(_) }
 
   ExpressionImpl getSecretExpr(string key) {
-    exists(ScalarValueImpl scalar |
-      scalar.getNode() = n.lookup("secrets").(YamlMapping).lookup(key) and
-      this.matchesOccurrence(scalar) and
+    exists(ScalarValueImpl scalar, YamlScalar value |
+      value = n.lookup("secrets").(YamlMapping).lookup(key) and
+      scalar = this.getScalarValue(value) and
       result.getParentNode() = scalar
     )
   }
@@ -2416,10 +2481,7 @@ class ExternalJobImpl extends JobImpl, UsesImpl {
     result = this.getCallee() + "@" + this.getVersion()
   }
 
-  override ScalarValueImpl getCalleeNode() {
-    result.getNode() = u and
-    this.matchesOccurrence(result)
-  }
+  override ScalarValueImpl getCalleeNode() { result = this.getScalarValue(u) }
 
   /** Gets the version reference used when checking out the Action, e.g. `v2` in `actions/checkout@v2`. */
   override string getVersion() {
@@ -2437,8 +2499,7 @@ class RunImpl extends StepImpl {
 
   RunImpl() {
     this.getNode().lookup("run") = script and
-    scriptScalar = TScalarValueNode(script, _, _) and
-    this.matchesOccurrence(scriptScalar)
+    scriptScalar = this.getScalarValue(script)
   }
 
   override string toString() {

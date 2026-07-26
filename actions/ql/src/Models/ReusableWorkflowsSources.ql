@@ -16,6 +16,7 @@ import codeql.actions.DataFlow
 import codeql.actions.TaintTracking
 import codeql.actions.dataflow.FlowSources
 import codeql.actions.dataflow.ExternalFlow
+private import codeql.actions.security.ArtifactPoisoningQuery
 
 private module MyConfig implements DataFlow::ConfigSig {
   predicate isSource(DataFlow::Node source) {

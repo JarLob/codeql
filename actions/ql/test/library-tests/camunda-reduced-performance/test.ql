@@ -1,5 +1,24 @@
 import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 import codeql.actions.JobSynchronization
+import codeql.actions.security.CodeInjectionSinks
+
+query predicate anchoredStepCount(int total) {
+  total =
+    count(Step step |
+      step.getEnclosingJob().getId().matches("anchor-load-%")
+    |
+      step
+    )
+}
+
+query predicate anchoredStructuralSinkCount(int total) {
+  total =
+    count(CodeInjectionSink sink |
+      sink.asExpr().getEnclosingJob().getId().matches("anchor-load-%")
+    |
+      sink
+    )
+}
 
 query predicate eventReachability(string job, string source, string target) {
   exists(LocalJob local, Step sourceStep, Step targetStep, Event event |
@@ -12,7 +31,7 @@ query predicate eventReachability(string job, string source, string target) {
     target = targetStep.getId() and
     target = "after-guarded" and
     event.getName() = "push" and
-    IntegratedCfg::mayReachForEvent(sourceStep, targetStep, event)
+    IntegratedCfg::orderedStepsMayReachForEvent(sourceStep, targetStep, event)
   )
 }
 
@@ -24,18 +43,32 @@ query predicate forbiddenReachability(string description) {
     local.getAContainedStep() = targetStep and
     targetStep.getId() = "after-guarded" and
     event.getName() = ["pull_request", "issue_comment", "workflow_run"] and
-    IntegratedCfg::mayReachForEvent(sourceStep, targetStep, event) and
+    IntegratedCfg::orderedStepsMayReachForEvent(sourceStep, targetStep, event) and
     description = "non-push guarded step reaches successor"
   )
 }
 
 query predicate fanInExecution(string job) {
   exists(Job candidate, Event event |
-    candidate.getId() = ["condition-free-fan-in", "output-gate"] and
+    candidate.getId() = ["condition-free-fan-in", "output-gate", "large-fan-in"] and
     event.getName() = "push" and
     jobMayExecuteForEvent(candidate, event) and
     job = candidate.getId()
   )
+}
+
+query predicate largeFanInStatusCount(int total) {
+  total =
+    count(NeedsStatus status |
+      exists(JobDecisionNode decision, Event event |
+        decision.getJob().getId() = "large-fan-in" and
+        event.getName() = "push" and
+        decision.getNeedsStatus() = status and
+        exists(decision.getASuccessor(event))
+      )
+    |
+      status
+    )
 }
 
 query predicate matrixCompletion(string job, string status) {

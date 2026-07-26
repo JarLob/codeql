@@ -10,6 +10,170 @@ on:
     types: [completed]
 
 jobs:
+  anchor-load-000: &anchor-load
+    runs-on: ubuntu-latest
+    container: ${{ github.repository }}
+    steps:
+      - run: echo "${{ github.actor }}"
+      - run: echo "${{ github.ref }}"
+      - run: echo "${{ github.sha }}"
+      - run: echo "${{ github.workflow }}"
+      - run: echo "${{ github.job }}"
+      - run: echo "${{ github.run_id }}"
+      - run: echo "${{ github.event_name }}"
+      - run: echo "${{ github.repository }}"
+
+  anchor-load-001: *anchor-load
+  anchor-load-002: *anchor-load
+  anchor-load-003: *anchor-load
+  anchor-load-004: *anchor-load
+  anchor-load-005: *anchor-load
+  anchor-load-006: *anchor-load
+  anchor-load-007: *anchor-load
+  anchor-load-008: *anchor-load
+  anchor-load-009: *anchor-load
+  anchor-load-010: *anchor-load
+  anchor-load-011: *anchor-load
+  anchor-load-012: *anchor-load
+  anchor-load-013: *anchor-load
+  anchor-load-014: *anchor-load
+  anchor-load-015: *anchor-load
+  anchor-load-016: *anchor-load
+  anchor-load-017: *anchor-load
+  anchor-load-018: *anchor-load
+  anchor-load-019: *anchor-load
+  anchor-load-020: *anchor-load
+  anchor-load-021: *anchor-load
+  anchor-load-022: *anchor-load
+  anchor-load-023: *anchor-load
+  anchor-load-024: *anchor-load
+  anchor-load-025: *anchor-load
+  anchor-load-026: *anchor-load
+  anchor-load-027: *anchor-load
+  anchor-load-028: *anchor-load
+  anchor-load-029: *anchor-load
+  anchor-load-030: *anchor-load
+  anchor-load-031: *anchor-load
+  anchor-load-032: *anchor-load
+  anchor-load-033: *anchor-load
+  anchor-load-034: *anchor-load
+  anchor-load-035: *anchor-load
+  anchor-load-036: *anchor-load
+  anchor-load-037: *anchor-load
+  anchor-load-038: *anchor-load
+  anchor-load-039: *anchor-load
+  anchor-load-040: *anchor-load
+  anchor-load-041: *anchor-load
+  anchor-load-042: *anchor-load
+  anchor-load-043: *anchor-load
+  anchor-load-044: *anchor-load
+  anchor-load-045: *anchor-load
+  anchor-load-046: *anchor-load
+  anchor-load-047: *anchor-load
+  anchor-load-048: *anchor-load
+  anchor-load-049: *anchor-load
+  anchor-load-050: *anchor-load
+  anchor-load-051: *anchor-load
+  anchor-load-052: *anchor-load
+  anchor-load-053: *anchor-load
+  anchor-load-054: *anchor-load
+  anchor-load-055: *anchor-load
+  anchor-load-056: *anchor-load
+  anchor-load-057: *anchor-load
+  anchor-load-058: *anchor-load
+  anchor-load-059: *anchor-load
+  anchor-load-060: *anchor-load
+  anchor-load-061: *anchor-load
+  anchor-load-062: *anchor-load
+  anchor-load-063: *anchor-load
+  anchor-load-064: *anchor-load
+  anchor-load-065: *anchor-load
+  anchor-load-066: *anchor-load
+  anchor-load-067: *anchor-load
+  anchor-load-068: *anchor-load
+  anchor-load-069: *anchor-load
+  anchor-load-070: *anchor-load
+  anchor-load-071: *anchor-load
+  anchor-load-072: *anchor-load
+  anchor-load-073: *anchor-load
+  anchor-load-074: *anchor-load
+  anchor-load-075: *anchor-load
+  anchor-load-076: *anchor-load
+  anchor-load-077: *anchor-load
+  anchor-load-078: *anchor-load
+  anchor-load-079: *anchor-load
+  anchor-load-080: *anchor-load
+  anchor-load-081: *anchor-load
+  anchor-load-082: *anchor-load
+  anchor-load-083: *anchor-load
+  anchor-load-084: *anchor-load
+  anchor-load-085: *anchor-load
+  anchor-load-086: *anchor-load
+  anchor-load-087: *anchor-load
+  anchor-load-088: *anchor-load
+  anchor-load-089: *anchor-load
+  anchor-load-090: *anchor-load
+  anchor-load-091: *anchor-load
+  anchor-load-092: *anchor-load
+  anchor-load-093: *anchor-load
+  anchor-load-094: *anchor-load
+  anchor-load-095: *anchor-load
+  anchor-load-096: *anchor-load
+  anchor-load-097: *anchor-load
+  anchor-load-098: *anchor-load
+  anchor-load-099: *anchor-load
+  anchor-load-100: *anchor-load
+  anchor-load-101: *anchor-load
+  anchor-load-102: *anchor-load
+  anchor-load-103: *anchor-load
+  anchor-load-104: *anchor-load
+  anchor-load-105: *anchor-load
+  anchor-load-106: *anchor-load
+  anchor-load-107: *anchor-load
+  anchor-load-108: *anchor-load
+  anchor-load-109: *anchor-load
+  anchor-load-110: *anchor-load
+  anchor-load-111: *anchor-load
+  anchor-load-112: *anchor-load
+  anchor-load-113: *anchor-load
+  anchor-load-114: *anchor-load
+  anchor-load-115: *anchor-load
+  anchor-load-116: *anchor-load
+  anchor-load-117: *anchor-load
+  anchor-load-118: *anchor-load
+  anchor-load-119: *anchor-load
+  anchor-load-120: *anchor-load
+  anchor-load-121: *anchor-load
+  anchor-load-122: *anchor-load
+  anchor-load-123: *anchor-load
+  anchor-load-124: *anchor-load
+  anchor-load-125: *anchor-load
+  anchor-load-126: *anchor-load
+  anchor-load-127: *anchor-load
+
+  large-fan-in:
+    needs:
+      - anchor-load-000
+      - anchor-load-001
+      - anchor-load-002
+      - anchor-load-003
+      - anchor-load-004
+      - anchor-load-005
+      - anchor-load-006
+      - anchor-load-007
+      - anchor-load-008
+      - anchor-load-009
+      - anchor-load-010
+      - anchor-load-011
+      - anchor-load-012
+      - anchor-load-013
+      - anchor-load-014
+      - anchor-load-015
+    if: always() && needs.anchor-load-000.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo large fan-in
+
   root-a:
     runs-on: ubuntu-latest
     outputs:
