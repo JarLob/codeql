@@ -15,6 +15,7 @@
 
 import actions
 import codeql.actions.security.UntrustedCheckoutQuery
+private import codeql.actions.security.ArtifactPoisoningQuery
 
 from PRHeadCheckoutStep checkout
 where

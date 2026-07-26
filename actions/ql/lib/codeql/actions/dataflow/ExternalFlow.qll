@@ -1,7 +1,8 @@
 private import actions
 private import internal.ExternalFlowExtensions as Extensions
+private import internal.ExternalFlowSinks as ExternalFlowSinks
 private import codeql.actions.DataFlow
-private import codeql.actions.security.ArtifactPoisoningQuery
+private import codeql.actions.security.ArtifactDownloadSteps
 
 /**
  * MaD sources
@@ -107,25 +108,5 @@ predicate madStoreStep(DataFlow::Node pred, DataFlow::Node succ, DataFlow::Conte
  * Holds if sink is a MaD-defined sink for a given taint kind.
  */
 predicate madSink(DataFlow::Node sink, string kind) {
-  exists(Uses uses, string action, string version, string input |
-    actionsSinkModel(action, version, input, kind, _) and
-    uses.getCallee() = action.toLowerCase() and
-    // version check
-    (
-      if version.trim() = "*"
-      then uses.getVersion() = any(string v)
-      else uses.getVersion() = version.trim()
-    ) and
-    // pred provenance
-    (
-      input.trim().matches("env.%") and
-      sink.asExpr() = uses.getInScopeEnvVarExpr(input.trim().replaceAll("env.", ""))
-      or
-      input.trim().matches("input.%") and
-      sink.asExpr() = uses.getArgumentExpr(input.trim().replaceAll("input.", ""))
-      or
-      input.trim() = "artifact" and
-      sink.asExpr() = uses
-    )
-  )
+  ExternalFlowSinks::modeledSink(sink, kind)
 }

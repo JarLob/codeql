@@ -7,7 +7,6 @@ private import codeql.actions.controlflow.BasicBlocks
 private import DataFlowPublic
 private import codeql.actions.dataflow.ExternalFlow
 private import codeql.actions.dataflow.FlowSteps
-private import codeql.actions.dataflow.FlowSources
 
 class DataFlowSecondLevelScope = Unit;
 

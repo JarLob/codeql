@@ -1,6 +1,7 @@
 private import actions
 private import codeql.actions.TaintTracking
 private import codeql.actions.dataflow.ExternalFlow
+private import codeql.actions.security.ArtifactPoisoningQuery
 import codeql.actions.dataflow.FlowSources
 import codeql.actions.DataFlow
 import codeql.actions.security.ControlChecks

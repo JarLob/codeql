@@ -1,9 +1,16 @@
+anchoredStepCount
+| 1024 |
+anchoredStructuralSinkCount
+| 1152 |
 eventReachability
 | ordered-conditions | guarded | after-guarded |
 forbiddenReachability
 fanInExecution
 | condition-free-fan-in |
+| large-fan-in |
 | output-gate |
+largeFanInStatusCount
+| 4 |
 matrixCompletion
 | matrix-dynamic | cancelled |
 | matrix-dynamic | failure |

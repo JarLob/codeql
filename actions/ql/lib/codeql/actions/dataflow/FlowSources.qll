@@ -1,6 +1,7 @@
-private import codeql.actions.security.ArtifactPoisoningQuery
+private import codeql.actions.security.ArtifactDownloadSteps
 private import codeql.actions.security.UntrustedCheckoutQuery
 private import codeql.actions.config.Config
+private import codeql.actions.DataFlow
 private import codeql.actions.dataflow.ExternalFlow
 
 /**

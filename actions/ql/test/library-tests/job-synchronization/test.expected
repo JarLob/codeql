@@ -454,6 +454,7 @@ pushDecisionEdges
 | output-negated-dependent | complete output-negated-dependent as skipped |
 | output-negated-dependent | execute output-negated-dependent |
 | output-skipped-dependent | complete output-skipped-dependent as skipped |
+| output-skipped-dependent | execute output-skipped-dependent |
 | root-a | execute root-a |
 | root-b | execute root-b |
 | skipped-output-source | complete skipped-output-source as skipped |
@@ -554,6 +555,7 @@ knownStatusDecisionEdges
 | output-negated-dependent | failure | execute output-negated-dependent |
 | output-negated-dependent | success | complete output-negated-dependent as skipped |
 | output-skipped-dependent | skipped | complete output-skipped-dependent as skipped |
+| output-skipped-dependent | skipped | execute output-skipped-dependent |
 | success-dependent | cancelled | complete success-dependent as skipped |
 | success-dependent | failure | complete success-dependent as skipped |
 | success-dependent | success | execute success-dependent |

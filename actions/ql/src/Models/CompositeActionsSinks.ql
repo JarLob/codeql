@@ -12,9 +12,8 @@
  */
 
 import actions
-import codeql.actions.security.CodeInjectionQuery
+import codeql.actions.security.CodeInjectionSinks
 import codeql.actions.TaintTracking
-import codeql.actions.dataflow.ExternalFlow
 
 private module MyConfig implements DataFlow::ConfigSig {
   predicate isSource(DataFlow::Node source) {
@@ -22,7 +21,7 @@ private module MyConfig implements DataFlow::ConfigSig {
   }
 
   predicate isSink(DataFlow::Node sink) {
-    sink instanceof CodeInjectionSink and not madSink(sink, "code-injection")
+    sink instanceof CodeInjectionSink and not isModeledCodeInjectionSink(sink)
   }
 
   predicate observeDiffInformedIncrementalMode() { any() }

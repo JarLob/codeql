@@ -2,6 +2,7 @@ import actions
 private import codeql.actions.TaintTracking
 import codeql.actions.DataFlow
 import codeql.actions.dataflow.FlowSources
+import codeql.actions.security.ArtifactDownloadSteps
 import codeql.actions.security.PoisonableSteps
 import codeql.actions.security.UntrustedCheckoutQuery
 import codeql.actions.security.ControlChecks
@@ -10,10 +11,6 @@ private import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 string unzipRegexp() { result = "(unzip|tar)\\s+.*" }
 
 string unzipDirArgRegexp() { result = "(-d|-C)\\s+([^ ]+).*" }
-
-abstract class UntrustedArtifactDownloadStep extends Step {
-  abstract string getPath();
-}
 
 class GitHubDownloadArtifactActionStep extends UntrustedArtifactDownloadStep, UsesStep {
   GitHubDownloadArtifactActionStep() {

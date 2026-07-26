@@ -1,16 +1,13 @@
 private import actions
 private import codeql.actions.TaintTracking
 private import codeql.actions.dataflow.ExternalFlow
+private import codeql.actions.security.ArtifactPoisoningQuery
 import codeql.actions.dataflow.FlowSources
 import codeql.actions.DataFlow
+import codeql.actions.security.CodeInjectionSinks
 import codeql.actions.security.ControlChecks
 import codeql.actions.security.CachePoisoningQuery
 private import codeql.actions.JobSynchronization as JobSync
-
-private predicate isDirectWholeValueAccess(Expression expression) {
-  expression.getParentNode().(ScalarValue).getValue().trim() = expression.getRawExpression().trim() and
-  expression.getRoot().getChild(0) instanceof AccessExpression
-}
 
 private predicate isJobContainerImageSink(DataFlow::Node sink) {
   exists(LocalJob job | job.getJobContainerImageExpr() = sink.asExpr())
@@ -37,20 +34,6 @@ private predicate jobContainerHasSensitiveCapability(DataFlow::Node sink, Event 
       )
     )
   )
-}
-
-class CodeInjectionSink extends DataFlow::Node {
-  CodeInjectionSink() {
-    exists(Run e | e.getAnScriptExpr() = this.asExpr())
-    or
-    exists(LocalJob job, Expression image |
-      job.getJobContainerImageExpr() = image and
-      this.asExpr() = image and
-      isDirectWholeValueAccess(image)
-    )
-    or
-    madSink(this, "code-injection")
-  }
 }
 
 private predicate sinkMayExecuteForEvent(DataFlow::Node sink, Event event) {
