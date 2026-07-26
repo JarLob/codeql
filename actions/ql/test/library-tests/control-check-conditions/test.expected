@@ -1,0 +1,13 @@
+trustedAssociations
+| exact-member |
+| reversed-owner |
+parsedOwners
+| bypassable-member | association |
+| exact-member | association |
+| label-only | label |
+| reversed-owner | association |
+protectedConditions
+| bypassable-member |
+| exact-member |
+| label-only |
+| reversed-owner |

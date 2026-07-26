@@ -1,6 +1,5 @@
 private import codeql.actions.Ast
 private import codeql.Locations
-private import codeql.actions.security.ControlChecks
 import codeql.actions.config.Config
 import codeql.actions.Bash
 import codeql.actions.PowerShell
