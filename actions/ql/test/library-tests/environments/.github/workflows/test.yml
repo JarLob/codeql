@@ -1,0 +1,27 @@
+on:
+  pull_request_target:
+
+jobs:
+  modeled-protected:
+    environment: modeled-protected
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo protected
+
+  modeled-unprotected:
+    environment:
+      name: modeled-unprotected
+      url: https://unprotected.example.test
+      deployment: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo unprotected
+
+  unmodeled:
+    environment:
+      name: preview-${{ github.event.pull_request.number }}
+      url: https://${{ github.event.pull_request.number }}.example.test
+      deployment: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo unmodeled

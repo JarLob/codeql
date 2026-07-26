@@ -1,0 +1,19 @@
+names
+| modeled-protected | modeled-protected |
+| modeled-unprotected | modeled-unprotected |
+| unmodeled | preview-${{ github.event.pull_request.number }} |
+urls
+| modeled-unprotected | https://unprotected.example.test |
+| unmodeled | https://${{ github.event.pull_request.number }}.example.test |
+deploymentValues
+| modeled-unprotected | false |
+| unmodeled | ${{ !github.event.pull_request.draft }} |
+nameExpressions
+| unmodeled | github.event.pull_request.number |
+urlExpressions
+| unmodeled | github.event.pull_request.number |
+deploymentExpressions
+| unmodeled | !github.event.pull_request.draft |
+controls
+| modeled-protected |
+| unmodeled |

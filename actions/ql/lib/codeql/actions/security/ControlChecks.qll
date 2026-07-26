@@ -1,6 +1,7 @@
 import actions
 private import codeql.actions.IntegratedExpressionBasicBlocks as IntegratedBlocks
 private import codeql.actions.JobSynchronization as JobSync
+private import codeql.actions.config.Config
 
 string any_category() {
   result =
@@ -301,6 +302,11 @@ abstract class LabelCheck extends ControlCheck {
 }
 
 class EnvironmentCheck extends ControlCheck instanceof Environment {
+  EnvironmentCheck() {
+    this.getName().trim() != "" and
+    not environmentProtectionDataModel(this.getName(), false)
+  }
+
   // Environment checks are not effective against any mutable attacks
   // they do actually protect against untrusted code execution (sha)
   override predicate protectsCategoryAndEvent(string category, string event) {

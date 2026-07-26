@@ -2058,13 +2058,35 @@ class EnvironmentImpl extends AstNodeImpl, TEnvironmentNode {
 
   override Location getLocation() { result = n.getLocation() }
 
-  override YamlScalar getNode() { result = n }
+  override YamlValue getNode() { result = n }
+
+  private YamlValue getPropertyNode(string name) {
+    result = n.(YamlMapping).lookup(name)
+    or
+    name = "name" and result = n.(YamlScalar)
+  }
 
   /** Gets the environment name. */
-  string getName() { result = n.(YamlScalar).getValue() }
+  string getName() { result = this.getPropertyNode("name").(YamlScalar).getValue() }
 
-  /** Gets the environmen name. */
-  ExpressionImpl getNameExpr() { result.getParentNode().getNode() = n }
+  /** Gets an expression in the environment name. */
+  ExpressionImpl getNameExpr() { result.getParentNode().getNode() = this.getPropertyNode("name") }
+
+  /** Gets the environment URL. */
+  string getUrl() { result = this.getPropertyNode("url").(YamlScalar).getValue() }
+
+  /** Gets an expression in the environment URL. */
+  ExpressionImpl getUrlExpr() { result.getParentNode().getNode() = this.getPropertyNode("url") }
+
+  /** Gets whether this environment creates a deployment. */
+  string getDeploymentValue() {
+    result = this.getPropertyNode("deployment").(YamlScalar).getValue()
+  }
+
+  /** Gets an expression controlling whether this environment creates a deployment. */
+  ExpressionImpl getDeploymentExpr() {
+    result.getParentNode().getNode() = this.getPropertyNode("deployment")
+  }
 }
 
 class IfImpl extends AstNodeImpl, TIfNode {

@@ -1,0 +1,7 @@
+extensions:
+  - addsTo:
+      pack: codeql/actions-all
+      extensible: environmentProtectionDataModel
+    data:
+      - ["modeled-protected", true]
+      - ["modeled-unprotected", false]
