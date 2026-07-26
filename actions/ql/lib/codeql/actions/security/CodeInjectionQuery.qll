@@ -7,9 +7,48 @@ import codeql.actions.security.ControlChecks
 import codeql.actions.security.CachePoisoningQuery
 private import codeql.actions.JobSynchronization as JobSync
 
+private predicate isDirectWholeValueAccess(Expression expression) {
+  expression.getParentNode().(ScalarValue).getValue().trim() = expression.getRawExpression().trim() and
+  expression.getRoot().getChild(0) instanceof AccessExpression
+}
+
+private predicate isJobContainerImageSink(DataFlow::Node sink) {
+  exists(LocalJob job | job.getJobContainerImageExpr() = sink.asExpr())
+}
+
+private predicate jobContainerHasSensitiveCapability(DataFlow::Node sink, Event event) {
+  exists(LocalJob job |
+    job.getJobContainerImageExpr() = sink.asExpr() and
+    job.getATriggerEvent() = event and
+    (
+      exists(SecretsExpression secret |
+        secret.getEnclosingJob() = job and secret.getFieldName() != "GITHUB_TOKEN"
+      )
+      or
+      job.isPrivilegedExternallyTriggerable(event) and
+      (
+        exists(SecretsExpression token |
+          token.getEnclosingJob() = job and token.getFieldName() = "GITHUB_TOKEN"
+        )
+        or
+        exists(GitHubExpression token |
+          token.getEnclosingJob() = job and token.getFieldName() = "token"
+        )
+      )
+    )
+  )
+}
+
 class CodeInjectionSink extends DataFlow::Node {
   CodeInjectionSink() {
-    exists(Run e | e.getAnScriptExpr() = this.asExpr()) or
+    exists(Run e | e.getAnScriptExpr() = this.asExpr())
+    or
+    exists(LocalJob job, Expression image |
+      job.getJobContainerImageExpr() = image and
+      this.asExpr() = image and
+      isDirectWholeValueAccess(image)
+    )
+    or
     madSink(this, "code-injection")
   }
 }
@@ -34,6 +73,7 @@ private predicate sinkMayExecuteWithoutProtectionForAnyEvent(DataFlow::Node sink
 Event getRelevantCriticalEventForSink(DataFlow::Node sink) {
   inPrivilegedContext(sink.asExpr(), result) and
   sinkMayExecuteForEvent(sink, result) and
+  (not isJobContainerImageSink(sink) or jobContainerHasSensitiveCapability(sink, result)) and
   not exists(ControlCheck check | check.protects(sink.asExpr(), result, "code-injection")) and
   not isGithubScriptUsingToJson(sink.asExpr())
 }
@@ -110,6 +150,7 @@ predicate mediumSeverityCodeInjection(
   CodeInjectionFlow::PathNode source, CodeInjectionFlow::PathNode sink
 ) {
   CodeInjectionFlow::flowPath(source, sink) and
+  not isJobContainerImageSink(sink.getNode()) and
   sinkMayExecuteWithoutProtectionForAnyEvent(sink.getNode()) and
   not criticalSeverityCodeInjection(source, sink, _) and
   not isGithubScriptUsingToJson(sink.getNode().asExpr())

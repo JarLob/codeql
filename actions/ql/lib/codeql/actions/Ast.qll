@@ -359,6 +359,22 @@ abstract class Job extends AstNode instanceof JobImpl {
 
   string getARunsOnLabel() { result = super.getARunsOnLabel() }
 
+  /** Gets the expression that selects this job's container image. */
+  Expression getJobContainerImageExpr() { result = super.getJobContainerImageExpr() }
+
+  /** Gets an expression that selects one of this job's service container images. */
+  Expression getAServiceContainerImageExpr() { result = super.getAServiceContainerImageExpr() }
+
+  /** Gets the configured registry username associated with `image`. */
+  ScalarValue getRegistryUsernameForContainerImage(Expression image) {
+    result = super.getRegistryUsernameForContainerImage(image)
+  }
+
+  /** Gets the registry password expression associated with `image`. */
+  Expression getRegistryPasswordExprForContainerImage(Expression image) {
+    result = super.getRegistryPasswordExprForContainerImage(image)
+  }
+
   predicate isPrivileged() { super.isPrivileged() }
 
   predicate isPrivilegedExternallyTriggerable(Event event) {

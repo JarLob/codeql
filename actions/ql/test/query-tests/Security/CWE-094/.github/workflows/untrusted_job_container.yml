@@ -1,0 +1,78 @@
+name: Untrusted job container
+
+on:
+  pull_request_target:
+  workflow_call:
+    secrets:
+      DEPLOY_KEY:
+        required: true
+
+jobs:
+  write-token-not-exposed:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.event.pull_request.title }}
+    steps:
+      - run: echo test
+
+  write-token-exposed:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.event.pull_request.title }}
+    steps:
+      - run: echo test
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  read-token-exposed:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.event.pull_request.title }}
+    steps:
+      - run: echo test
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  secret-exposed:
+    permissions: {}
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.event.pull_request.title }}
+    steps:
+      - run: echo test
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+
+  fixed-registry:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/example/${{ github.event.pull_request.title }}
+    steps:
+      - run: echo test
+
+  member-only:
+    if: github.event.pull_request.author_association == 'MEMBER'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.event.pull_request.title }}
+    steps:
+      - run: echo test
+
+  composed-fixed-registry:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ format('ghcr.io/example/{0}', github.event.pull_request.title) }}
+    steps:
+      - run: echo test
