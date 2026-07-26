@@ -436,7 +436,9 @@ private class JobTree extends GuardedPreOrderTree instanceof LocalJob {
         (
           child = this.(LocalJob).getAStep() or
           child = this.(LocalJob).getOutputs() or
-          child = this.(LocalJob).getStrategy()
+          child = this.(LocalJob).getStrategy() or
+          child = this.(LocalJob).getJobContainerImageExpr() or
+          child = this.(LocalJob).getAServiceContainerImageExpr()
         ) and
         l = child.getLocation()
       |

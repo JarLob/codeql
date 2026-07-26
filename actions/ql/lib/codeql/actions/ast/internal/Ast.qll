@@ -1471,6 +1471,69 @@ class JobImpl extends AstNodeImpl, TJobNode {
     )
   }
 
+  private YamlValue getJobContainerDefinition() {
+    result = getEvaluatedAnchorValue(n.lookup("container"))
+  }
+
+  private YamlValue getAServiceContainerDefinition() {
+    result =
+      getEvaluatedAnchorValue(
+          getEvaluatedAnchorValue(n.lookup("services")).(YamlMapping).lookup(_)
+        )
+  }
+
+  private ScalarValueImpl getContainerImageValue(YamlValue container) {
+    (
+      result.getNode() = container.(YamlScalar)
+      or
+      result.getNode() =
+        getEvaluatedAnchorValue(container.(YamlMapping).lookup("image")).(YamlScalar)
+    ) and
+    this.matchesOccurrence(result)
+  }
+
+  ExpressionImpl getJobContainerImageExpr() {
+    result.getParentNode() = this.getContainerImageValue(this.getJobContainerDefinition())
+  }
+
+  ExpressionImpl getAServiceContainerImageExpr() {
+    result.getParentNode() = this.getContainerImageValue(this.getAServiceContainerDefinition())
+  }
+
+  private YamlValue getContainerDefinitionForImage(ExpressionImpl image) {
+    image.getParentNode() = this.getContainerImageValue(result) and
+    result = [this.getJobContainerDefinition(), this.getAServiceContainerDefinition()]
+  }
+
+  ScalarValueImpl getRegistryUsernameForContainerImage(ExpressionImpl image) {
+    result.getNode() =
+      getEvaluatedAnchorValue(
+          this
+              .getContainerDefinitionForImage(image)
+              .(YamlMapping)
+              .lookup("credentials")
+              .(YamlMapping)
+              .lookup("username")
+        ).(YamlScalar) and
+    this.matchesOccurrence(result)
+  }
+
+  ExpressionImpl getRegistryPasswordExprForContainerImage(ExpressionImpl image) {
+    exists(ScalarValueImpl password |
+      password.getNode() =
+        getEvaluatedAnchorValue(
+            this
+                .getContainerDefinitionForImage(image)
+                .(YamlMapping)
+                .lookup("credentials")
+                .(YamlMapping)
+                .lookup("password")
+          ).(YamlScalar) and
+      this.matchesOccurrence(password) and
+      result.getParentNode() = password
+    )
+  }
+
   private predicate hasExplicitSecretAccess() {
     this.(ExternalJobImpl).inheritsSecrets()
     or

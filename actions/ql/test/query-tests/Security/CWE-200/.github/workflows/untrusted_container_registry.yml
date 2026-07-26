@@ -1,0 +1,85 @@
+name: Untrusted container registry
+
+on:
+  pull_request_target:
+  workflow_call:
+    secrets:
+      REGISTRY_PASSWORD:
+        required: true
+
+jobs:
+  attacker-controlled-registry:
+    permissions: {}
+    runs-on: ubuntu-latest
+    services:
+      database:
+        image: ${{ github.event.pull_request.title }}
+        credentials:
+          username: ci
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+    steps:
+      - run: echo test
+
+
+  fixed-registry:
+    permissions: {}
+    runs-on: ubuntu-latest
+    services:
+      database:
+        image: ghcr.io/example/${{ github.event.pull_request.title }}
+        credentials:
+          username: ci
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+    steps:
+      - run: echo test
+
+  member-only:
+    if: github.event.pull_request.author_association == 'MEMBER'
+    permissions: {}
+    runs-on: ubuntu-latest
+    services:
+      database:
+        image: ${{ github.event.pull_request.title }}
+        credentials:
+          username: ci
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+    steps:
+      - run: echo test
+
+  owner-only-reversed:
+    if: "'OWNER' == github.event.pull_request.author_association"
+    permissions: {}
+    runs-on: ubuntu-latest
+    services:
+      database:
+        image: ${{ github.event.pull_request.title }}
+        credentials:
+          username: ci
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+    steps:
+      - run: echo test
+
+  bypassable-member-check:
+    if: github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.draft
+    permissions: {}
+    runs-on: ubuntu-latest
+    services:
+      database:
+        image: ${{ github.event.pull_request.title }}
+        credentials:
+          username: ci
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+    steps:
+      - run: echo test
+
+  composed-fixed-registry:
+    permissions: {}
+    runs-on: ubuntu-latest
+    services:
+      database:
+        image: ${{ format('ghcr.io/example/{0}', github.event.pull_request.title) }}
+        credentials:
+          username: ci
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+    steps:
+      - run: echo test

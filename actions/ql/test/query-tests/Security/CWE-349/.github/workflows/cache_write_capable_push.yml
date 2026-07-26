@@ -8,3 +8,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "${{ github.event.head_commit.message }}"
+
+  container-image:
+    permissions: {}
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.event.head_commit.message }}
+    steps:
+      - run: echo test

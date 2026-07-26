@@ -1,0 +1,21 @@
+name: Fork pull request container registry
+
+on:
+  pull_request:
+  workflow_call:
+    secrets:
+      REGISTRY_PASSWORD:
+        required: true
+
+jobs:
+  secrets-are-unavailable:
+    permissions: {}
+    runs-on: ubuntu-latest
+    services:
+      database:
+        image: ${{ github.event.pull_request.title }}
+        credentials:
+          username: ci
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+    steps:
+      - run: echo test
