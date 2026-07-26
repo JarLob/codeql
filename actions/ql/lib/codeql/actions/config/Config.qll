@@ -63,6 +63,16 @@ predicate repositoryDataModel(string visibility, string default_branch_name) {
 }
 
 /**
+ * Models whether a repository environment has effective deployment protection.
+ * Fields:
+ *    - environment: Environment name
+ *    - protected: Whether effective protection is configured
+ */
+predicate environmentProtectionDataModel(string environment, boolean protected) {
+  Extensions::environmentProtectionDataModel(environment, protected)
+}
+
+/**
  * MaD models for context/trigger mapping
  * Fields:
  *    - trigger: Trigger for the workflow

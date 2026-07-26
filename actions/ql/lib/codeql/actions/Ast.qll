@@ -468,6 +468,14 @@ class Environment extends AstNode instanceof EnvironmentImpl {
   string getName() { result = super.getName() }
 
   Expression getNameExpr() { result = super.getNameExpr() }
+
+  string getUrl() { result = super.getUrl() }
+
+  Expression getUrlExpr() { result = super.getUrlExpr() }
+
+  string getDeploymentValue() { result = super.getDeploymentValue() }
+
+  Expression getDeploymentExpr() { result = super.getDeploymentExpr() }
 }
 
 abstract class Uses extends AstNode instanceof UsesImpl {

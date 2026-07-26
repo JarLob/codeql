@@ -30,6 +30,9 @@ extensible predicate externalCompositeActionDataModel(
  */
 extensible predicate repositoryDataModel(string visibility, string default_branch_name);
 
+/** Holds if a repository environment has effective deployment protection. */
+extensible predicate environmentProtectionDataModel(string environment, boolean protected);
+
 /**
  * Holds if a context expression starting with context_prefix is available for a given trigger.
  */
