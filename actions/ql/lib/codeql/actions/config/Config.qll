@@ -63,13 +63,17 @@ predicate repositoryDataModel(string visibility, string default_branch_name) {
 }
 
 /**
- * Models whether a repository environment has effective deployment protection.
+ * Models a repository environment protection capability.
  * Fields:
  *    - environment: Environment name
- *    - protected: Whether effective protection is configured
+ *    - capability: Protection capability, such as `required-reviewer`, `wait-timer`,
+ *      `deployment-branch-policy`, or `custom-protection-rule`
+ *    - enabled: Whether the capability is enabled
  */
-predicate environmentProtectionDataModel(string environment, boolean protected) {
-  Extensions::environmentProtectionDataModel(environment, protected)
+predicate environmentProtectionDataModel(
+  string environment, string capability, boolean enabled
+) {
+  Extensions::environmentProtectionDataModel(environment, capability, enabled)
 }
 
 /**

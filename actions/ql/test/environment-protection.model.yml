@@ -3,5 +3,7 @@ extensions:
       pack: codeql/actions-all
       extensible: environmentProtectionDataModel
     data:
-      - ["modeled-protected", true]
-      - ["modeled-unprotected", false]
+        - ["modeled-reviewer", "required-reviewer", true]
+        - ["modeled-wait-timer", "wait-timer", true]
+        - ["modeled-unprotected", "required-reviewer", false]
+        - ["Public CI", "required-reviewer", true]

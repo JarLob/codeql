@@ -2,11 +2,17 @@ on:
   pull_request_target:
 
 jobs:
-  modeled-protected:
-    environment: modeled-protected
+  modeled-reviewer:
+    environment: modeled-reviewer
     runs-on: ubuntu-latest
     steps:
       - run: echo protected
+
+  modeled-wait-timer:
+    environment: modeled-wait-timer
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo delayed
 
   modeled-unprotected:
     environment:
