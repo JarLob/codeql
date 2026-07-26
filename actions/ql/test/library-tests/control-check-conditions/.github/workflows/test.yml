@@ -1,0 +1,27 @@
+on:
+  pull_request_target:
+
+jobs:
+  exact-member:
+    if: github.event.pull_request.author_association == 'MEMBER'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo exact member
+
+  reversed-owner:
+    if: "'OWNER' == github.event.pull_request.author_association"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo reversed owner
+
+  bypassable-member:
+    if: github.event.pull_request.author_association == 'MEMBER' || vars.force == true
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo bypassable member
+
+  label-only:
+    if: contains(github.event.pull_request.labels.*.name, 'safe-to-test')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo label

@@ -3,41 +3,15 @@ private import codeql.actions.TaintTracking
 private import codeql.actions.dataflow.ExternalFlow
 import codeql.actions.dataflow.FlowSources
 import codeql.actions.DataFlow
+private import codeql.actions.security.ControlCheckConditions as Conditions
 
 private predicate isDirectWholeValueAccess(Expression expression) {
   expression.getParentNode().(ScalarValue).getValue().trim() = expression.getRawExpression().trim() and
   expression.getRoot().getChild(0) instanceof AccessExpression
 }
 
-private predicate isTrustedAssociationLiteral(ExpressionNode node) {
-  node instanceof LiteralExpression and
-  node.(LiteralExpression).getKind() = "StringLiteral" and
-  node.(LiteralExpression).getValue().toUpperCase() =
-    ["'MEMBER'", "\"MEMBER\"", "'OWNER'", "\"OWNER\""]
-}
-
-private predicate isAuthorAssociationAccess(ExpressionNode node) {
-  node instanceof AccessExpression and
-  node.(AccessExpression).getAccessPath() =
-    [
-      "github.event.comment.author_association", "github.event.issue.author_association",
-      "github.event.pull_request.author_association"
-    ]
-}
-
 private predicate jobRequiresTrustedAssociation(LocalJob job) {
-  exists(If condition, BinaryExpression comparison |
-    job.getIf() = condition and
-    comparison = condition.getConditionExpr().getRoot().getChild(0) and
-    comparison.getOperator() = "==" and
-    (
-      isAuthorAssociationAccess(comparison.getLeftOperand()) and
-      isTrustedAssociationLiteral(comparison.getRightOperand())
-      or
-      isTrustedAssociationLiteral(comparison.getLeftOperand()) and
-      isAuthorAssociationAccess(comparison.getRightOperand())
-    )
-  )
+  Conditions::conditionRequiresTrustedAssociation(job.getIf())
 }
 
 private class ContainerRegistryCredentialExfiltrationSink extends DataFlow::Node {
