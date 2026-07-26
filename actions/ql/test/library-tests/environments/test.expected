@@ -1,6 +1,7 @@
 names
-| modeled-protected | modeled-protected |
+| modeled-reviewer | modeled-reviewer |
 | modeled-unprotected | modeled-unprotected |
+| modeled-wait-timer | modeled-wait-timer |
 | unmodeled | preview-${{ github.event.pull_request.number }} |
 urls
 | modeled-unprotected | https://unprotected.example.test |
@@ -15,5 +16,4 @@ urlExpressions
 deploymentExpressions
 | unmodeled | !github.event.pull_request.draft |
 controls
-| modeled-protected |
-| unmodeled |
+| modeled-reviewer |

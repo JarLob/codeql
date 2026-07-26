@@ -266,24 +266,21 @@ abstract class LabelCheck extends ControlCheck {
   // checks if the issue/pull_request is labeled, which implies that it could have been approved
   // - they dont protect against mutation attacks
   override predicate protectsCategoryAndEvent(string category, string event) {
-    event = actor_is_attacker_event() and category = any_category()
-    or
-    event = actor_not_attacker_event() and category = non_toctou_category()
+    event = any_event() and category = non_toctou_category()
   }
 }
 
 class EnvironmentCheck extends ControlCheck instanceof Environment {
   EnvironmentCheck() {
     this.getName().trim() != "" and
-    not environmentProtectionDataModel(this.getName(), false)
+    environmentProtectionDataModel(this.getName(), "required-reviewer", true) and
+    not environmentProtectionDataModel(this.getName(), "required-reviewer", false)
   }
 
   // Environment checks are not effective against any mutable attacks
   // they do actually protect against untrusted code execution (sha)
   override predicate protectsCategoryAndEvent(string category, string event) {
-    event = actor_is_attacker_event() and category = any_category()
-    or
-    event = actor_not_attacker_event() and category = non_toctou_category()
+    event = any_event() and category = non_toctou_category()
   }
 }
 

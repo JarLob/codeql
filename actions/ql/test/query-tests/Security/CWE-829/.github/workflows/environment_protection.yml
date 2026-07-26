@@ -1,0 +1,47 @@
+name: Environment protection capabilities
+
+on: pull_request_target
+
+permissions:
+  contents: write
+
+jobs:
+  reviewer-protected:
+    environment: modeled-reviewer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: npm test
+
+  explicitly-unprotected:
+    environment: modeled-unprotected
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: npm test
+
+  wait-timer-only:
+    environment: modeled-wait-timer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: npm test
+
+  unknown-protection:
+    environment: unmodeled-environment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: npm test

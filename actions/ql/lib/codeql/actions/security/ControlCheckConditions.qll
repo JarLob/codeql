@@ -10,7 +10,7 @@ string any_category() {
 }
 
 string non_toctou_category() {
-  result = any_category() and not result = "untrusted-checkout-toctou"
+  result = any_category() and not result = toctou_category()
 }
 
 string toctou_category() { result = ["untrusted-checkout-toctou", "artifact-poisoning-toctou"] }
@@ -128,7 +128,11 @@ private class ProtectionContext extends TProtectionContext {
 }
 
 private predicate atomProtectsCategoryAndEvent(ExpressionNode node, ProtectionContext context) {
-  (isLabelCheckAtom(node) or isActorCheckAtom(node) or isAssociationCheckAtom(node)) and
+  isLabelCheckAtom(node) and
+  context.getEvent() = any_event() and
+  context.getCategory() = non_toctou_category()
+  or
+  (isActorCheckAtom(node) or isAssociationCheckAtom(node)) and
   (
     context.getEvent() = actor_is_attacker_event() and context.getCategory() = any_category()
     or
