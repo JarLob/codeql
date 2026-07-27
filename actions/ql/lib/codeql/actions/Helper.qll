@@ -26,6 +26,27 @@ string trimQuotes(string str) {
   result = str.trim().regexpReplaceAll("^(\"|')", "").regexpReplaceAll("(\"|')$", "")
 }
 
+/** Canonicalizes separators and statically known spellings of the Actions workspace. */
+bindingset[path]
+string canonicalizeActionsPathSyntax(string path) {
+  result =
+    trimQuotes(path)
+        .replaceAll("\\", "/")
+        .regexpReplaceAll("(?i)^\\$\\{\\{\\s*(github\\.workspace|env\\.GITHUB_WORKSPACE)\\s*\\}\\}",
+          "GITHUB_WORKSPACE")
+        .regexpReplaceAll("(?i)^\\$env:GITHUB_WORKSPACE", "GITHUB_WORKSPACE")
+        .regexpReplaceAll("^\\$\\{GITHUB_WORKSPACE\\}", "GITHUB_WORKSPACE")
+        .regexpReplaceAll("^\\$GITHUB_WORKSPACE", "GITHUB_WORKSPACE")
+        .regexpReplaceAll("(?i)^%GITHUB_WORKSPACE%", "GITHUB_WORKSPACE")
+}
+
+/** Holds if `path` still contains a variable or expression after canonicalization. */
+bindingset[path]
+predicate hasUnresolvedActionsPathSyntax(string path) {
+  canonicalizeActionsPathSyntax(path)
+      .regexpMatch(".*(\\$\\{\\{|\\$[A-Za-z_]|%[A-Za-z_][A-Za-z0-9_]*%).*")
+}
+
 predicate inPrivilegedContext(AstNode node, Event event) {
   node.getEnclosingJob().isPrivilegedExternallyTriggerable(event)
 }
@@ -62,22 +83,22 @@ string getRepoRoot() {
 
 bindingset[path]
 string normalizePath(string path) {
-  exists(string trimmed_path | trimmed_path = trimQuotes(path) |
+  exists(string trimmed_path | trimmed_path = canonicalizeActionsPathSyntax(path) |
     // ./foo -> GITHUB_WORKSPACE/foo
-    if path.indexOf("./") = 0
-    then result = path.replaceAll("./", "GITHUB_WORKSPACE/")
+    if trimmed_path.indexOf("./") = 0
+    then result = trimmed_path.regexpReplaceAll("^\\./", "GITHUB_WORKSPACE/")
     else
       // GITHUB_WORKSPACE/foo -> GITHUB_WORKSPACE/foo
-      if path.indexOf("GITHUB_WORKSPACE/") = 0
-      then result = path
+      if trimmed_path.indexOf("GITHUB_WORKSPACE/") = 0
+      then result = trimmed_path
       else
         // foo -> GITHUB_WORKSPACE/foo
-        if path.regexpMatch("^[^$/~].*")
-        then result = "GITHUB_WORKSPACE/" + path.regexpReplaceAll("/$", "")
+        if trimmed_path.regexpMatch("^[^$/~].*")
+        then result = "GITHUB_WORKSPACE/" + trimmed_path.regexpReplaceAll("/$", "")
         else
           // ~/foo -> ~/foo
           // /foo -> /foo
-          result = path
+          result = trimmed_path
   )
 }
 
@@ -85,4 +106,10 @@ string normalizePath(string path) {
  * Holds if the path cache_path is a subpath of the path untrusted_path.
  */
 bindingset[subpath, path]
-predicate isSubpath(string subpath, string path) { subpath.substring(0, path.length()) = path }
+predicate isSubpath(string subpath, string path) {
+  subpath = path
+  or
+  path.matches("%/") and subpath.indexOf(path) = 0
+  or
+  not path.matches("%/") and subpath.indexOf(path + "/") = 0
+}

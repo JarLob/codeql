@@ -135,3 +135,87 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           path: a/b
       - run: ./a/b-other/build.sh
+
+  workspace-expression-path:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: ${{ github.workspace }}/workspace-checkout
+      - run: bash "$GITHUB_WORKSPACE/workspace-checkout/build.sh"
+
+  expression-script-path:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: expression-checkout
+      - run: bash "${{ github.workspace }}/expression-checkout/build.sh"
+
+  explicit-sh-path:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: sh-checkout
+      - shell: sh
+        run: sh sh-checkout/build.sh
+
+  dynamic-checkout-path:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: ${{ vars.CHECKOUT_PATH }}
+      - run: bash candidate/build.sh
+
+  dynamic-script-path:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: dynamic-script
+      - run: bash "${{ vars.SCRIPT_PATH }}"
+
+  windows-pwsh-backslash:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: windows-checkout
+      - shell: pwsh
+        run: .\windows-checkout\build.ps1
+
+  windows-pwsh-workspace:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: windows-workspace
+      - shell: pwsh
+        run: '& "$env:GITHUB_WORKSPACE\windows-workspace\build.ps1"'
+
+  windows-pwsh-escape:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: windows-escape
+      - shell: pwsh
+        run: .\windows-escape\..\trusted.ps1

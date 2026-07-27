@@ -1,0 +1,21 @@
+checkoutPaths
+| checkout-bare | GITHUB_WORKSPACE/candidate |
+| checkout-dot | GITHUB_WORKSPACE/candidate |
+| checkout-dynamic | ? |
+| checkout-parent | ? |
+| checkout-trailing | GITHUB_WORKSPACE/candidate |
+| checkout-workspace | GITHUB_WORKSPACE/candidate |
+pathContainment
+| GITHUB_WORKSPACE/a/b/proof.sh | GITHUB_WORKSPACE/a/b |
+| GITHUB_WORKSPACE/candidate | GITHUB_WORKSPACE/candidate |
+| GITHUB_WORKSPACE/candidate/proof.sh | GITHUB_WORKSPACE/candidate |
+pathNonContainment
+| GITHUB_WORKSPACE/a/b-other/proof.sh | GITHUB_WORKSPACE/a/b |
+| GITHUB_WORKSPACE/candidate-other/proof.sh | GITHUB_WORKSPACE/candidate |
+| GITHUB_WORKSPACE/trusted.sh | GITHUB_WORKSPACE/candidate |
+poisonablePaths
+| bash-workspace | GITHUB_WORKSPACE/candidate/proof.sh |
+| expression-workspace | GITHUB_WORKSPACE/candidate/proof.sh |
+| pwsh-backslash | GITHUB_WORKSPACE/candidate/proof.ps1 |
+| pwsh-workspace | GITHUB_WORKSPACE/candidate/proof.ps1 |
+| sh-workspace | GITHUB_WORKSPACE/candidate/proof.sh |

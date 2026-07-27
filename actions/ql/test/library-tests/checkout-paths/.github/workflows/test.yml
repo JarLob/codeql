@@ -1,0 +1,52 @@
+on:
+  pull_request_target:
+
+jobs:
+  paths:
+    runs-on: windows-latest
+    steps:
+      - id: checkout-bare
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+      - id: checkout-dot
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: ./candidate
+      - id: checkout-trailing
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate/
+      - id: checkout-workspace
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: ${{ github.workspace }}/candidate
+      - id: checkout-dynamic
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: ${{ vars.CHECKOUT_PATH }}
+      - id: checkout-parent
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: ../outside
+      - id: bash-workspace
+        shell: bash
+        run: bash "$GITHUB_WORKSPACE/candidate/proof.sh"
+      - id: expression-workspace
+        shell: bash
+        run: bash "${{ github.workspace }}/candidate/proof.sh"
+      - id: sh-workspace
+        shell: sh
+        run: sh "$GITHUB_WORKSPACE/candidate/proof.sh"
+      - id: pwsh-backslash
+        shell: pwsh
+        run: .\candidate\proof.ps1
+      - id: pwsh-workspace
+        shell: pwsh
+        run: '& "$env:GITHUB_WORKSPACE\candidate\proof.ps1"'

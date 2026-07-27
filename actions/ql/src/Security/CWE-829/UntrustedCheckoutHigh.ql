@@ -21,7 +21,18 @@ import codeql.actions.security.ControlChecks
 from PRHeadCheckoutStep checkout, Event event
 where
   // the checkout is NOT followed by a known poisonable step
-  not checkout.getAFollowingStep() instanceof PoisonableStep and
+  (
+    checkout.getPath() = "?"
+    or
+    not exists(PoisonableStep poisonable |
+      checkout.getAFollowingStep() = poisonable and
+      (
+        not poisonable instanceof LocalScriptExecutionRunStep
+        or
+        poisonable.(LocalScriptExecutionRunStep).getPath() != "?"
+      )
+    )
+  ) and
   // the checkout occurs in a privileged context
   inPrivilegedContext(checkout, event) and
   event.getName() = checkoutTriggers() and

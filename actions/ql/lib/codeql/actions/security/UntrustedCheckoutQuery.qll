@@ -1,4 +1,5 @@
 import actions
+private import codeql.util.FilePath
 private import codeql.actions.DataFlow
 private import codeql.actions.dataflow.FlowSources
 private import codeql.actions.TaintTracking
@@ -227,6 +228,53 @@ abstract class MutableRefCheckoutStep extends PRHeadCheckoutStep { }
 /** Checkout of a Pull Request HEAD ref */
 abstract class SHACheckoutStep extends PRHeadCheckoutStep { }
 
+private class ActionsCheckoutPathInput extends NormalizableFilepath {
+  ActionsCheckoutPathInput() {
+    exists(UsesStep checkout, string path |
+      checkout.getCallee() = "actions/checkout" and
+      path = checkout.getArgument("path") and
+      not hasUnresolvedActionsPathSyntax(path) and
+      this = canonicalizeActionsPathSyntax(path)
+    )
+  }
+}
+
+private string getKnownNormalizedActionsCheckoutPath(UsesStep checkout) {
+  exists(string rawPath, string canonical, ActionsCheckoutPathInput path, string normalized |
+    rawPath = checkout.getArgument("path") and
+    canonical = canonicalizeActionsPathSyntax(rawPath) and
+    path = canonical and
+    normalized = path.getNormalizedPath() and
+    not normalized.matches("/%") and
+    not normalized.regexpMatch("^[A-Za-z]:/.*") and
+    normalized != ".." and
+    not normalized.matches("../%") and
+    (
+      not canonical = "GITHUB_WORKSPACE" and not canonical.matches("GITHUB_WORKSPACE/%")
+      or
+      normalized = "GITHUB_WORKSPACE"
+      or
+      normalized.matches("GITHUB_WORKSPACE/%")
+    ) and
+    if normalized = [".", "GITHUB_WORKSPACE"]
+    then result = "GITHUB_WORKSPACE/"
+    else
+      if normalized.matches("GITHUB_WORKSPACE/%")
+      then result = normalized
+      else result = "GITHUB_WORKSPACE/" + normalized
+  )
+}
+
+private string getNormalizedActionsCheckoutPath(UsesStep checkout) {
+  not exists(checkout.getArgument("path")) and result = "GITHUB_WORKSPACE/"
+  or
+  result = getKnownNormalizedActionsCheckoutPath(checkout)
+  or
+  exists(checkout.getArgument("path")) and
+  not exists(getKnownNormalizedActionsCheckoutPath(checkout)) and
+  result = "?"
+}
+
 /** Checkout of a Pull Request HEAD ref using actions/checkout action */
 class ActionsMutableRefCheckout extends MutableRefCheckoutStep instanceof UsesStep {
   ActionsMutableRefCheckout() {
@@ -257,11 +305,7 @@ class ActionsMutableRefCheckout extends MutableRefCheckoutStep instanceof UsesSt
     )
   }
 
-  override string getPath() {
-    if exists(this.(UsesStep).getArgument("path"))
-    then result = this.(UsesStep).getArgument("path")
-    else result = "GITHUB_WORKSPACE/"
-  }
+  override string getPath() { result = getNormalizedActionsCheckoutPath(this) }
 }
 
 /** Checkout of a Pull Request HEAD ref using actions/checkout action */
@@ -292,11 +336,7 @@ class ActionsSHACheckout extends SHACheckoutStep instanceof UsesStep {
     )
   }
 
-  override string getPath() {
-    if exists(this.(UsesStep).getArgument("path"))
-    then result = this.(UsesStep).getArgument("path")
-    else result = "GITHUB_WORKSPACE/"
-  }
+  override string getPath() { result = getNormalizedActionsCheckoutPath(this) }
 }
 
 /** Checkout of a Pull Request HEAD ref using git within a Run step */
