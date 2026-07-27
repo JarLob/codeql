@@ -2803,7 +2803,10 @@ class NeedsExpressionImpl extends SimpleReferenceExpressionImpl {
       expr.regexpMatch(needsCtxRegex()) and
       fieldName = expr.regexpCapture(needsCtxRegex(), 2) and
       neededJob.getId() = expr.regexpCapture(needsCtxRegex(), 1) and
-      neededJob.getLocation().getFile() = this.getLocation().getFile()
+      (
+        this.getEnclosingJob().getANeededJob() = neededJob or
+        this.getEnclosingJob() = neededJob
+      )
     )
   }
 
