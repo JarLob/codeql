@@ -228,20 +228,45 @@ abstract class MutableRefCheckoutStep extends PRHeadCheckoutStep { }
 /** Checkout of a Pull Request HEAD ref */
 abstract class SHACheckoutStep extends PRHeadCheckoutStep { }
 
+bindingset[checkout]
+private string getAStaticActionsCheckoutPath(UsesStep checkout) {
+  result = checkout.getArgument("path")
+  or
+  exists(string name |
+    name =
+      checkout
+          .getArgument("path")
+          .trim()
+          .regexpCapture("(?i)^\\$\\{\\{\\s*env\\.([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}$", 1) and
+    result = checkout.getInScopeEnvVarValue(name).getValue()
+  )
+}
+
 private class ActionsCheckoutPathInput extends NormalizableFilepath {
   ActionsCheckoutPathInput() {
     exists(UsesStep checkout, string path |
       checkout.getCallee() = "actions/checkout" and
-      path = checkout.getArgument("path") and
+      path = getAStaticActionsCheckoutPath(checkout) and
       not hasUnresolvedActionsPathSyntax(path) and
       this = canonicalizeActionsPathSyntax(path)
     )
   }
 }
 
+private class ActionsWorkspaceRootInput extends NormalizableFilepath {
+  ActionsWorkspaceRootInput() {
+    exists(UsesStep checkout, string workspaceRoot |
+      checkout.getCallee() = "actions/checkout" and
+      workspaceRoot = checkout.getInScopeEnvVarValue("GITHUB_WORKSPACE").getValue() and
+      not hasUnresolvedActionsPathSyntax(workspaceRoot) and
+      this = canonicalizeActionsPathSyntax(workspaceRoot)
+    )
+  }
+}
+
 private string getKnownNormalizedActionsCheckoutPath(UsesStep checkout) {
   exists(string rawPath, string canonical, ActionsCheckoutPathInput path, string normalized |
-    rawPath = checkout.getArgument("path") and
+    rawPath = getAStaticActionsCheckoutPath(checkout) and
     canonical = canonicalizeActionsPathSyntax(rawPath) and
     path = canonical and
     normalized = path.getNormalizedPath() and
@@ -262,6 +287,26 @@ private string getKnownNormalizedActionsCheckoutPath(UsesStep checkout) {
       if normalized.matches("GITHUB_WORKSPACE/%")
       then result = normalized
       else result = "GITHUB_WORKSPACE/" + normalized
+  )
+  or
+  exists(
+    string rawPath, ActionsCheckoutPathInput path, string normalized,
+    ActionsWorkspaceRootInput workspaceRoot, string normalizedWorkspace
+  |
+    rawPath = getAStaticActionsCheckoutPath(checkout) and
+    path = canonicalizeActionsPathSyntax(rawPath) and
+    normalized = path.getNormalizedPath() and
+    workspaceRoot =
+      canonicalizeActionsPathSyntax(checkout.getInScopeEnvVarValue("GITHUB_WORKSPACE").getValue()) and
+    normalizedWorkspace = workspaceRoot.getNormalizedPath().regexpReplaceAll("/$", "") and
+    (normalizedWorkspace.matches("/%") or normalizedWorkspace.regexpMatch("^[A-Za-z]:/.*")) and
+    (
+      normalized = normalizedWorkspace and result = "GITHUB_WORKSPACE/"
+      or
+      normalized.indexOf(normalizedWorkspace + "/") = 0 and
+      result =
+        "GITHUB_WORKSPACE" + normalized.substring(normalizedWorkspace.length(), normalized.length())
+    )
   )
 }
 

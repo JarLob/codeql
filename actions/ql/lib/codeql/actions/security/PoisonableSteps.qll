@@ -51,9 +51,10 @@ class LocalScriptExecutionRunStep extends PoisonableStep, Run {
   string path;
 
   LocalScriptExecutionRunStep() {
-    exists(string cmd, string regexp, int path_group | cmd = getACommandText(this) |
+    exists(string cmd, string regexp, int path_group | cmd = this.getScript().getACommand() |
       poisonableLocalScriptsDataModel(regexp, path_group) and
-      path = cmd.regexpCapture(regexp, path_group)
+      not cmd.matches("%${{%") and
+      path = trimQuotes(cmd.regexpCapture(regexp, path_group))
     )
     or
     // Handles scripts passed to source, sh, bash, zsh, or fish, including quoted paths,
@@ -67,7 +68,8 @@ class LocalScriptExecutionRunStep extends PoisonableStep, Run {
     exists(string cmd |
       cmd = getACommandText(this) and
       path =
-        cmd.regexpCapture("(?i)^\\s*(source|sh|bash|zsh|fish)\\s+(\"[^\"]+\"|'[^']+'|[^\\s]+)", 2)
+        trimQuotes(cmd.regexpCapture("(?i)^\\s*(source|sh|bash|zsh|fish)\\s+(\"[^\"]+\"|'[^']+'|(?:\\$\\{\\{[^\\r\\n]*?\\}\\}|[^\\s])+)",
+            2))
     )
     or
     // Handles path-only PowerShell scripts, optionally using the call or dot-source operator:
@@ -80,14 +82,14 @@ class LocalScriptExecutionRunStep extends PoisonableStep, Run {
     exists(string cmd |
       cmd = getACommandText(this) and
       path =
-        cmd.regexpCapture("(?i)^\\s*(?:&\\s+|\\.\\s+)?(\"[^\"]+\\.ps1\"|'[^']+\\.ps1'|(?:\\.\\\\|\\./)[^\\s]+\\.ps1)\\s*$",
-          1)
+        trimQuotes(cmd.regexpCapture("(?i)^\\s*(?:&\\s+|\\.\\s+)?(\"[^\"]+\\.ps1\"|'[^']+\\.ps1'|(?:\\.\\\\|\\./)[^\\s]+\\.ps1)\\s*$",
+            1))
     )
   }
 
-  string getRawPath() { result = trimQuotes(path) }
+  string getRawPath() { result = path }
 
-  string getPath() { result = getNormalizedPoisonablePath(this.getRawPath()) }
+  string getPath() { result = getNormalizedPoisonablePath(getEffectiveScriptPath(this)) }
 }
 
 class LocalActionUsesStep extends PoisonableStep, UsesStep {
@@ -98,10 +100,7 @@ class LocalActionUsesStep extends PoisonableStep, UsesStep {
 
 private class PoisonablePathInput extends NormalizableFilepath {
   PoisonablePathInput() {
-    exists(LocalScriptExecutionRunStep step |
-      not hasUnresolvedActionsPathSyntax(step.getRawPath()) and
-      this = canonicalizeActionsPathSyntax(step.getRawPath())
-    )
+    exists(LocalScriptExecutionRunStep step | this = getEffectiveScriptPath(step) and this != "?")
     or
     exists(LocalActionUsesStep step |
       not hasUnresolvedActionsPathSyntax(step.getCallee()) and
@@ -110,8 +109,106 @@ private class PoisonablePathInput extends NormalizableFilepath {
   }
 }
 
+bindingset[run]
+private string getAKnownWorkingDirectory(Run run) {
+  result = run.getWorkingDirectory() and not hasUnresolvedActionsPathSyntax(result)
+  or
+  exists(string name |
+    name =
+      run.getWorkingDirectory()
+          .trim()
+          .regexpCapture("(?i)^\\$\\{\\{\\s*env\\.([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}$", 1) and
+    result = run.getInScopeEnvVarValue(name).getValue() and
+    not hasUnresolvedActionsPathSyntax(result)
+  )
+}
+
+bindingset[run]
+private string getEffectiveWorkingDirectory(Run run) {
+  result = getAKnownWorkingDirectory(run)
+  or
+  not exists(getAKnownWorkingDirectory(run)) and result = run.getWorkingDirectory()
+}
+
+bindingset[run, path]
+private string mapKnownWorkspacePath(Run run, string path) {
+  exists(string workspaceRoot |
+    workspaceRoot =
+      canonicalizeActionsPathSyntax(run.getInScopeEnvVarValue("GITHUB_WORKSPACE").getValue())
+          .regexpReplaceAll("/$", "") and
+    (workspaceRoot.matches("/%") or workspaceRoot.regexpMatch("^[A-Za-z]:/.*")) and
+    (
+      path = workspaceRoot and result = "GITHUB_WORKSPACE"
+      or
+      path.indexOf(workspaceRoot + "/") = 0 and
+      result = "GITHUB_WORKSPACE" + path.substring(workspaceRoot.length(), path.length())
+    )
+  )
+  or
+  not exists(string workspaceRoot |
+    workspaceRoot =
+      canonicalizeActionsPathSyntax(run.getInScopeEnvVarValue("GITHUB_WORKSPACE").getValue())
+          .regexpReplaceAll("/$", "") and
+    (workspaceRoot.matches("/%") or workspaceRoot.regexpMatch("^[A-Za-z]:/.*")) and
+    (path = workspaceRoot or path.indexOf(workspaceRoot + "/") = 0)
+  ) and
+  result = path
+}
+
+bindingset[step]
+private string getEffectiveScriptPath(LocalScriptExecutionRunStep step) {
+  exists(string rawPath, string workingDirectory |
+    rawPath = step.getRawPath() and
+    workingDirectory = getEffectiveWorkingDirectory(step) and
+    (
+      hasUnresolvedActionsPathSyntax(rawPath) and result = "?"
+      or
+      exists(string canonicalPath |
+        not hasUnresolvedActionsPathSyntax(rawPath) and
+        canonicalPath = canonicalizeActionsPathSyntax(rawPath) and
+        (
+          canonicalPath = "GITHUB_WORKSPACE" or
+          canonicalPath.matches("GITHUB_WORKSPACE/%") or
+          canonicalPath.matches("/%") or
+          canonicalPath.regexpMatch("^[A-Za-z]:/.*") or
+          canonicalPath.matches("~/%")
+        ) and
+        result = mapKnownWorkspacePath(step, canonicalPath)
+      )
+      or
+      exists(string canonicalPath, string normalizedDirectory |
+        not hasUnresolvedActionsPathSyntax(rawPath) and
+        not hasUnresolvedActionsPathSyntax(workingDirectory) and
+        canonicalPath = canonicalizeActionsPathSyntax(rawPath) and
+        not canonicalPath = "GITHUB_WORKSPACE" and
+        not canonicalPath.matches("GITHUB_WORKSPACE/%") and
+        not canonicalPath.matches("/%") and
+        not canonicalPath.regexpMatch("^[A-Za-z]:/.*") and
+        not canonicalPath.matches("~/%") and
+        normalizedDirectory =
+          mapKnownWorkspacePath(step, normalizePath(workingDirectory)).regexpReplaceAll("/$", "") and
+        result = normalizedDirectory + "/" + canonicalPath
+      )
+      or
+      exists(string canonicalPath |
+        not hasUnresolvedActionsPathSyntax(rawPath) and
+        hasUnresolvedActionsPathSyntax(workingDirectory) and
+        canonicalPath = canonicalizeActionsPathSyntax(rawPath) and
+        not canonicalPath = "GITHUB_WORKSPACE" and
+        not canonicalPath.matches("GITHUB_WORKSPACE/%") and
+        not canonicalPath.matches("/%") and
+        not canonicalPath.regexpMatch("^[A-Za-z]:/.*") and
+        not canonicalPath.matches("~/%") and
+        result = "?"
+      )
+    )
+  )
+}
+
 bindingset[rawPath]
 private string getNormalizedPoisonablePath(string rawPath) {
+  rawPath = "?" and result = "?"
+  or
   hasUnresolvedActionsPathSyntax(rawPath) and result = "?"
   or
   exists(PoisonablePathInput path, string normalized |

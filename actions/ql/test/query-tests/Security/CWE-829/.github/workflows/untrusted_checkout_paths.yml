@@ -219,3 +219,129 @@ jobs:
           path: windows-escape
       - shell: pwsh
         run: .\windows-escape\..\trusted.ps1
+
+  static-env-checkout-path:
+    runs-on: ubuntu-latest
+    env:
+      CHECKOUT_PATH: ${{ github.workspace }}/env-checkout
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: ${{ env.CHECKOUT_PATH }}
+      - run: bash env-checkout/build.sh
+
+  format-checkout-path:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: ${{ format('{0}/format-checkout', github.workspace) }}
+      - run: bash format-checkout/build.sh
+
+  explicit-working-directory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: workdir-checkout
+      - working-directory: workdir-checkout
+        run: bash build.sh
+
+  default-working-directory:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: default-workdir-checkout
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: default-workdir-checkout
+      - run: bash build.sh
+
+  static-env-working-directory:
+    runs-on: ubuntu-latest
+    env:
+      WORKING_DIRECTORY: env-workdir-checkout
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: env-workdir-checkout
+      - working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: bash build.sh
+
+  deterministic-run-id-path:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: checkout-${{ github.run_id }}
+      - run: bash checkout-${{ github.run_id }}/build.sh
+
+  deterministic-run-attempt-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: ${{ format('checkout-{0}', github.run_attempt) }}
+      - run: bash ${{ format('checkout-{0}/build.sh', github.run_attempt) }}
+
+  static-absolute-checkout-path:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_WORKSPACE: /__w/repository/repository
+      CHECKOUT_PATH: /__w/repository/repository/absolute-checkout
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: ${{ env.CHECKOUT_PATH }}
+      - run: bash absolute-checkout/build.sh
+
+  static-absolute-script-path:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_WORKSPACE: /__w/repository/repository
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: absolute-script-checkout
+      - run: bash /__w/repository/repository/absolute-script-checkout/build.sh
+
+  dynamic-workdir-absolute-script:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: absolute-under-dynamic-workdir
+      - working-directory: ${{ vars.WORKING_DIRECTORY }}
+        run: bash "$GITHUB_WORKSPACE/absolute-under-dynamic-workdir/build.sh"
+
+  dynamic-working-directory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: dynamic-workdir-checkout
+      - working-directory: ${{ vars.WORKING_DIRECTORY }}
+        run: bash build.sh

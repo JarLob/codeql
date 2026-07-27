@@ -4,6 +4,11 @@ on:
 jobs:
   paths:
     runs-on: windows-latest
+    env:
+      GITHUB_WORKSPACE: /__w/repository/repository
+      ABSOLUTE_CHECKOUT_PATH: /__w/repository/repository/absolute-candidate
+      STATIC_CHECKOUT_PATH: ${{ github.workspace }}/env-candidate
+      STATIC_WORKING_DIRECTORY: candidate
     steps:
       - id: checkout-bare
         uses: actions/checkout@v4
@@ -35,6 +40,36 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           path: ../outside
+      - id: checkout-env
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: ${{ env.STATIC_CHECKOUT_PATH }}
+      - id: checkout-format
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: ${{ format('{0}/format-candidate', github.workspace) }}
+      - id: checkout-run-id
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate-${{ github.run_id }}
+      - id: checkout-run-attempt-format
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: ${{ format('candidate-{0}', github.run_attempt) }}
+      - id: checkout-literal-braces
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: literal-{0}
+      - id: checkout-absolute
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: ${{ env.ABSOLUTE_CHECKOUT_PATH }}
       - id: bash-workspace
         shell: bash
         run: bash "$GITHUB_WORKSPACE/candidate/proof.sh"
@@ -44,9 +79,55 @@ jobs:
       - id: sh-workspace
         shell: sh
         run: sh "$GITHUB_WORKSPACE/candidate/proof.sh"
+      - id: working-directory
+        shell: bash
+        working-directory: candidate
+        run: bash proof.sh
+      - id: env-working-directory
+        shell: bash
+        working-directory: ${{ env.STATIC_WORKING_DIRECTORY }}
+        run: bash proof.sh
+      - id: run-id-path
+        shell: bash
+        run: bash candidate-${{ github.run_id }}/proof.sh
+      - id: run-attempt-format-path
+        shell: bash
+        run: bash "${{ format('candidate-{0}/proof.sh', github.run_attempt) }}"
+      - id: literal-braces-path
+        shell: bash
+        run: bash literal-{0}/proof.sh
+      - id: dynamic-working-directory
+        shell: bash
+        working-directory: ${{ vars.WORKING_DIRECTORY }}
+        run: bash proof.sh
+      - id: dynamic-workdir-absolute-script
+        shell: bash
+        working-directory: ${{ vars.WORKING_DIRECTORY }}
+        run: bash "$GITHUB_WORKSPACE/candidate/proof.sh"
+      - id: absolute-working-directory
+        shell: bash
+        working-directory: /__w/repository/repository/candidate
+        run: bash proof.sh
+      - id: absolute-script
+        shell: bash
+        run: bash /__w/repository/repository/candidate/proof.sh
       - id: pwsh-backslash
         shell: pwsh
         run: .\candidate\proof.ps1
       - id: pwsh-workspace
         shell: pwsh
         run: '& "$env:GITHUB_WORKSPACE\candidate\proof.ps1"'
+
+  default-working-directory:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: candidate
+    steps:
+      - id: checkout-default-workdir
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+      - id: default-working-directory
+        run: bash proof.sh

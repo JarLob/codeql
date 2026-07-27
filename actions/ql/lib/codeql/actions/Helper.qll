@@ -26,12 +26,44 @@ string trimQuotes(string str) {
   result = str.trim().regexpReplaceAll("^(\"|')", "").regexpReplaceAll("(\"|')$", "")
 }
 
+/**
+ * Canonicalizes path values derived from `github.run_id` or `github.run_attempt`. Both values are
+ * stable for a workflow attempt: `github.run_id` remains unchanged across reruns, while
+ * `github.run_attempt` changes only between attempts. Replacing them with `0` therefore allows
+ * paths from the same attempt to be compared statically.
+ *
+ * Handles both a whole `format` expression and an expression embedded in a path:
+ *
+ * `${{ format('candidate-{0}/proof.sh', github.run_id) }}` -> `candidate-0/proof.sh`
+ * `candidate-${{ github.run_attempt }}/proof.sh` -> `candidate-0/proof.sh`
+ *
+ * A literal `{0}` outside a recognized `format` expression remains unchanged:
+ *
+ * `literal-{0}/proof.sh` -> `literal-{0}/proof.sh`
+ */
+bindingset[path]
+private string canonicalizeDeterministicRunPath(string path) {
+  exists(string format |
+    format =
+      path.regexpCapture("(?i)^\\$\\{\\{\\s*format\\(\\s*'([A-Za-z0-9._/-]*\\{0\\}[A-Za-z0-9._/-]*)'\\s*,\\s*github\\.(run_id|run_attempt)\\s*\\)\\s*\\}\\}$",
+        1) and
+    result = format.replaceAll("{0}", "0")
+  )
+  or
+  not path.regexpMatch("(?i)^\\$\\{\\{\\s*format\\(\\s*'([A-Za-z0-9._/-]*\\{0\\}[A-Za-z0-9._/-]*)'\\s*,\\s*github\\.(run_id|run_attempt)\\s*\\)\\s*\\}\\}$") and
+  result = path.regexpReplaceAll("(?i)\\$\\{\\{\\s*github\\.(run_id|run_attempt)\\s*\\}\\}", "0")
+}
+
 /** Canonicalizes separators and statically known spellings of the Actions workspace. */
 bindingset[path]
 string canonicalizeActionsPathSyntax(string path) {
   result =
-    trimQuotes(path)
-        .replaceAll("\\", "/")
+    canonicalizeDeterministicRunPath(trimQuotes(path)
+          .replaceAll("\\", "/")
+          .regexpReplaceAll("(?i)^\\$\\{\\{\\s*format\\(\\s*'\\{0\\}(/[^']*)?'\\s*,\\s*github\\.workspace\\s*\\)\\s*\\}\\}$",
+            "GITHUB_WORKSPACE$1")
+          .regexpReplaceAll("(?i)^\\$\\{\\{\\s*format\\(\\s*\"\\{0\\}(/[^\"]*)?\"\\s*,\\s*github\\.workspace\\s*\\)\\s*\\}\\}$",
+            "GITHUB_WORKSPACE$1"))
         .regexpReplaceAll("(?i)^\\$\\{\\{\\s*(github\\.workspace|env\\.GITHUB_WORKSPACE)\\s*\\}\\}",
           "GITHUB_WORKSPACE")
         .regexpReplaceAll("(?i)^\\$env:GITHUB_WORKSPACE", "GITHUB_WORKSPACE")

@@ -152,6 +152,18 @@ abstract class AstNodeImpl extends TAstNode {
     )
   }
 
+  bindingset[this, name]
+  ScalarValueImpl getInScopeEnvVarValue(string name) {
+    exists(EnvImpl env |
+      (
+        env.getParentNode() = this.getEnclosingStep() or
+        env.getParentNode() = this.getEnclosingJob() or
+        env.getParentNode() = this.getEnclosingWorkflow()
+      ) and
+      result = env.getEnvVarValue(name)
+    )
+  }
+
   ScalarValueImpl getInScopeDefaultValue(string name, string prop) {
     exists(DefaultsImpl dft |
       this.getEnclosingJob().getNode().(YamlMapping).maps(_, dft.getNode()) and
@@ -1443,7 +1455,10 @@ class RunImpl extends StepImpl {
             .(YamlString)
             .getValue()
             .regexpReplaceAll("^\\./", "GITHUB_WORKSPACE/")
-    else result = "GITHUB_WORKSPACE/"
+    else
+      if exists(this.getInScopeDefaultValue("run", "working-directory"))
+      then result = this.getInScopeDefaultValue("run", "working-directory").getValue()
+      else result = "GITHUB_WORKSPACE/"
   }
 
   /** Gets the shell for this `run` mapping. */

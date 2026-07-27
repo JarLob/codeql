@@ -25,6 +25,9 @@ class AstNode instanceof AstNodeImpl {
 
   Expression getInScopeEnvVarExpr(string name) { result = super.getInScopeEnvVarExpr(name) }
 
+  bindingset[this, name]
+  ScalarValue getInScopeEnvVarValue(string name) { result = super.getInScopeEnvVarValue(name) }
+
   ScalarValue getInScopeDefaultValue(string name, string prop) {
     result = super.getInScopeDefaultValue(name, prop)
   }
