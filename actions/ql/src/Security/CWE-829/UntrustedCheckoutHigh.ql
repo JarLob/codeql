@@ -15,7 +15,6 @@
 
 import actions
 import codeql.actions.security.UntrustedCheckoutQuery
-private import codeql.actions.security.ArtifactPoisoningQuery
 import codeql.actions.security.PoisonableSteps
 import codeql.actions.security.ControlChecks
 import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg

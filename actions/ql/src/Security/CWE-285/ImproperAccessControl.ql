@@ -12,7 +12,6 @@
  */
 
 import codeql.actions.security.UntrustedCheckoutQuery
-private import codeql.actions.security.ArtifactPoisoningQuery
 import codeql.actions.security.ControlChecks
 
 from LocalJob job, LabelCheck check, MutableRefCheckoutStep checkout, Event event

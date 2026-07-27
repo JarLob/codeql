@@ -1,0 +1,9 @@
+WARNING: type 'GitHubDownloadArtifactActionStep' has been deprecated and may be removed in future (test.ql:14,53-85)
+| current-download | legacy |
+| current-download | potential |
+| current-download | precise |
+| third-party-download | potential |
+| third-party-download | precise |
+| workflow-run-download | legacy |
+| workflow-run-download | potential |
+| workflow-run-download | precise |

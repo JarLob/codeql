@@ -109,44 +109,82 @@ private predicate isWorkflowRunRepositoryCheckAtom(ExpressionNode node) {
     ])
 }
 
-private newtype TProtectionContext =
-  MkProtectionContext(string category, string event) {
-    category = any_category() and event = any_event()
-  }
-
-private class ProtectionContext extends TProtectionContext {
-  string category;
-  string event;
-
-  ProtectionContext() { this = MkProtectionContext(category, event) }
-
-  string getCategory() { result = category }
-
-  string getEvent() { result = event }
-
-  string toString() { result = category + "@" + event }
+private newtype TProtectionMode = MkProtectionMode(string name) {
+  name =
+    [
+      "label-identity-pull-request-repository", "identity-pull-request-repository",
+      "label-identity-workflow-run-repository", "identity-workflow-run-repository",
+      "label-identity", "identity", "none"
+    ]
 }
 
-private predicate atomProtectsCategoryAndEvent(ExpressionNode node, ProtectionContext context) {
-  isLabelCheckAtom(node) and
-  context.getEvent() = any_event() and
-  context.getCategory() = non_toctou_category()
+private class ProtectionMode extends TProtectionMode {
+  string name;
+
+  ProtectionMode() { this = MkProtectionMode(name) }
+
+  string toString() { result = name }
+
+  predicate protects(string category, string event) {
+    event = "pull_request_target" and
+    (
+      category = non_toctou_category() and name = "label-identity-pull-request-repository"
+      or
+      category = toctou_category() and name = "identity-pull-request-repository"
+    )
+    or
+    event = "workflow_run" and
+    (
+      category = non_toctou_category() and name = "label-identity-workflow-run-repository"
+      or
+      category = toctou_category() and name = "identity-workflow-run-repository"
+    )
+    or
+    event = actor_is_attacker_event() and
+    not event = ["pull_request_target", "workflow_run"] and
+    (
+      category = non_toctou_category() and name = "label-identity"
+      or
+      category = toctou_category() and name = "identity"
+    )
+    or
+    event = actor_not_attacker_event() and
+    (
+      category = non_toctou_category() and name = "label-identity"
+      or
+      category = toctou_category() and name = "none"
+    )
+  }
+
+  predicate allows(string kind) {
+    kind = "label" and
+    name =
+      [
+        "label-identity", "label-identity-pull-request-repository",
+        "label-identity-workflow-run-repository"
+      ]
+    or
+    kind = "identity" and not name = "none"
+    or
+    kind = "pull-request-repository" and
+    name = ["label-identity-pull-request-repository", "identity-pull-request-repository"]
+    or
+    kind = "workflow-run-repository" and
+    name = ["label-identity-workflow-run-repository", "identity-workflow-run-repository"]
+  }
+}
+
+private predicate atomProtectsMode(ExpressionNode node, ProtectionMode mode) {
+  isLabelCheckAtom(node) and mode.allows("label")
   or
   (isActorCheckAtom(node) or isAssociationCheckAtom(node)) and
-  (
-    context.getEvent() = actor_is_attacker_event() and context.getCategory() = any_category()
-    or
-    context.getEvent() = actor_not_attacker_event() and
-    context.getCategory() = non_toctou_category()
-  )
+  mode.allows("identity")
   or
   isPullRequestRepositoryCheckAtom(node) and
-  context.getEvent() = "pull_request_target" and
-  context.getCategory() = any_category()
+  mode.allows("pull-request-repository")
   or
   isWorkflowRunRepositoryCheckAtom(node) and
-  context.getEvent() = "workflow_run" and
-  context.getCategory() = any_category()
+  mode.allows("workflow-run-repository")
 }
 
 private predicate hasKnownLiteralTruthiness(ExpressionNode node, boolean outcome) {
@@ -173,71 +211,70 @@ private predicate hasKnownLiteralTruthiness(ExpressionNode node, boolean outcome
   )
 }
 
-private predicate expressionTrueIsProtected(ExpressionNode node, ProtectionContext context) {
+private predicate expressionTrueIsProtected(ExpressionNode node, ProtectionMode mode) {
   hasKnownLiteralTruthiness(node, false)
   or
-  atomProtectsCategoryAndEvent(node, context)
+  atomProtectsMode(node, mode)
   or
   node instanceof ExpressionRoot and
-  expressionTrueIsProtected(node.getChild(0), context)
+  expressionTrueIsProtected(node.getChild(0), mode)
   or
   node instanceof UnaryExpression and
-  expressionFalseIsProtected(node.(UnaryExpression).getOperand(), context)
+  expressionFalseIsProtected(node.(UnaryExpression).getOperand(), mode)
   or
   node instanceof BinaryExpression and
   node.(BinaryExpression).getOperator() = "&&" and
   (
-    expressionTrueIsProtected(node.(BinaryExpression).getLeftOperand(), context)
+    expressionTrueIsProtected(node.(BinaryExpression).getLeftOperand(), mode)
     or
-    expressionTrueIsProtected(node.(BinaryExpression).getRightOperand(), context)
+    expressionTrueIsProtected(node.(BinaryExpression).getRightOperand(), mode)
   )
   or
   node instanceof BinaryExpression and
   node.(BinaryExpression).getOperator() = "||" and
-  expressionTrueIsProtected(node.(BinaryExpression).getLeftOperand(), context) and
+  expressionTrueIsProtected(node.(BinaryExpression).getLeftOperand(), mode) and
   (
-    expressionFalseIsProtected(node.(BinaryExpression).getLeftOperand(), context)
+    expressionFalseIsProtected(node.(BinaryExpression).getLeftOperand(), mode)
     or
-    expressionTrueIsProtected(node.(BinaryExpression).getRightOperand(), context)
+    expressionTrueIsProtected(node.(BinaryExpression).getRightOperand(), mode)
   )
 }
 
-private predicate expressionFalseIsProtected(ExpressionNode node, ProtectionContext context) {
+private predicate expressionFalseIsProtected(ExpressionNode node, ProtectionMode mode) {
   hasKnownLiteralTruthiness(node, true)
   or
   node instanceof ExpressionRoot and
-  expressionFalseIsProtected(node.getChild(0), context)
+  expressionFalseIsProtected(node.getChild(0), mode)
   or
   node instanceof UnaryExpression and
-  expressionTrueIsProtected(node.(UnaryExpression).getOperand(), context)
+  expressionTrueIsProtected(node.(UnaryExpression).getOperand(), mode)
   or
   node instanceof BinaryExpression and
   node.(BinaryExpression).getOperator() = "&&" and
-  expressionFalseIsProtected(node.(BinaryExpression).getLeftOperand(), context) and
+  expressionFalseIsProtected(node.(BinaryExpression).getLeftOperand(), mode) and
   (
-    expressionTrueIsProtected(node.(BinaryExpression).getLeftOperand(), context)
+    expressionTrueIsProtected(node.(BinaryExpression).getLeftOperand(), mode)
     or
-    expressionFalseIsProtected(node.(BinaryExpression).getRightOperand(), context)
+    expressionFalseIsProtected(node.(BinaryExpression).getRightOperand(), mode)
   )
   or
   node instanceof BinaryExpression and
   node.(BinaryExpression).getOperator() = "||" and
   (
-    expressionFalseIsProtected(node.(BinaryExpression).getLeftOperand(), context)
+    expressionFalseIsProtected(node.(BinaryExpression).getLeftOperand(), mode)
     or
-    expressionFalseIsProtected(node.(BinaryExpression).getRightOperand(), context)
+    expressionFalseIsProtected(node.(BinaryExpression).getRightOperand(), mode)
   )
 }
 
 predicate parsedConditionProtectsCategoryAndEvent(
   If condition, string category, string event
 ) {
-  exists(ProtectionContext context, ExpressionRoot root |
-    context.getCategory() = category and
-    context.getEvent() = event and
+  exists(ProtectionMode mode, ExpressionRoot root |
+    mode.protects(category, event) and
     condition.getATriggerEvent().getName() = event and
     root = condition.getConditionExpr().getRoot() and
-    expressionTrueIsProtected(root, context)
+    expressionTrueIsProtected(root, mode)
   )
 }
 
