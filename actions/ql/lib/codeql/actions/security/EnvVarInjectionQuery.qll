@@ -1,9 +1,12 @@
 private import actions
 private import codeql.actions.TaintTracking
 private import codeql.actions.dataflow.ExternalFlow
-private import codeql.actions.security.ArtifactPoisoningQuery
 private import codeql.actions.security.UntrustedCheckoutQuery
 private import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
+import codeql.actions.DataFlow
+import codeql.actions.dataflow.FlowSources
+import codeql.actions.security.ArtifactDownloadSteps
+import codeql.actions.security.ControlChecks
 
 abstract class EnvVarInjectionSink extends DataFlow::Node { }
 

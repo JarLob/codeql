@@ -1,5 +1,4 @@
 import actions
-private import codeql.actions.IntegratedExpressionBasicBlocks as IntegratedBlocks
 private import codeql.actions.JobSynchronization as JobSync
 private import codeql.actions.config.Config
 private import codeql.actions.security.ControlCheckConditions as Conditions
@@ -102,7 +101,6 @@ abstract class ControlCheck extends AstNode {
       (
         node.getEnclosingStep().getIf() = this or
         node.getEnclosingJob().getIf() = this or
-        IntegratedBlocks::conditionTrueDominates(this, node) or
         this.dominatesThroughSuccessfulNeededJob(node, event)
       )
       or
@@ -120,7 +118,7 @@ abstract class ControlCheck extends AstNode {
         this instanceof UsesStep
       ) and
       (
-        IntegratedBlocks::astNodeDominates(this, node) or
+        this.(Step).getAFollowingStep() = node.getEnclosingStep() or
         this.dominatesThroughSuccessfulNeededJob(node, event)
       )
     )

@@ -946,30 +946,25 @@ private NeedsStatus getAReachableNeedsStatus(Job job, Event event) {
   result = getAReachableNeedsStatusPrefix(job, event, count(job.getANeededJob()))
 }
 
-private NeedsStatus getAReachableNeedsStatusPrefixForDirectStatus(
-  Job job, Event event, int length, Job directNeeded, JobStatus directStatus
-) {
-  length = 0 and result = TNeedsStatusSummary(false, false, false)
-  or
-  exists(NeedsStatus prefix, Job needed, JobStatus status |
-    length > 0 and
-    needed = getNeededJobAt(job, length - 1) and
-    prefix =
-      getAReachableNeedsStatusPrefixForDirectStatus(job, event, length - 1, directNeeded,
-        directStatus) and
-    jobMayCompleteForEvent(needed, event, status) and
-    (needed = directNeeded and status = directStatus or needed != directNeeded) and
-    result = addStatusToSummary(prefix, status)
-  )
-}
-
-private NeedsStatus getAReachableNeedsStatusForDirectStatus(
-  Job job, Event event, Job directNeeded, JobStatus directStatus
+private NeedsStatus getAConservativeNeedsStatusForDirectStatus(
+  Job job, Job directNeeded, JobStatus directStatus
 ) {
   directNeeded = job.getANeededJob() and
-  result =
-    getAReachableNeedsStatusPrefixForDirectStatus(job, event, count(job.getANeededJob()),
-      directNeeded, directStatus)
+  (
+    count(job.getANeededJob()) = 1 and
+    result = addStatusToSummary(TNeedsStatusSummary(false, false, false), directStatus)
+    or
+    count(job.getANeededJob()) > 1 and
+    (
+      directStatus instanceof SuccessStatus
+      or
+      directStatus instanceof FailureStatus and result.hasFailure() = true
+      or
+      directStatus instanceof CancelledStatus and result.hasCancellation() = true
+      or
+      directStatus instanceof SkippedStatus and result.hasSkip() = true
+    )
+  )
 }
 
 private string getStatusCode(JobStatus status) {
@@ -1248,40 +1243,46 @@ private string getSummaryStringValue(ExpressionNode node, Job job, NeedsStatus s
   )
 }
 
+bindingset[node, child]
+private predicate containsExpressionNode(ExpressionNode node, ExpressionNode child) {
+  child.getExpression() = node.getExpression() and
+  child.getStartOffset() >= node.getStartOffset() and
+  child.getEndOffset() <= node.getEndOffset()
+}
+
 bindingset[node, job]
 private predicate containsAssignedNeedsValue(ExpressionNode node, Job job) {
   exists(AccessExpression access, Job needed |
-    access = node.getAChild*() and
+    containsExpressionNode(node, access) and
     needed = job.getANeededJob() and
-    access.getAccessPath() = "needs." + needed.getId() + ".result"
-  )
-  or
-  exists(ExpressionNode child, Job needed |
-    child = node.getAChild*() and exists(getReferencedStaticOutputStringValue(child, job, needed))
-  )
-}
-
-private predicate containsAssignedNeedsResult(ExpressionNode node, Job job) {
-  exists(AccessExpression access, Job needed |
-    access = node.getAChild*() and
-    needed = job.getANeededJob() and
-    access.getAccessPath() = "needs." + needed.getId() + ".result"
+    (
+      access.getAccessPath() = "needs." + needed.getId() + ".result"
+      or
+      exists(getReferencedStaticOutputStringValue(access, job, needed))
+    )
   )
 }
 
 private predicate jobConditionContainsAssignedNeedsResult(Job job) {
-  exists(If condition |
+  exists(If condition, AccessExpression access, Job needed |
     condition = job.getIf() and
-    exists(condition.getConditionExpr().getRoot()) and
-    containsAssignedNeedsResult(condition.getConditionExpr().getRoot(), job)
+    access.getExpression() = condition.getConditionExpr() and
+    needed = job.getANeededJob() and
+    access.getAccessPath() = "needs." + needed.getId() + ".result"
   )
 }
 
 private predicate jobConditionContainsAssignedNeedsValue(Job job) {
-  exists(If condition |
+  exists(If condition, ExpressionNode node, Job needed |
     condition = job.getIf() and
-    exists(condition.getConditionExpr().getRoot()) and
-    containsAssignedNeedsValue(condition.getConditionExpr().getRoot(), job)
+    node.getExpression() = condition.getConditionExpr() and
+    needed = job.getANeededJob() and
+    (
+      node instanceof AccessExpression and
+      node.(AccessExpression).getAccessPath() = "needs." + needed.getId() + ".result"
+      or
+      exists(getReferencedStaticOutputStringValue(node, job, needed))
+    )
   )
 }
 
@@ -1492,6 +1493,7 @@ private predicate mayEvaluateForAssignment(
 }
 
 private string getAConservativeNeededStatusAssignmentPrefix(Job job, int length) {
+  jobConditionUsesExactNeedsAssignment(job) and
   hasBoundedPrerequisiteClosure(job) and
   (
     length = 0 and result = ""
@@ -1556,6 +1558,10 @@ private predicate decisionMayHaveOutcomeForAssignment(
 private predicate jobConditionDependsOnNeedsState(Job job) {
   jobConditionContainsAssignedNeedsValue(job)
   or
+  jobConditionHasStatusCheckFunction(job)
+}
+
+private predicate jobConditionHasStatusCheckFunction(Job job) {
   exists(If condition | condition = job.getIf() | hasStatusCheckFunction(condition))
 }
 
@@ -1632,6 +1638,7 @@ predicate jobMayCompleteForEvent(Job job, Event event, JobStatus status) {
 private predicate jobMayExecuteWithDirectNeededStatus(
   Job job, Event event, Job neededJob, JobStatus neededStatus
 ) {
+  jobConditionHasStatusCheckFunction(job) and
   neededJob = job.getANeededJob() and
   job.getATriggerEvent() = event and
   (
@@ -1644,7 +1651,7 @@ private predicate jobMayExecuteWithDirectNeededStatus(
     or
     not jobConditionUsesExactNeedsAssignment(job) and
     exists(NeedsStatus status |
-      status = getAReachableNeedsStatusForDirectStatus(job, event, neededJob, neededStatus) and
+      status = getAConservativeNeedsStatusForDirectStatus(job, neededJob, neededStatus) and
       decisionMayHaveOutcome(job, event, status, true)
     )
   )
@@ -1653,6 +1660,12 @@ private predicate jobMayExecuteWithDirectNeededStatus(
 private predicate jobExecutionDirectlyRequiresSuccessfulCompletionOf(
   Job job, Job neededJob, Event event
 ) {
+  not jobConditionHasStatusCheckFunction(job) and
+  neededJob = job.getANeededJob() and
+  job.getATriggerEvent() = event and
+  jobMayExecuteForEvent(job, event)
+  or
+  jobConditionHasStatusCheckFunction(job) and
   exists(JobStatus status | jobMayExecuteWithDirectNeededStatus(job, event, neededJob, status)) and
   not exists(JobStatus status |
     not status instanceof SuccessStatus and

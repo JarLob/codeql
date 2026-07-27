@@ -250,6 +250,7 @@ private predicate hasModeledCommonScope(AstNode source, AstNode target) {
   )
 }
 
+bindingset[node, event]
 private predicate enclosingJobMayExecuteForEvent(AstNode node, Event event) {
   not exists(node.getEnclosingJob())
   or
