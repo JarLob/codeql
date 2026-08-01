@@ -5,9 +5,21 @@ parsedOwners
 | bypassable-member | association |
 | exact-member | association |
 | label-only | label |
+| non-fork-bypassable | pull-request-repository |
+| non-fork-exact | pull-request-repository |
+| non-fork-negated | pull-request-repository |
+| non-fork-not-true | pull-request-repository |
+| non-fork-reversed | pull-request-repository |
+| renovate-non-fork | label |
+| renovate-non-fork | pull-request-repository |
 | reversed-owner | association |
 protectedConditions
 | bypassable-member |
 | exact-member |
 | label-only |
+| non-fork-exact |
+| non-fork-negated |
+| non-fork-not-true |
+| non-fork-reversed |
+| renovate-non-fork |
 | reversed-owner |
