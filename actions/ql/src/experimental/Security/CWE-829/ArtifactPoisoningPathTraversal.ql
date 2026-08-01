@@ -20,6 +20,7 @@ import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 from UsesStep download, KnownVulnerableAction vulnerable_action, Event event
 where
   event = download.getATriggerEvent() and
+  IntegratedCfg::mayExecuteForEvent(download, event) and
   vulnerable_action.getVulnerableAction() = download.getCallee() and
   download.getCallee() = "actions/download-artifact" and
   (
@@ -33,9 +34,9 @@ where
       download.getEnclosingJob().isPrivilegedExternallyTriggerable(event) and
       checkout.getCallee() = "actions/checkout" and
       checkout.getAFollowingStep() = poison and
-      IntegratedCfg::orderedStepsMayReachForAnyEvent(checkout, poison) and
+      IntegratedCfg::orderedStepsMayReachForEvent(checkout, poison, event) and
       poison.getAFollowingStep() = upload and
-      IntegratedCfg::orderedStepsMayReachForAnyEvent(poison, upload) and
+      IntegratedCfg::orderedStepsMayReachForEvent(poison, upload, event) and
       upload.getCallee() = "actions/upload-artifact"
     )
     or

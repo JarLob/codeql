@@ -3,6 +3,7 @@ edges
 | .github/workflows/artifactpoisoning52.yml:13:9:15:6 | Run Step | .github/workflows/artifactpoisoning52.yml:19:14:22:40 | echo "PACKAGES_FILE_LIST<<EOF" >> "${GITHUB_ENV}"\ncat foo >> "$GITHUB_ENV"\necho "EOF" >> "${GITHUB_ENV}"\n | provenance | Config |
 | .github/workflows/artifactpoisoning53.yml:13:9:15:6 | Run Step | .github/workflows/artifactpoisoning53.yml:18:14:23:29 | {\n  echo 'JSON_RESPONSE<<EOF'\n  cat foo\n  echo EOF\n} >> "$GITHUB_ENV"\n | provenance | Config |
 | .github/workflows/checkout_v7_runtime_guard.yml:16:9:20:6 | Uses Step | .github/workflows/checkout_v7_runtime_guard.yml:20:14:20:57 | echo "VALUE=$(cat value.txt)" >> $GITHUB_ENV | provenance | Config |
+| .github/workflows/event_filtered_envvar.yml:11:19:11:56 | github.event.pull_request.title | .github/workflows/event_filtered_envvar.yml:12:14:12:52 | echo "PR_TITLE=$TITLE" >> "$GITHUB_ENV" | provenance | Config |
 | .github/workflows/test2.yml:12:9:41:6 | Uses Step | .github/workflows/test2.yml:41:14:43:52 | unzip pr.zip\necho "pr_number=$(cat NR)" >> $GITHUB_ENV\n | provenance | Config |
 | .github/workflows/test3.yml:13:7:20:4 | Uses Step | .github/workflows/test3.yml:20:12:23:77 | echo "PR_NUMBER=$(cat pr_number.txt \| jq -r .)" >> $GITHUB_ENV\necho "PR_HEAD_REPO=$(cat pr_head_repo.txt \| jq -Rr .)" >> $GITHUB_ENV\necho "PR_HEAD_REF=$(cat pr_head_ref.txt \| jq -Rr .)" >> $GITHUB_ENV\n | provenance | Config |
 | .github/workflows/test4.yml:11:19:11:56 | github.event.pull_request.title | .github/workflows/test4.yml:12:14:13:48 | echo "PR_TITLE=$TITLE" >> $GITHUB_ENV\n | provenance | Config |
@@ -40,6 +41,8 @@ nodes
 | .github/workflows/artifactpoisoning53.yml:18:14:23:29 | {\n  echo 'JSON_RESPONSE<<EOF'\n  cat foo\n  echo EOF\n} >> "$GITHUB_ENV"\n | semmle.label | {\n  echo 'JSON_RESPONSE<<EOF'\n  cat foo\n  echo EOF\n} >> "$GITHUB_ENV"\n |
 | .github/workflows/checkout_v7_runtime_guard.yml:16:9:20:6 | Uses Step | semmle.label | Uses Step |
 | .github/workflows/checkout_v7_runtime_guard.yml:20:14:20:57 | echo "VALUE=$(cat value.txt)" >> $GITHUB_ENV | semmle.label | echo "VALUE=$(cat value.txt)" >> $GITHUB_ENV |
+| .github/workflows/event_filtered_envvar.yml:11:19:11:56 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
+| .github/workflows/event_filtered_envvar.yml:12:14:12:52 | echo "PR_TITLE=$TITLE" >> "$GITHUB_ENV" | semmle.label | echo "PR_TITLE=$TITLE" >> "$GITHUB_ENV" |
 | .github/workflows/test2.yml:12:9:41:6 | Uses Step | semmle.label | Uses Step |
 | .github/workflows/test2.yml:41:14:43:52 | unzip pr.zip\necho "pr_number=$(cat NR)" >> $GITHUB_ENV\n | semmle.label | unzip pr.zip\necho "pr_number=$(cat NR)" >> $GITHUB_ENV\n |
 | .github/workflows/test3.yml:13:7:20:4 | Uses Step | semmle.label | Uses Step |
@@ -99,3 +102,4 @@ nodes
 | .github/workflows/test18.yml:38:14:38:45 | echo "BODY=$BODY" >> $GITHUB_ENV | semmle.label | echo "BODY=$BODY" >> $GITHUB_ENV |
 subpaths
 #select
+| .github/workflows/event_filtered_envvar.yml:12:14:12:52 | echo "PR_TITLE=$TITLE" >> "$GITHUB_ENV" | .github/workflows/event_filtered_envvar.yml:11:19:11:56 | github.event.pull_request.title | .github/workflows/event_filtered_envvar.yml:12:14:12:52 | echo "PR_TITLE=$TITLE" >> "$GITHUB_ENV" | Potential environment variable injection in $@, which may be controlled by an external user. | .github/workflows/event_filtered_envvar.yml:12:14:12:52 | echo "PR_TITLE=$TITLE" >> "$GITHUB_ENV" | echo "PR_TITLE=$TITLE" >> "$GITHUB_ENV" |

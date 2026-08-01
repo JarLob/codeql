@@ -77,6 +77,32 @@ Event getRelevantEventInPrivilegedContext(DataFlow::Node node) {
   not exists(ControlCheck check | check.protects(node.asExpr(), result, "artifact-poisoning"))
 }
 
+bindingset[sink, event]
+pragma[inline_late]
+predicate sinkMayExecuteForEvent(DataFlow::Node sink, Event event) {
+  IntegratedCfg::mayExecuteForEvent(sink.asExpr(), event)
+}
+
+bindingset[sink]
+pragma[inline_late]
+predicate sinkMayExecuteOnlyInNonPrivilegedContext(DataFlow::Node sink) {
+  exists(Job job |
+    job = sink.asExpr().getEnclosingJob() and
+    (
+      not exists(job.getATriggerEvent())
+      or
+      exists(Event event |
+        job.getATriggerEvent() = event and sinkMayExecuteForEvent(sink, event)
+      ) and
+      not exists(Event event |
+        job.getATriggerEvent() = event and
+        sinkMayExecuteForEvent(sink, event) and
+        job.isPrivilegedExternallyTriggerable(event)
+      )
+    )
+  )
+}
+
 /**
  * A taint-tracking configuration for unsafe artifacts
  * that is used may lead to artifact poisoning

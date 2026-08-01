@@ -19,6 +19,6 @@ import codeql.actions.security.ControlChecks
 from ArtifactPoisoningFlow::PathNode source, ArtifactPoisoningFlow::PathNode sink
 where
   ArtifactPoisoningFlow::flowPath(source, sink) and
-  inNonPrivilegedContext(sink.getNode().asExpr())
+  sinkMayExecuteOnlyInNonPrivilegedContext(sink.getNode())
 select source.getNode(), source, sink,
   "Potential artifact poisoning; the artifact being consumed has contents that may be controlled by an external user."

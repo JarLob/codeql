@@ -5,6 +5,7 @@ edges
 | .github/workflows/arg_injection.yml:10:15:10:50 | github.event.pull_request.title | .github/workflows/arg_injection.yml:28:14:30:31 | # VULNERABLE\nawk "BEGIN {$TITLE}"\n | provenance | Config |
 | .github/workflows/arg_injection.yml:10:15:10:50 | github.event.pull_request.title | .github/workflows/arg_injection.yml:37:14:42:111 | # VULNERABLE\nsed -e 's#<branch_to_sync>#${TITLE}#' \\\n    -e 's#<sot_repo>#${{ env.sot_repo }}#' \\\n    -e 's#<destination_repo>#TITLE#' \\\n    .github/workflows/common-copybara.bara.sky.template > .github/workflows/common-copybara.bara.sky\n | provenance | Config |
 | .github/workflows/arg_injection.yml:10:15:10:50 | github.event.pull_request.title | .github/workflows/arg_injection.yml:43:14:48:111 | # VULNERABLE\nsed -e 's#<branch_to_sync>#TITLE#' \\\n    -e 's#<sot_repo>#${{ env.sot_repo }}#' \\\n    -e 's#<destination_repo>#${TITLE}#' \\\n    .github/workflows/common-copybara.bara.sky.template > .github/workflows/common-copybara.bara.sky\n | provenance | Config |
+| .github/workflows/event_filtered_job.yml:10:15:10:52 | github.event.pull_request.title | .github/workflows/event_filtered_job.yml:12:14:12:33 | sed "s/FOO/$TITLE/g" | provenance | Config |
 nodes
 | .github/workflows/arg_injection.yml:10:15:10:50 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
 | .github/workflows/arg_injection.yml:19:14:21:31 | # VULNERABLE\nsed "s/FOO/$TITLE/g"\n | semmle.label | # VULNERABLE\nsed "s/FOO/$TITLE/g"\n |
@@ -19,6 +20,8 @@ nodes
 | .github/workflows/arg_injection.yml:53:14:56:41 | # VULNERABLE\nBODY=$(git diff --name-only HEAD)\nsed "s/FOO/$BODY/g" > /tmp/foo\n | semmle.label | # VULNERABLE\nBODY=$(git diff --name-only HEAD)\nsed "s/FOO/$BODY/g" > /tmp/foo\n |
 | .github/workflows/arg_injection.yml:57:14:60:41 | # VULNERABLE\nBODY=$(git diff --name-only HEAD )\nsed "s/FOO/$BODY/g" > /tmp/foo\n | semmle.label | # VULNERABLE\nBODY=$(git diff --name-only HEAD )\nsed "s/FOO/$BODY/g" > /tmp/foo\n |
 | .github/workflows/arg_injection.yml:61:14:64:41 | # VULNERABLE\nBODY=$(git diff --name-only HEAD^ \| xargs)\nsed "s/FOO/$BODY/g" > /tmp/foo\n | semmle.label | # VULNERABLE\nBODY=$(git diff --name-only HEAD^ \| xargs)\nsed "s/FOO/$BODY/g" > /tmp/foo\n |
+| .github/workflows/event_filtered_job.yml:10:15:10:52 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
+| .github/workflows/event_filtered_job.yml:12:14:12:33 | sed "s/FOO/$TITLE/g" | semmle.label | sed "s/FOO/$TITLE/g" |
 subpaths
 #select
 | .github/workflows/arg_injection.yml:19:14:21:31 | # VULNERABLE\nsed "s/FOO/$TITLE/g"\n | .github/workflows/arg_injection.yml:10:15:10:50 | github.event.pull_request.title | .github/workflows/arg_injection.yml:19:14:21:31 | # VULNERABLE\nsed "s/FOO/$TITLE/g"\n | Potential argument injection in $@ command, which may be controlled by an external user ($@). | .github/workflows/arg_injection.yml:19:14:21:31 | # VULNERABLE\nsed "s/FOO/$TITLE/g"\n | sed | .github/workflows/arg_injection.yml:4:3:4:21 | pull_request_target | pull_request_target |

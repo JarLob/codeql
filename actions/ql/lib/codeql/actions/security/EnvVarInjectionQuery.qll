@@ -124,6 +124,12 @@ class EnvVarInjectionFromMaDSink extends EnvVarInjectionSink {
   EnvVarInjectionFromMaDSink() { madSink(this, "envvar-injection") }
 }
 
+bindingset[sink, event]
+pragma[inline_late]
+predicate sinkMayExecuteForEvent(DataFlow::Node sink, Event event) {
+  IntegratedCfg::mayExecuteForEvent(sink.asExpr(), event)
+}
+
 /**
  * Get the relevant event for a sink in EnvVarInjectionCritical.ql where the source type is "artifact".
  */
@@ -147,6 +153,26 @@ Event getRelevantNonArtifactEventInPrivilegedContext(DataFlow::Node sink) {
   inPrivilegedContext(sink.asExpr(), result) and
   not exists(ControlCheck check |
     check.protects(sink.asExpr(), result, ["envvar-injection", "code-injection"])
+  )
+}
+
+bindingset[sink]
+pragma[inline_late]
+predicate sinkMayExecuteOnlyInNonPrivilegedContext(DataFlow::Node sink) {
+  exists(Job job |
+    job = sink.asExpr().getEnclosingJob() and
+    (
+      not exists(job.getATriggerEvent())
+      or
+      exists(Event event |
+        job.getATriggerEvent() = event and sinkMayExecuteForEvent(sink, event)
+      ) and
+      not exists(Event event |
+        job.getATriggerEvent() = event and
+        sinkMayExecuteForEvent(sink, event) and
+        job.isPrivilegedExternallyTriggerable(event)
+      )
+    )
   )
 }
 

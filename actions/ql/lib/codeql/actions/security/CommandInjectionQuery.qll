@@ -4,9 +4,16 @@ private import codeql.actions.dataflow.ExternalFlow
 import codeql.actions.dataflow.FlowSources
 import codeql.actions.DataFlow
 import codeql.actions.security.ControlChecks
+private import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 
 private class CommandInjectionSink extends DataFlow::Node {
   CommandInjectionSink() { madSink(this, "command-injection") }
+}
+
+bindingset[sink, event]
+pragma[inline_late]
+predicate sinkMayExecuteForEvent(DataFlow::Node sink, Event event) {
+  IntegratedCfg::mayExecuteForEvent(sink.asExpr(), event)
 }
 
 /** Get the relevant event for the sink in CommandInjectionCritical.ql. */
@@ -14,6 +21,26 @@ Event getRelevantEventInPrivilegedContext(DataFlow::Node sink) {
   inPrivilegedContext(sink.asExpr(), result) and
   not exists(ControlCheck check |
     check.protects(sink.asExpr(), result, ["command-injection", "code-injection"])
+  )
+}
+
+bindingset[sink]
+pragma[inline_late]
+predicate sinkMayExecuteOnlyInNonPrivilegedContext(DataFlow::Node sink) {
+  exists(Job job |
+    job = sink.asExpr().getEnclosingJob() and
+    (
+      not exists(job.getATriggerEvent())
+      or
+      exists(Event event |
+        job.getATriggerEvent() = event and sinkMayExecuteForEvent(sink, event)
+      ) and
+      not exists(Event event |
+        job.getATriggerEvent() = event and
+        sinkMayExecuteForEvent(sink, event) and
+        job.isPrivilegedExternallyTriggerable(event)
+      )
+    )
   )
 }
 

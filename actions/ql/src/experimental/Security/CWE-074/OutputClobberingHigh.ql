@@ -58,7 +58,9 @@ private string getSinkLabel(OutputClobberingFlow::PathNode sink) {
 from OutputClobberingFlow::PathNode source, OutputClobberingFlow::PathNode sink, Event event
 where
   OutputClobberingFlow::flowPath(source, sink) and
+  source.getNode().(RemoteFlowSource).getEventName() = event.getName() and
   inPrivilegedContext(sink.getNode().asExpr(), event) and
+  sinkMayExecuteForEvent(sink.getNode(), event) and
   // exclude paths to file read sinks from non-artifact sources
   (
     not source.getNode().(RemoteFlowSource).getSourceType() = "artifact" and

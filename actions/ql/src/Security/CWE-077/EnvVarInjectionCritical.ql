@@ -23,6 +23,7 @@ from EnvVarInjectionFlow::PathNode source, EnvVarInjectionFlow::PathNode sink, E
 where
   EnvVarInjectionFlow::flowPath(source, sink) and
   source.getNode().(RemoteFlowSource).getEventName() = event.getName() and
+  sinkMayExecuteForEvent(sink.getNode(), event) and
   // exclude paths to file read sinks from non-artifact sources
   (
     // source is text
