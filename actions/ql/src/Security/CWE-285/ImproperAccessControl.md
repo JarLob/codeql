@@ -1,24 +1,25 @@
 ## Overview
 
-Sometimes labels are used to approve GitHub Actions. An authorization check may not be properly implemented, allowing an attacker to mutate the code after it has been reviewed and approved by label.
+Sometimes labels are used to approve GitHub Actions. An authorization check may not be properly implemented, allowing an attacker to mutate the code after it has been reviewed and approved by label. Because labels belong to a pull request rather than a particular commit, later workflow runs may reuse an approval for different code.
 
 ## Recommendation
 
-When using labels, make sure that the code cannot be modified after it has been reviewed and the label has been set.
+When using labels, trigger the privileged workflow only when the approval label is applied and check out the approved commit by its immutable SHA.
 
 ## Example
 
 ### Incorrect Usage
 
-The following example shows a job that requires the label `safe to test` to be set before running untrusted code. There are two problems with the code:
+The following example shows a job that requires the label `safe to test` to be set before running untrusted code. There are three problems with the code:
 
-1. The workflow gets triggered on `synchronize` activity type and, therefore, it will get triggered every time there is a change in the Pull Request. An attacker can modify the code of the Pull Request after the code has been reviewed and the label has been set. The workflow will be triggered every time a new change is added to the Pull Request.
-2. The workflow uses `ref: ${{ github.event.pull_request.head.ref }}` for checkout, which is a branch name of the Pull Request. There is a window of opportunity for the attacker to modify their branch after the Pull Request is labeled, but before the workflow starts and runs the checkout.
+1. The workflow gets triggered on the `synchronize` activity type and, therefore, it will run every time the pull request head changes. An attacker can modify the pull request after it has been reviewed and labeled, and the existing label will authorize the new commit.
+2. The `reopened` activity type creates a similar path: an attacker can close the labeled pull request, update its branch, and reopen it while retaining the approval label.
+3. The workflow uses `ref: ${{ github.event.pull_request.head.ref }}` for checkout, which is a mutable branch name. There is a window of opportunity for the attacker to modify their branch after the pull request is labeled but before the workflow checks it out.
 
 ```yaml
 on:
   pull_request_target:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened]
 
 jobs:
   test:
