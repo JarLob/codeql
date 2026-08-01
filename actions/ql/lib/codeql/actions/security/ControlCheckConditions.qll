@@ -9,9 +9,7 @@ string any_category() {
     ]
 }
 
-string non_toctou_category() {
-  result = any_category() and not result = toctou_category()
-}
+string non_toctou_category() { result = any_category() and not result = toctou_category() }
 
 string toctou_category() { result = ["untrusted-checkout-toctou", "artifact-poisoning-toctou"] }
 
@@ -20,8 +18,8 @@ string any_event() { result = actor_not_attacker_event() or result = actor_is_at
 string actor_is_attacker_event() {
   result =
     [
-      "pull_request_target", "workflow_run", "discussion_comment", "discussion", "issues",
-      "fork", "watch"
+      "pull_request_target", "workflow_run", "discussion_comment", "discussion", "issues", "fork",
+      "watch"
     ]
 }
 
@@ -152,14 +150,15 @@ private predicate isWorkflowRunRepositoryCheckAtom(ExpressionNode node) {
     ])
 }
 
-private newtype TProtectionMode = MkProtectionMode(string name) {
-  name =
-    [
-      "label-identity-pull-request-repository", "identity-pull-request-repository",
-      "label-identity-workflow-run-repository", "identity-workflow-run-repository",
-      "label-identity", "identity", "none"
-    ]
-}
+private newtype TProtectionMode =
+  MkProtectionMode(string name) {
+    name =
+      [
+        "label-identity-pull-request-repository", "identity-pull-request-repository",
+        "label-identity-workflow-run-repository", "identity-workflow-run-repository",
+        "label-identity", "identity", "none"
+      ]
+  }
 
 private class ProtectionMode extends TProtectionMode {
   string name;
@@ -310,9 +309,7 @@ private predicate expressionFalseIsProtected(ExpressionNode node, ProtectionMode
   )
 }
 
-predicate parsedConditionProtectsCategoryAndEvent(
-  If condition, string category, string event
-) {
+predicate parsedConditionProtectsCategoryAndEvent(If condition, string category, string event) {
   exists(ProtectionMode mode, ExpressionRoot root |
     mode.protects(category, event) and
     condition.getATriggerEvent().getName() = event and
