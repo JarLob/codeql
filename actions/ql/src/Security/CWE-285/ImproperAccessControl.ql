@@ -13,13 +13,14 @@
 
 import codeql.actions.security.UntrustedCheckoutQuery
 import codeql.actions.security.ControlChecks
+private import codeql.actions.security.ControlCheckConditions as Conditions
 
-from LocalJob job, LabelCheck check, MutableRefCheckoutStep checkout, Event event
+from LocalJob job, LabelIfCheck check, MutableRefCheckoutStep checkout, Event event
 where
   job.isPrivilegedExternallyTriggerable(event) and
   job.getAContainedStep() = checkout and
   check.dominates(checkout, event) and
-  not check.protectsCategoryAndEvent("untrusted-checkout-toctou", event.getName()) and
+  not Conditions::conditionRequiresPullRequestRepositoryCheck(check) and
   (
     job.getATriggerEvent() = event and
     event.getName() = "pull_request_target" and

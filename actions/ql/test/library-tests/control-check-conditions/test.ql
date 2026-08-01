@@ -24,3 +24,10 @@ query predicate protectedConditions(string jobId) {
       event.getName())
   )
 }
+
+query predicate requiredPullRequestRepositoryConditions(string jobId) {
+  exists(LocalJob job |
+    job.getId() = jobId and
+    Conditions::conditionRequiresPullRequestRepositoryCheck(job.getIf())
+  )
+}
