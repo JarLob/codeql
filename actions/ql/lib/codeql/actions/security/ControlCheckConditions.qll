@@ -88,6 +88,47 @@ private predicate isAssociationCheckAtom(ExpressionNode node) {
     ])
 }
 
+private predicate isBooleanLiteral(ExpressionNode node, boolean value) {
+  node instanceof LiteralExpression and
+  node.(LiteralExpression).getKind() = "BooleanLiteral" and
+  node.(LiteralExpression).getValue().toLowerCase() = value.toString()
+}
+
+private predicate isPullRequestForkAccess(ExpressionNode node) {
+  accessesPath(node, "github.event.pull_request.head.repo.fork")
+}
+
+private predicate isPullRequestNonForkCheckAtom(ExpressionNode node) {
+  exists(BinaryExpression comparison |
+    node = comparison and
+    (
+      comparison.getOperator() = "==" and
+      (
+        isPullRequestForkAccess(comparison.getLeftOperand()) and
+        isBooleanLiteral(comparison.getRightOperand(), false)
+        or
+        isBooleanLiteral(comparison.getLeftOperand(), false) and
+        isPullRequestForkAccess(comparison.getRightOperand())
+      )
+      or
+      comparison.getOperator() = "!=" and
+      (
+        isPullRequestForkAccess(comparison.getLeftOperand()) and
+        isBooleanLiteral(comparison.getRightOperand(), true)
+        or
+        isBooleanLiteral(comparison.getLeftOperand(), true) and
+        isPullRequestForkAccess(comparison.getRightOperand())
+      )
+    )
+  )
+  or
+  exists(UnaryExpression negation |
+    node = negation and
+    negation.getOperator() = "!" and
+    isPullRequestForkAccess(negation.getOperand())
+  )
+}
+
 private predicate isPullRequestRepositoryCheckAtom(ExpressionNode node) {
   isAtomicCheck(node) and
   containsAccessPath(node,
@@ -98,6 +139,8 @@ private predicate isPullRequestRepositoryCheckAtom(ExpressionNode node) {
       "github.event.workflow_run.head_repository.full_name",
       "github.event.workflow_run.head_repository.owner.name"
     ])
+  or
+  isPullRequestNonForkCheckAtom(node)
 }
 
 private predicate isWorkflowRunRepositoryCheckAtom(ExpressionNode node) {

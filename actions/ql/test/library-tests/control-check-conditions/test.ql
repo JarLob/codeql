@@ -11,7 +11,7 @@ query predicate trustedAssociations(string jobId) {
 query predicate parsedOwners(string jobId, string kind) {
   exists(LocalJob job |
     job.getId() = jobId and
-    kind = ["association", "label"] and
+    kind = ["association", "label", "pull-request-repository"] and
     Conditions::isParsedCheckOwner(job.getIf(), kind)
   )
 }

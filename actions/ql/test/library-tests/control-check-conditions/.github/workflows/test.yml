@@ -25,3 +25,54 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo label
+
+  non-fork-exact:
+    if: github.event.pull_request.head.repo.fork == false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo local branch
+
+  non-fork-reversed:
+    if: false == github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo local branch
+
+  non-fork-not-true:
+    if: github.event.pull_request.head.repo.fork != true
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo local branch
+
+  non-fork-negated:
+    if: "!github.event.pull_request.head.repo.fork"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo local branch
+
+  non-fork-bypassable:
+    if: github.event.pull_request.head.repo.fork == false || vars.force
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo bypassable
+
+  fork-exact:
+    if: github.event.pull_request.head.repo.fork == true
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo fork
+
+  fork-not-false:
+    if: github.event.pull_request.head.repo.fork != false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo fork
+
+  renovate-non-fork:
+    if: >-
+      (github.actor == 'renovate[bot]' ||
+      contains(github.event.pull_request.labels.*.name, 'renovatebot')) &&
+      github.event.pull_request.head.repo.fork == false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo renovate

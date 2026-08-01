@@ -19,6 +19,7 @@ where
   job.isPrivilegedExternallyTriggerable(event) and
   job.getAContainedStep() = checkout and
   check.dominates(checkout, event) and
+  not check.protectsCategoryAndEvent("untrusted-checkout-toctou", event.getName()) and
   (
     job.getATriggerEvent() = event and
     event.getName() = "pull_request_target" and
