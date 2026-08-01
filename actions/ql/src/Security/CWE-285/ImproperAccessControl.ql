@@ -15,7 +15,12 @@ import codeql.actions.security.UntrustedCheckoutQuery
 import codeql.actions.security.ControlChecks
 private import codeql.actions.security.ControlCheckConditions as Conditions
 
-from LocalJob job, LabelIfCheck check, MutableRefCheckoutStep checkout, Event event
+private predicate isStalePullRequestApprovalTrigger(Event event) {
+  event.getName() = "pull_request_target" and
+  event.getAnActivityType() = ["synchronize", "reopened"]
+}
+
+from LocalJob job, LabelIfCheck check, PRHeadCheckoutStep checkout, Event event
 where
   job.isPrivilegedExternallyTriggerable(event) and
   job.getAContainedStep() = checkout and
@@ -23,10 +28,10 @@ where
   not Conditions::conditionRequiresPullRequestRepositoryCheck(check) and
   (
     job.getATriggerEvent() = event and
-    event.getName() = "pull_request_target" and
-    event.getAnActivityType() = "synchronize"
+    isStalePullRequestApprovalTrigger(event)
     or
     not exists(job.getATriggerEvent())
   )
-select checkout, "The checked-out code can be modified after the authorization check $@.", check,
-  check.toString()
+select checkout,
+  "The pull request code can change after the authorization check $@ and trigger another privileged run.",
+  check, check.toString()

@@ -1,0 +1,8 @@
+on:
+  workflow_call:
+
+jobs:
+  call:
+    permissions:
+      contents: write
+    uses: ./.github/workflows/reusable-reopened-sha-leaf.yml

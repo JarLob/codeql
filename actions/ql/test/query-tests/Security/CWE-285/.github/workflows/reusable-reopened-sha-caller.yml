@@ -1,0 +1,18 @@
+on:
+  pull_request_target:
+    types: [reopened]
+
+permissions: {}
+
+jobs:
+  approval:
+    if: contains(github.event.pull_request.labels.*.name, 'safe to test')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo approved
+
+  call:
+    needs: approval
+    permissions:
+      contents: write
+    uses: ./.github/workflows/reusable-reopened-sha-middle.yml
