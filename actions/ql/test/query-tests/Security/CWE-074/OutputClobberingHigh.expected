@@ -1,5 +1,6 @@
 edges
 | .github/workflows/checkout_v7_runtime_guard.yml:17:9:21:6 | Uses Step | .github/workflows/checkout_v7_runtime_guard.yml:21:14:23:59 | echo "SAFE=hardcoded" >> $GITHUB_OUTPUT\necho "UNSAFE=$(cat value.txt)" >> $GITHUB_OUTPUT\n | provenance | Config |
+| .github/workflows/event_filtered_output.yml:11:19:11:56 | github.event.pull_request.title | .github/workflows/event_filtered_output.yml:12:14:14:50 | echo "SAFE=value" >> "$GITHUB_OUTPUT"\necho "UNSAFE=$TITLE" >> "$GITHUB_OUTPUT" | provenance | Config |
 | .github/workflows/output1.yml:9:18:9:49 | github.event.comment.body | .github/workflows/output1.yml:10:14:13:50 | # VULNERABLE\necho "OUTPUT_1=HARDCODED" >> $GITHUB_OUTPUT\necho "OUTPUT_2=$BODY" >> $GITHUB_OUTPUT\n | provenance | Config |
 | .github/workflows/output1.yml:30:9:35:6 | Uses Step | .github/workflows/output1.yml:36:14:39:58 | # VULNERABLE\necho "OUTPUT_1=HARDCODED" >> $GITHUB_OUTPUT\necho "OUTPUT_2=$(<pr-number)" >> $GITHUB_OUTPUT\n | provenance | Config |
 | .github/workflows/output2.yml:9:18:9:49 | github.event.comment.body | .github/workflows/output2.yml:10:14:13:48 | # VULNERABLE\necho $BODY\necho "::set-output name=OUTPUT::SAFE"\n | provenance | Config |
@@ -17,6 +18,8 @@ edges
 nodes
 | .github/workflows/checkout_v7_runtime_guard.yml:17:9:21:6 | Uses Step | semmle.label | Uses Step |
 | .github/workflows/checkout_v7_runtime_guard.yml:21:14:23:59 | echo "SAFE=hardcoded" >> $GITHUB_OUTPUT\necho "UNSAFE=$(cat value.txt)" >> $GITHUB_OUTPUT\n | semmle.label | echo "SAFE=hardcoded" >> $GITHUB_OUTPUT\necho "UNSAFE=$(cat value.txt)" >> $GITHUB_OUTPUT\n |
+| .github/workflows/event_filtered_output.yml:11:19:11:56 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
+| .github/workflows/event_filtered_output.yml:12:14:14:50 | echo "SAFE=value" >> "$GITHUB_OUTPUT"\necho "UNSAFE=$TITLE" >> "$GITHUB_OUTPUT" | semmle.label | echo "SAFE=value" >> "$GITHUB_OUTPUT"\necho "UNSAFE=$TITLE" >> "$GITHUB_OUTPUT" |
 | .github/workflows/output1.yml:9:18:9:49 | github.event.comment.body | semmle.label | github.event.comment.body |
 | .github/workflows/output1.yml:10:14:13:50 | # VULNERABLE\necho "OUTPUT_1=HARDCODED" >> $GITHUB_OUTPUT\necho "OUTPUT_2=$BODY" >> $GITHUB_OUTPUT\n | semmle.label | # VULNERABLE\necho "OUTPUT_1=HARDCODED" >> $GITHUB_OUTPUT\necho "OUTPUT_2=$BODY" >> $GITHUB_OUTPUT\n |
 | .github/workflows/output1.yml:30:9:35:6 | Uses Step | semmle.label | Uses Step |

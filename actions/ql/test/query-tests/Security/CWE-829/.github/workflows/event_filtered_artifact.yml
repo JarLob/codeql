@@ -1,0 +1,14 @@
+on:
+  pull_request:
+  pull_request_target:
+
+jobs:
+  pull-request-only:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dawidd6/action-download-artifact@v2
+        with:
+          name: artifact_name
+          path: foo
+      - run: sh foo/cmd

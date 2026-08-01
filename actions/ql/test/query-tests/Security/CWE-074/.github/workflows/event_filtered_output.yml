@@ -1,0 +1,14 @@
+on:
+  pull_request:
+  pull_request_target:
+
+jobs:
+  pull-request-only:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "SAFE=value" >> "$GITHUB_OUTPUT"
+          echo "UNSAFE=$TITLE" >> "$GITHUB_OUTPUT"

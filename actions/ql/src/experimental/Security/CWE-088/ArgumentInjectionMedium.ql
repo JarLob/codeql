@@ -19,7 +19,7 @@ import ArgumentInjectionFlow::PathGraph
 from ArgumentInjectionFlow::PathNode source, ArgumentInjectionFlow::PathNode sink
 where
   ArgumentInjectionFlow::flowPath(source, sink) and
-  inNonPrivilegedContext(sink.getNode().asExpr())
+  sinkMayExecuteOnlyInNonPrivilegedContext(sink.getNode())
 select sink.getNode(), source, sink,
   "Potential argument injection in $@ command, which may be controlled by an external user.", sink,
   sink.getNode().(ArgumentInjectionSink).getCommand()

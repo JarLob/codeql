@@ -197,6 +197,12 @@ class OutputClobberingFromMaDSink extends OutputClobberingSink {
   OutputClobberingFromMaDSink() { madSink(this, "output-clobbering") }
 }
 
+bindingset[sink, event]
+pragma[inline_late]
+predicate sinkMayExecuteForEvent(DataFlow::Node sink, Event event) {
+  IntegratedCfg::mayExecuteForEvent(sink.asExpr(), event)
+}
+
 /**
  * A taint-tracking configuration for unsafe user input
  * that is used to construct and evaluate an environment variable.

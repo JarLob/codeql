@@ -21,7 +21,7 @@ import EnvVarInjectionFlow::PathGraph
 from EnvVarInjectionFlow::PathNode source, EnvVarInjectionFlow::PathNode sink
 where
   EnvVarInjectionFlow::flowPath(source, sink) and
-  inNonPrivilegedContext(sink.getNode().asExpr()) and
+  sinkMayExecuteOnlyInNonPrivilegedContext(sink.getNode()) and
   // exclude paths to file read sinks from non-artifact sources
   (
     not source.getNode().(RemoteFlowSource).getSourceType() = "artifact"

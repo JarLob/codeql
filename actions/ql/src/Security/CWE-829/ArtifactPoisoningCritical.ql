@@ -19,7 +19,9 @@ import codeql.actions.security.ControlChecks
 from ArtifactPoisoningFlow::PathNode source, ArtifactPoisoningFlow::PathNode sink, Event event
 where
   ArtifactPoisoningFlow::flowPath(source, sink) and
-  event = getRelevantEventInPrivilegedContext(sink.getNode())
+  source.getNode().(ArtifactSource).getEventName() = event.getName() and
+  event = getRelevantEventInPrivilegedContext(sink.getNode()) and
+  sinkMayExecuteForEvent(sink.getNode(), event)
 select source.getNode(), source, sink,
   "Potential artifact poisoning; the artifact being consumed has contents that may be controlled by an external user ($@).",
   event, event.getName()

@@ -1,0 +1,17 @@
+on:
+  pull_request:
+  pull_request_target:
+
+jobs:
+  pull-request-only:
+    if: github.event_name == 'pull_request'
+    permissions: {}
+    runs-on: ubuntu-latest
+    services:
+      database:
+        image: ${{ github.event.pull_request.title }}
+        credentials:
+          username: ci
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+    steps:
+      - run: echo test

@@ -2,6 +2,7 @@ private import actions
 private import codeql.actions.TaintTracking
 private import codeql.actions.dataflow.ExternalFlow
 private import codeql.actions.security.ControlChecks
+private import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 import codeql.actions.dataflow.FlowSources
 import codeql.actions.DataFlow
 
@@ -64,6 +65,12 @@ class ArgumentInjectionFromMaDSink extends ArgumentInjectionSink {
   override string getCommand() { result = "unknown" }
 }
 
+bindingset[sink, event]
+pragma[inline_late]
+predicate sinkMayExecuteForEvent(DataFlow::Node sink, Event event) {
+  IntegratedCfg::mayExecuteForEvent(sink.asExpr(), event)
+}
+
 /**
  * Gets the event that is relevant for the given node in the context of argument injection.
  *
@@ -72,6 +79,26 @@ class ArgumentInjectionFromMaDSink extends ArgumentInjectionSink {
 Event getRelevantEventInPrivilegedContext(DataFlow::Node node) {
   inPrivilegedContext(node.asExpr(), result) and
   not exists(ControlCheck check | check.protects(node.asExpr(), result, "argument-injection"))
+}
+
+bindingset[sink]
+pragma[inline_late]
+predicate sinkMayExecuteOnlyInNonPrivilegedContext(DataFlow::Node sink) {
+  exists(Job job |
+    job = sink.asExpr().getEnclosingJob() and
+    (
+      not exists(job.getATriggerEvent())
+      or
+      exists(Event event |
+        job.getATriggerEvent() = event and sinkMayExecuteForEvent(sink, event)
+      ) and
+      not exists(Event event |
+        job.getATriggerEvent() = event and
+        sinkMayExecuteForEvent(sink, event) and
+        job.isPrivilegedExternallyTriggerable(event)
+      )
+    )
+  )
 }
 
 /**

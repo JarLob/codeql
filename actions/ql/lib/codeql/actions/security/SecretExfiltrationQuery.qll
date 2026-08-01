@@ -4,6 +4,7 @@ private import codeql.actions.dataflow.ExternalFlow
 import codeql.actions.dataflow.FlowSources
 import codeql.actions.DataFlow
 private import codeql.actions.security.ControlCheckConditions as Conditions
+private import codeql.actions.ExpressionEvaluation as Evaluation
 
 private predicate isDirectWholeValueAccess(Expression expression) {
   expression.getParentNode().(ScalarValue).getValue().trim() = expression.getRawExpression().trim() and
@@ -12,6 +13,30 @@ private predicate isDirectWholeValueAccess(Expression expression) {
 
 private predicate jobRequiresTrustedAssociation(LocalJob job) {
   Conditions::conditionRequiresTrustedAssociation(job.getIf())
+}
+
+bindingset[condition, event]
+pragma[inline_late]
+private predicate conditionMayPermitEvent(If condition, Event event) {
+  Evaluation::isConditionFeasible(condition, event)
+}
+
+bindingset[job, event]
+pragma[inline_late]
+private predicate jobConditionMayPermitEvent(LocalJob job, Event event) {
+  job.getATriggerEvent() = event and
+  (
+    not exists(job.getIf())
+    or
+    exists(If condition |
+      condition = job.getIf() and
+      (
+        not exists(condition.getConditionExpr().getRoot())
+        or
+        conditionMayPermitEvent(condition, event)
+      )
+    )
+  )
 }
 
 private class ContainerRegistryCredentialExfiltrationSink extends DataFlow::Node {
@@ -26,6 +51,7 @@ private class ContainerRegistryCredentialExfiltrationSink extends DataFlow::Node
       username.getValue().trim() != "" and
       job.getRegistryPasswordExprForContainerImage(image) = password and
       job.isPrivilegedExternallyTriggerable(event) and
+      jobConditionMayPermitEvent(job, event) and
       image.getATriggerEvent() = event and
       not jobRequiresTrustedAssociation(job)
     )

@@ -1,5 +1,6 @@
 edges
 | .github/workflows/checkout_v7_runtime_guard.yml:33:9:37:6 | Uses Step | .github/workflows/checkout_v7_runtime_guard.yml:37:14:37:52 | echo "$(cat value.txt)" >> $GITHUB_PATH | provenance | Config |
+| .github/workflows/event_filtered_envpath.yml:11:19:11:56 | github.event.pull_request.title | .github/workflows/event_filtered_envpath.yml:12:14:12:44 | echo "$TITLE" >> "$GITHUB_PATH" | provenance | Config |
 | .github/workflows/path1.yml:13:21:13:58 | github.event.pull_request.title | .github/workflows/path1.yml:14:14:14:52 | echo $(echo "$PATHINJ") >> $GITHUB_PATH | provenance | Config |
 | .github/workflows/path1.yml:16:21:16:58 | github.event.pull_request.title | .github/workflows/path1.yml:17:14:17:42 | echo $PATHINJ >> $GITHUB_PATH | provenance | Config |
 | .github/workflows/path1.yml:19:21:19:58 | github.event.pull_request.title | .github/workflows/path1.yml:20:14:20:44 | echo ${PATHINJ} >> $GITHUB_PATH | provenance | Config |
@@ -8,6 +9,8 @@ edges
 nodes
 | .github/workflows/checkout_v7_runtime_guard.yml:33:9:37:6 | Uses Step | semmle.label | Uses Step |
 | .github/workflows/checkout_v7_runtime_guard.yml:37:14:37:52 | echo "$(cat value.txt)" >> $GITHUB_PATH | semmle.label | echo "$(cat value.txt)" >> $GITHUB_PATH |
+| .github/workflows/event_filtered_envpath.yml:11:19:11:56 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
+| .github/workflows/event_filtered_envpath.yml:12:14:12:44 | echo "$TITLE" >> "$GITHUB_PATH" | semmle.label | echo "$TITLE" >> "$GITHUB_PATH" |
 | .github/workflows/path1.yml:13:21:13:58 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
 | .github/workflows/path1.yml:14:14:14:52 | echo $(echo "$PATHINJ") >> $GITHUB_PATH | semmle.label | echo $(echo "$PATHINJ") >> $GITHUB_PATH |
 | .github/workflows/path1.yml:16:21:16:58 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
@@ -20,3 +23,4 @@ nodes
 | .github/workflows/path1.yml:29:14:29:40 | echo "::add-path::$PATHINJ" | semmle.label | echo "::add-path::$PATHINJ" |
 subpaths
 #select
+| .github/workflows/event_filtered_envpath.yml:12:14:12:44 | echo "$TITLE" >> "$GITHUB_PATH" | .github/workflows/event_filtered_envpath.yml:11:19:11:56 | github.event.pull_request.title | .github/workflows/event_filtered_envpath.yml:12:14:12:44 | echo "$TITLE" >> "$GITHUB_PATH" | Potential PATH environment variable injection in $@, which may be controlled by an external user. | .github/workflows/event_filtered_envpath.yml:12:14:12:44 | echo "$TITLE" >> "$GITHUB_PATH" | echo "$TITLE" >> "$GITHUB_PATH" |

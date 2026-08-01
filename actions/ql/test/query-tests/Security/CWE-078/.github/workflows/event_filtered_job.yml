@@ -1,0 +1,12 @@
+on:
+  pull_request:
+  pull_request_target:
+
+jobs:
+  pull-request-only:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ruby/setup-ruby@v2
+        with:
+          ruby-version: ${{ github.event.pull_request.title }}

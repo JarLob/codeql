@@ -21,7 +21,8 @@ import codeql.actions.security.ControlChecks
 from CommandInjectionFlow::PathNode source, CommandInjectionFlow::PathNode sink, Event event
 where
   CommandInjectionFlow::flowPath(source, sink) and
-  event = getRelevantEventInPrivilegedContext(sink.getNode())
+  event = getRelevantEventInPrivilegedContext(sink.getNode()) and
+  sinkMayExecuteForEvent(sink.getNode(), event)
 select sink.getNode(), source, sink,
   "Potential command injection in $@, which may be controlled by an external user ($@).", sink,
   sink.getNode().asExpr().(Expression).getRawExpression(), event, event.getName()

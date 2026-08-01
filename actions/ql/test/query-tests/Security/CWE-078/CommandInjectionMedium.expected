@@ -1,5 +1,7 @@
 edges
 nodes
 | .github/workflows/comment_issue.yml:9:26:9:57 | github.event.comment.body | semmle.label | github.event.comment.body |
+| .github/workflows/event_filtered_job.yml:12:26:12:63 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
 subpaths
 #select
+| .github/workflows/event_filtered_job.yml:12:26:12:63 | github.event.pull_request.title | .github/workflows/event_filtered_job.yml:12:26:12:63 | github.event.pull_request.title | .github/workflows/event_filtered_job.yml:12:26:12:63 | github.event.pull_request.title | Potential command injection in $@, which may be controlled by an external user. | .github/workflows/event_filtered_job.yml:12:26:12:63 | github.event.pull_request.title | ${{ github.event.pull_request.title }} |

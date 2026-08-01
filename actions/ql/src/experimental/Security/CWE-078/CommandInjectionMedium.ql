@@ -20,7 +20,7 @@ import CommandInjectionFlow::PathGraph
 from CommandInjectionFlow::PathNode source, CommandInjectionFlow::PathNode sink
 where
   CommandInjectionFlow::flowPath(source, sink) and
-  inNonPrivilegedContext(sink.getNode().asExpr())
+  sinkMayExecuteOnlyInNonPrivilegedContext(sink.getNode())
 select sink.getNode(), source, sink,
   "Potential command injection in $@, which may be controlled by an external user.", sink,
   sink.getNode().asExpr().(Expression).getRawExpression()
