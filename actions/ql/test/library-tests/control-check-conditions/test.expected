@@ -4,6 +4,8 @@ trustedAssociations
 parsedOwners
 | bypassable-member | association |
 | exact-member | association |
+| identity-or-non-fork | association |
+| identity-or-non-fork | pull-request-repository |
 | label-only | label |
 | non-fork-bypassable | pull-request-repository |
 | non-fork-exact | pull-request-repository |
@@ -16,6 +18,7 @@ parsedOwners
 protectedConditions
 | bypassable-member |
 | exact-member |
+| identity-or-non-fork |
 | label-only |
 | non-fork-exact |
 | non-fork-negated |
@@ -23,3 +26,9 @@ protectedConditions
 | non-fork-reversed |
 | renovate-non-fork |
 | reversed-owner |
+requiredPullRequestRepositoryConditions
+| non-fork-exact |
+| non-fork-negated |
+| non-fork-not-true |
+| non-fork-reversed |
+| renovate-non-fork |

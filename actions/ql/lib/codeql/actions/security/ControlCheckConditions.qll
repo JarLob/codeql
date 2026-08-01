@@ -397,6 +397,30 @@ predicate isParsedCheckOwner(If condition, string kind) {
   )
 }
 
+private predicate expressionTrueRequiresPullRequestRepositoryCheck(ExpressionNode node) {
+  isPullRequestRepositoryCheckAtom(node)
+  or
+  node instanceof ExpressionRoot and
+  expressionTrueRequiresPullRequestRepositoryCheck(node.getChild(0))
+  or
+  node instanceof BinaryExpression and
+  node.(BinaryExpression).getOperator() = "&&" and
+  expressionTrueRequiresPullRequestRepositoryCheck([
+      node.(BinaryExpression).getLeftOperand(), node.(BinaryExpression).getRightOperand()
+    ])
+  or
+  node instanceof BinaryExpression and
+  node.(BinaryExpression).getOperator() = "||" and
+  expressionTrueRequiresPullRequestRepositoryCheck(node.(BinaryExpression).getLeftOperand()) and
+  expressionTrueRequiresPullRequestRepositoryCheck(node.(BinaryExpression).getRightOperand())
+}
+
+bindingset[condition]
+pragma[inline_late]
+predicate conditionRequiresPullRequestRepositoryCheck(If condition) {
+  expressionTrueRequiresPullRequestRepositoryCheck(condition.getConditionExpr().getRoot())
+}
+
 private predicate isTrustedAssociationLiteral(ExpressionNode node) {
   node instanceof LiteralExpression and
   node.(LiteralExpression).getKind() = "StringLiteral" and

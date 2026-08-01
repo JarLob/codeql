@@ -68,6 +68,26 @@ jobs:
     steps:
       - run: echo fork
 
+  non-fork-string-false:
+    if: github.event.pull_request.head.repo.fork == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo string false
+
+  non-fork-string-not-true:
+    if: github.event.pull_request.head.repo.fork != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo string true
+
+  identity-or-non-fork:
+    if: >-
+      github.event.pull_request.author_association == 'MEMBER' ||
+      github.event.pull_request.head.repo.fork == false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo trusted identity or local branch
+
   renovate-non-fork:
     if: >-
       (github.actor == 'renovate[bot]' ||
