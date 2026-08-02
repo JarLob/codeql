@@ -15,39 +15,9 @@
 
 import actions
 import codeql.actions.security.UntrustedCheckoutQuery
-import codeql.actions.security.PoisonableSteps
-import codeql.actions.security.ControlChecks
-import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 
 from PRHeadCheckoutStep checkout, Event event
-where
-  IntegratedCfg::mayExecuteForEvent(checkout, event) and
-  // the checkout is NOT followed by a known poisonable step
-  not exists(PoisonableStep poisonable |
-    checkout.getAFollowingStep() = poisonable and
-    IntegratedCfg::mayReachForEvent(checkout, poisonable, event)
-  ) and
-  // the checkout occurs in a privileged context
-  inPrivilegedContext(checkout, event) and
-  event.getName() = checkoutTriggers() and
-  not runtimeGuardPreventsCheckout(checkout, event) and
-  (
-    // issue_comment: check for date comparison checks and actor/access control checks
-    event.getName() = "issue_comment" and
-    not exists(ControlCheck check, CommentVsHeadDateCheck date_check |
-      (
-        check instanceof ActorCheck or
-        check instanceof AssociationCheck or
-        check instanceof PermissionCheck
-      ) and
-      check.dominates(checkout, event) and
-      date_check.dominates(checkout, event)
-    )
-    or
-    // not issue_comment triggered workflows
-    not event.getName() = "issue_comment" and
-    not exists(ControlCheck check | check.protects(checkout, event, "untrusted-checkout"))
-  )
+where highSeverityUntrustedCheckout(checkout, event)
 select checkout,
   "Checkout of untrusted code in a privileged workflow with later potential execution (event trigger: $@).",
   event, event.getName()

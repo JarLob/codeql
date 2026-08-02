@@ -1,0 +1,76 @@
+on:
+  pull_request_target:
+    types: [synchronize]
+
+permissions: {}
+
+jobs:
+  stale-label-privileged: # Expected: TOCTOU; synchronization can retain a label that approved older code.
+    if: contains(github.event.pull_request.labels.*.name, 'safe-to-test')
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: ./cmd
+
+  untrusted-nonprivileged: # Expected: medium untrusted checkout; no authorization protects this checkout.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+  authorized-nonprivileged: # Expected: TOCTOU category but no public alert; the mutable ref can change after the label.
+    if: contains(github.event.pull_request.labels.*.name, 'safe-to-test')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+  actor-condition-bypass: # Expected: improper access control; the event branch bypasses the actor check.
+    if: github.actor == 'trusted-maintainer' || github.event.action == 'synchronize'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: ./cmd
+
+  association-condition-bypass: # Expected: improper access control; the event branch bypasses association.
+    if: github.event.pull_request.author_association == 'MEMBER' || github.event.action == 'synchronize'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: ./cmd
+
+  label-condition-bypass: # Expected: improper access control; the event branch bypasses the label check.
+    if: contains(github.event.pull_request.labels.*.name, 'safe-to-test') || github.event.action == 'synchronize'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: ./cmd
+
+  unrelated-condition-privileged: # Expected: ordinary untrusted checkout; this is not an authorization attempt.
+    if: github.event.action == 'synchronize'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: ./cmd

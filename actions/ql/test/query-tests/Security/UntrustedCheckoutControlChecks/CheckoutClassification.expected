@@ -1,0 +1,27 @@
+classifications
+| classification.yml | actor-condition-bypass | improper-access-control |
+| classification.yml | association-condition-bypass | improper-access-control |
+| classification.yml | authorized-nonprivileged | toctou |
+| classification.yml | label-condition-bypass | improper-access-control |
+| classification.yml | stale-label-privileged | toctou |
+| classification.yml | unrelated-condition-privileged | untrusted-checkout |
+| classification.yml | untrusted-nonprivileged | untrusted-checkout |
+| issue_comment.yml | association-date-captured | protected |
+| issue_comment.yml | association-date-late-resolution | toctou |
+| issue_comment.yml | association-no-date | toctou |
+| pull_request.yml | trigger-discriminated-label | untrusted-checkout |
+| pull_request_target.yml | association-bypass | improper-access-control |
+| pull_request_target.yml | association-continued | improper-access-control |
+| pull_request_target.yml | association-protected | protected |
+| pull_request_target.yml | permission-auto-fail | protected |
+| pull_request_target.yml | permission-auto-fail-continued | improper-access-control |
+| pull_request_target.yml | permission-auto-fail-old-version | improper-access-control |
+| pull_request_target.yml | permission-no-require | untrusted-checkout |
+| pull_request_target.yml | permission-nonfailing-gate | improper-access-control |
+| pull_request_target.yml | permission-protected | protected |
+| pull_request_target.yml | permission-read | improper-access-control |
+| pull_request_target.yml | permission-unchecked-write | improper-access-control |
+| workflow_run.yml | repository-bypass | improper-access-control |
+| workflow_run.yml | repository-protected | protected |
+overlappingClassifications
+unclassifiedCheckouts

@@ -39,13 +39,20 @@ neededJobProtection
 | protected-dependent |
 actionChecks
 | actions-cool-auto-fail | permission |
+| actions-cool-auto-fail-continued | ineffective-permission |
+| actions-cool-auto-fail-dynamic-continue | ineffective-permission |
 | actions-cool-auto-fail-explicit-false | permission |
+| actions-cool-auto-fail-old-version | ineffective-permission |
 | actions-cool-auto-fail-v2 | permission |
 | actions-cool-auto-fail-v2x | permission |
 | actions-cool-auto-fail-v230 | permission |
 | actions-cool-auto-fail-v230-sha | permission |
 | actions-cool-auto-fail-v240 | permission |
 | actions-cool-auto-fail-v240-sha | permission |
+| actions-cool-bypassable-gate | ineffective-permission |
+| actions-cool-continued-gate | ineffective-permission |
+| actions-cool-nonfailing-gate | ineffective-permission |
+| actions-cool-read | ineffective-permission |
 | actions-cool-write | permission |
 | collaborator-octokit | permission |
 | collaborator-script | permission |
@@ -54,8 +61,12 @@ actionChecks
 | membership-script | association |
 | prince-admin | permission |
 | slash-default | permission |
+| slash-read | ineffective-permission |
+| sushichop-read | ineffective-permission |
 | sushichop-write | permission |
+| team-membership-continued | ineffective-association |
 | team-membership-default | association |
+| team-membership-exit-false | ineffective-association |
 | team-membership-exit-true | association |
 commentDateChecks
 | proper-date-check |
