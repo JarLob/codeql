@@ -1,0 +1,124 @@
+on:
+  pull_request_target:
+
+permissions: write-all
+
+jobs:
+  association-protected: # Expected: no alert; the membership action fails for untrusted actors.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: TheModdingInquisition/actions-team-membership@master
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: ./cmd
+
+  association-bypass: # Expected: critical alert; exit: false makes membership informational only.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: TheModdingInquisition/actions-team-membership@master
+        with:
+          exit: false
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: ./cmd
+
+  permission-protected: # Expected: no alert; a write requirement is followed by a matching failure gate.
+    runs-on: ubuntu-latest
+    steps:
+      - id: permission
+        uses: actions-cool/check-user-permission@v2
+        with:
+          require: write
+      - if: steps.permission.outputs.require-result == 'false'
+        run: exit 1
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: ./cmd
+
+  permission-read: # Expected: critical alert; read access is insufficient for trusted code execution.
+    runs-on: ubuntu-latest
+    steps:
+      - id: permission
+        uses: actions-cool/check-user-permission@v2
+        with:
+          require: read
+      - if: steps.permission.outputs.require-result == 'false'
+        run: exit 1
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: ./cmd
+
+  permission-unchecked-write: # Expected: critical alert; require-result is never enforced.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-cool/check-user-permission@v2
+        with:
+          require: write
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: ./cmd
+
+  permission-auto-fail: # Expected: no alert; this version supports automatic failure on missing write access.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-cool/check-user-permission@main
+        with:
+          require: write
+          error-if-missing: true
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: ./cmd
+
+  permission-auto-fail-continued: # Expected: critical alert; continue-on-error bypasses automatic failure.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-cool/check-user-permission@main
+        continue-on-error: true
+        with:
+          require: write
+          error-if-missing: true
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: ./cmd
+
+  permission-auto-fail-old-version: # Expected: critical alert; v2.2.1 ignores error-if-missing.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-cool/check-user-permission@v2.2.1
+        with:
+          require: write
+          error-if-missing: true
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: ./cmd
+
+  permission-nonfailing-gate: # Expected: critical alert; the output check reports but does not fail.
+    runs-on: ubuntu-latest
+    steps:
+      - id: permission
+        uses: actions-cool/check-user-permission@v2
+        with:
+          require: write
+      - if: steps.permission.outputs.require-result == 'false'
+        run: echo insufficient permission
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: ./cmd

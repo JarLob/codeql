@@ -12,11 +12,21 @@ parsedOwners
 | non-fork-negated | pull-request-repository |
 | non-fork-not-true | pull-request-repository |
 | non-fork-reversed | pull-request-repository |
+| pr-repository-bypassable | pull-request-repository |
+| pr-repository-full-name | pull-request-repository |
+| pr-repository-owner | pull-request-repository |
 | renovate-non-fork | label |
 | renovate-non-fork | pull-request-repository |
 | reversed-owner | association |
+| workflow-run-owner-exact | pull-request-repository |
+| workflow-run-owner-exact | workflow-run-repository |
+| workflow-run-repository-bypassable | pull-request-repository |
+| workflow-run-repository-bypassable | workflow-run-repository |
+| workflow-run-repository-exact | pull-request-repository |
+| workflow-run-repository-exact | workflow-run-repository |
+| workflow-run-repository-only | pull-request-repository |
+| workflow-run-repository-only | workflow-run-repository |
 protectedConditions
-| bypassable-member |
 | exact-member |
 | identity-or-non-fork |
 | label-only |
@@ -24,11 +34,21 @@ protectedConditions
 | non-fork-negated |
 | non-fork-not-true |
 | non-fork-reversed |
+| pr-repository-full-name |
+| pr-repository-owner |
 | renovate-non-fork |
 | reversed-owner |
+| workflow-run-owner-exact |
+| workflow-run-repository-exact |
+| workflow-run-repository-only |
 requiredPullRequestRepositoryConditions
 | non-fork-exact |
 | non-fork-negated |
 | non-fork-not-true |
 | non-fork-reversed |
+| pr-repository-full-name |
+| pr-repository-owner |
 | renovate-non-fork |
+| workflow-run-owner-exact |
+| workflow-run-repository-exact |
+| workflow-run-repository-only |

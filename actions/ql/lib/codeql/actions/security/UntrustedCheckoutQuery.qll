@@ -3,6 +3,10 @@ private import codeql.actions.DataFlow
 private import codeql.actions.config.Config
 private import codeql.actions.dataflow.FlowSources
 private import codeql.actions.TaintTracking
+private import codeql.actions.security.ControlChecks
+private import codeql.actions.security.PoisonableSteps
+private import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
+private import codeql.actions.JobSynchronization as JobSync
 
 string checkoutTriggers() {
   result = ["pull_request_target", "workflow_run", "workflow_call", "issue_comment"]
@@ -290,6 +294,152 @@ abstract class MutableRefCheckoutStep extends PRHeadCheckoutStep { }
 /** Checkout of a Pull Request HEAD ref */
 abstract class SHACheckoutStep extends PRHeadCheckoutStep { }
 
+/**
+ * Holds if `checkout` may retrieve pull request code that changed after an approval for `event`.
+ *
+ * Mutable references can change after any approval. An `issue_comment` payload does not contain
+ * the pull request head SHA, so even an immutable head SHA must be resolved after the triggering
+ * comment and may already identify code that was pushed after the approval.
+ */
+predicate mayCheckoutCodeChangedAfterApproval(PRHeadCheckoutStep checkout, Event event) {
+  checkout instanceof MutableRefCheckoutStep
+  or
+  checkout instanceof SHACheckoutStep and event.getName() = "issue_comment"
+}
+
+/** Gets `reference` or a job output expression transitively referenced by it. */
+private AstNode getShaReferenceFragment(AstNode reference) {
+  result = reference
+  or
+  exists(NeedsExpression access, Outputs outputs, Expression output |
+    access = reference.getAChildNode*() and
+    outputs = access.getTarget() and
+    output = outputs.getOutputExpr(access.getFieldName()) and
+    result = getShaReferenceFragment(output)
+  )
+}
+
+/** Gets a step that produced the SHA referenced by `reference`. */
+private Step getShaProducer(AstNode reference) {
+  exists(AstNode fragment, StepsExpression access |
+    fragment = getShaReferenceFragment(reference) and
+    access = fragment.getAChildNode*() and
+    result = access.getTarget()
+  )
+}
+
+/** Holds if every reference fragment is bound to a step or a resolvable job output. */
+private predicate hasOnlyBoundShaReferences(AstNode reference) {
+  not exists(AstNode fragment, SimpleReferenceExpression access |
+    fragment = getShaReferenceFragment(reference) and
+    access = fragment.getAChildNode*() and
+    not access.getTarget() instanceof Step and
+    not exists(Outputs outputs |
+      outputs = access.getTarget() and
+      exists(outputs.getOutputExpr(access.getFieldName()))
+    )
+  )
+}
+
+/** Holds if `producer` must run no later than `checkStep` for `event`. */
+private predicate producerPrecedesCheck(Step producer, Step checkStep, Event event) {
+  producer = checkStep
+  or
+  IntegratedCfg::orderedStepsMayReachForEvent(producer, checkStep, event)
+  or
+  producer.getEnclosingJob() != checkStep.getEnclosingJob() and
+  JobSync::jobExecutionRequiresSuccessfulCompletionOf(checkStep.getEnclosingJob(),
+    producer.getEnclosingJob(), event)
+}
+
+/** Holds if the SHA used by `checkout` was captured no later than `check`. */
+private predicate shaCapturedNoLaterThanCheck(
+  SHACheckoutStep checkout, CommentVsHeadDateCheck check, Event event
+) {
+  exists(AstNode reference, Step checkStep |
+    reference = getCheckoutReference(checkout) and
+    checkStep = check and
+    hasOnlyBoundShaReferences(reference) and
+    exists(getShaProducer(reference)) and
+    not exists(Step producer |
+      producer = getShaProducer(reference) and
+      not producerPrecedesCheck(producer, checkStep, event)
+    )
+  )
+}
+
+/**
+ * Holds if `checkout` has effective protection against code changing after approval.
+ *
+ * A comment-versus-head date check protects an immutable SHA captured no later than that check.
+ * It does not protect a SHA resolved after the check or a mutable reference, either of which can
+ * identify code pushed after the check.
+ */
+predicate hasEffectiveCheckoutTOCTOUProtection(PRHeadCheckoutStep checkout, Event event) {
+  exists(ControlCheck check |
+    check.protects(checkout, event, "untrusted-checkout-toctou") and
+    (
+      not check instanceof CommentVsHeadDateCheck
+      or
+      checkout instanceof SHACheckoutStep and
+      not checkout instanceof MutableRefCheckoutStep and
+      shaCapturedNoLaterThanCheck(checkout, check, event)
+    )
+  )
+}
+
+/**
+ * Holds if `checkout` and `poisonable` form a critical untrusted-checkout TOCTOU finding for
+ * `event`.
+ */
+predicate criticalSeverityUntrustedCheckoutTOCTOU(
+  PRHeadCheckoutStep checkout, PoisonableStep poisonable, Event event
+) {
+  mayCheckoutCodeChangedAfterApproval(checkout, event) and
+  // The checked-out code may lead to arbitrary code execution.
+  checkout.getAFollowingStep() = poisonable and
+  IntegratedCfg::orderedStepsMayReachForEvent(checkout, poisonable, event) and
+  // The checkout occurs in a privileged context.
+  inPrivilegedContext(checkout, event) and
+  // The checkout has ordinary protection, but no effective protection against mutation.
+  exists(ControlCheck check |
+    check.protects(checkout, event, "untrusted-checkout")
+  ) and
+  not hasEffectiveCheckoutTOCTOUProtection(checkout, event)
+}
+
+bindingset[checkout, event]
+pragma[inline_late]
+private predicate hasDownstreamCriticalFindingForSameReference(
+  PRHeadCheckoutStep checkout, Event event
+) {
+  exists(PRHeadCheckoutStep criticalCheckout, PoisonableStep poisonable |
+    getCheckoutReferenceText(getCheckoutReference(criticalCheckout)) =
+      getCheckoutReferenceText(getCheckoutReference(checkout)) and
+    IntegratedCfg::mayReachForEvent(checkout, criticalCheckout, event) and
+    criticalSeverityUntrustedCheckoutTOCTOU(criticalCheckout, poisonable, event)
+  )
+}
+
+/** Holds if `checkout` forms a high untrusted-checkout TOCTOU finding for `event`. */
+predicate highSeverityUntrustedCheckoutTOCTOU(PRHeadCheckoutStep checkout, Event event) {
+  mayCheckoutCodeChangedAfterApproval(checkout, event) and
+  IntegratedCfg::mayExecuteForEvent(checkout, event) and
+  // There is no evidence that the checked-out code is executed.
+  not exists(PoisonableStep poisonable |
+    checkout.getAFollowingStep() = poisonable and
+    IntegratedCfg::orderedStepsMayReachForEvent(checkout, poisonable, event)
+  ) and
+  not hasDownstreamCriticalFindingForSameReference(checkout, event) and
+  // The checkout occurs in a privileged context.
+  inPrivilegedContext(checkout, event) and
+  // The checkout has ordinary protection, but no effective protection against mutation.
+  exists(ControlCheck check |
+    check.protects(checkout, event, "untrusted-checkout")
+  ) and
+  not hasEffectiveCheckoutTOCTOUProtection(checkout, event)
+}
+
 private predicate hasOnlyStaticMatrixValues(Expression expr) {
   expr instanceof MatrixExpression and
   exists(expr.(MatrixExpression).getADeclaredValue()) and
@@ -312,7 +462,9 @@ class ActionsMutableRefCheckout extends MutableRefCheckoutStep instanceof UsesSt
       or
       // heuristic base on the step id and field name
       exists(string value, Expression expr |
-        value.regexpMatch(".*(head|branch|ref).*") and expr = this.getArgumentExpr("ref")
+        value.regexpMatch(".*(head|branch|ref).*") and
+        not value.regexpMatch(".*(sha|commit).*") and
+        expr = this.getArgumentExpr("ref")
       |
         expr.(StepsExpression).getStepId() = value
         or
@@ -348,7 +500,7 @@ class ActionsSHACheckout extends SHACheckoutStep instanceof UsesStep {
       or
       // heuristic base on the step id and field name
       exists(string value, Expression expr |
-        value.regexpMatch(".*(head|sha|commit).*") and expr = this.getArgumentExpr("ref")
+        value.regexpMatch(".*(sha|commit).*") and expr = this.getArgumentExpr("ref")
       |
         expr.(StepsExpression).getStepId() = value
         or

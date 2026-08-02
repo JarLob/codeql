@@ -1,0 +1,151 @@
+name: Cross-job comment SHA freshness
+on:
+  issue_comment:
+    types: [created]
+
+permissions: write-all
+
+jobs:
+  capture-before-check:
+    runs-on: ubuntu-latest
+    outputs:
+      head_sha: ${{ fromJson(steps.issue.outputs.result).sha }}
+    steps:
+      - uses: actions/github-script@v6
+        id: issue
+        with:
+          script: |
+            const data = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number
+            })
+            return { sha: data.data.head.sha }
+
+  check-captured-sha:
+    if: ${{ contains(fromJson('["MEMBER", "OWNER"]'), github.event.comment.author_association) }}
+    needs: capture-before-check
+    runs-on: ubuntu-latest
+    outputs:
+      head_sha: ${{ needs.capture-before-check.outputs.head_sha }}
+    steps:
+      - name: Reject commits pushed after the approval comment
+        env:
+          COMMENT_AT: ${{ github.event.comment.created_at }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr="$(gh api "/repos/${GH_REPO}/pulls/${PR_NUMBER}")" || exit 1
+          pushed_epoch="$(jq -erj '.head.repo.pushed_at | fromdateiso8601' <<<"$pr")" || exit 1
+          comment_epoch="$(jq -nerj --arg value "$COMMENT_AT" '$value | fromdateiso8601')" || exit 1
+          (( pushed_epoch < comment_epoch )) || exit 1
+
+  use-captured-sha: # Expected: no TOCTOU alert; the checked job exports the previously captured SHA.
+    needs: check-captured-sha
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check-captured-sha.outputs.head_sha }}
+      - run: bash comment_example/tests.sh
+
+  use-captured-sha-after-failed-check: # Expected: critical TOCTOU alert; always() bypasses the failed check.
+    if: ${{ always() && contains(fromJson('["MEMBER", "OWNER"]'), github.event.comment.author_association) }}
+    needs: check-captured-sha
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check-captured-sha.outputs.head_sha }}
+      - run: bash comment_example/tests.sh
+
+  freshness-only:
+    if: ${{ contains(fromJson('["MEMBER", "OWNER"]'), github.event.comment.author_association) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject commits pushed after the approval comment
+        env:
+          COMMENT_AT: ${{ github.event.comment.created_at }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr="$(gh api "/repos/${GH_REPO}/pulls/${PR_NUMBER}")" || exit 1
+          pushed_epoch="$(jq -erj '.head.repo.pushed_at | fromdateiso8601' <<<"$pr")" || exit 1
+          comment_epoch="$(jq -nerj --arg value "$COMMENT_AT" '$value | fromdateiso8601')" || exit 1
+          (( pushed_epoch < comment_epoch )) || exit 1
+
+  resolve-after-check-critical: # Expected: critical TOCTOU alert; this job resolves the SHA after the check.
+    needs: freshness-only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v6
+        id: issue
+        with:
+          script: |
+            const data = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number
+            })
+            return { sha: data.data.head.sha }
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ fromJson(steps.issue.outputs.result).sha }}
+      - run: bash comment_example/tests.sh
+
+  resolve-after-check-high: # Expected: high TOCTOU alert; this job resolves the SHA after the check.
+    needs: freshness-only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v6
+        id: issue
+        with:
+          script: |
+            const data = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number
+            })
+            return { sha: data.data.head.sha }
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ fromJson(steps.issue.outputs.result).sha }}
+
+  check-then-capture:
+    if: ${{ contains(fromJson('["MEMBER", "OWNER"]'), github.event.comment.author_association) }}
+    runs-on: ubuntu-latest
+    outputs:
+      head_sha: ${{ fromJson(steps.issue.outputs.result).sha }}
+    steps:
+      - name: Reject commits pushed after the approval comment
+        env:
+          COMMENT_AT: ${{ github.event.comment.created_at }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr="$(gh api "/repos/${GH_REPO}/pulls/${PR_NUMBER}")" || exit 1
+          pushed_epoch="$(jq -erj '.head.repo.pushed_at | fromdateiso8601' <<<"$pr")" || exit 1
+          comment_epoch="$(jq -nerj --arg value "$COMMENT_AT" '$value | fromdateiso8601')" || exit 1
+          (( pushed_epoch < comment_epoch )) || exit 1
+      - uses: actions/github-script@v6
+        id: issue
+        with:
+          script: |
+            const data = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number
+            })
+            return { sha: data.data.head.sha }
+
+  use-late-captured-sha: # Expected: critical TOCTOU alert; the checked job captures this SHA after the check.
+    needs: check-then-capture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check-then-capture.outputs.head_sha }}
+      - run: bash comment_example/tests.sh

@@ -35,7 +35,7 @@ private predicate containsAccessPath(ExpressionNode node, string path) {
 
 private predicate isAtomicCheck(ExpressionNode node) {
   node instanceof BinaryExpression and
-  node.(BinaryExpression).getOperator() != ["&&", "||"]
+  not node.(BinaryExpression).getOperator() = ["&&", "||"]
   or
   node instanceof FunctionCallExpression
 }
@@ -84,6 +84,39 @@ private predicate isAssociationCheckAtom(ExpressionNode node) {
       "github.event.comment.author_association", "github.event.issue.author_association",
       "github.event.pull_request.author_association"
     ])
+}
+
+// On issue_comment, issue.author_association identifies the PR author, not the commenter.
+private predicate isPullRequestAuthorAssociationAccess(ExpressionNode node) {
+  accessesPath(node,
+    [
+      "github.event.issue.author_association",
+      "github.event.pull_request.author_association"
+    ])
+}
+
+private predicate isTrustedPullRequestAuthorAssociationLiteral(ExpressionNode node) {
+  node instanceof LiteralExpression and
+  node.(LiteralExpression).getKind() = "StringLiteral" and
+  node.(LiteralExpression).getValue().toUpperCase() =
+    [
+      "'COLLABORATOR'", "\"COLLABORATOR\"", "'MEMBER'", "\"MEMBER\"", "'OWNER'",
+      "\"OWNER\""
+    ]
+}
+
+private predicate isPullRequestAuthorAssociationCheckAtom(ExpressionNode node) {
+  exists(BinaryExpression comparison |
+    node = comparison and
+    comparison.getOperator() = "==" and
+    (
+      isPullRequestAuthorAssociationAccess(comparison.getLeftOperand()) and
+      isTrustedPullRequestAuthorAssociationLiteral(comparison.getRightOperand())
+      or
+      isTrustedPullRequestAuthorAssociationLiteral(comparison.getLeftOperand()) and
+      isPullRequestAuthorAssociationAccess(comparison.getRightOperand())
+    )
+  )
 }
 
 private predicate isBooleanLiteral(ExpressionNode node, boolean value) {
@@ -156,7 +189,7 @@ private newtype TProtectionMode =
       [
         "label-identity-pull-request-repository", "identity-pull-request-repository",
         "label-identity-workflow-run-repository", "identity-workflow-run-repository",
-        "label-identity", "identity", "none"
+        "label-identity", "identity", "pull-request-author-identity", "none"
       ]
   }
 
@@ -193,8 +226,7 @@ private class ProtectionMode extends TProtectionMode {
     event = actor_not_attacker_event() and
     (
       category = non_toctou_category() and name = "label-identity"
-      or
-      category = toctou_category() and name = "none"
+      or category = toctou_category() and name = "pull-request-author-identity"
     )
   }
 
@@ -206,7 +238,9 @@ private class ProtectionMode extends TProtectionMode {
         "label-identity-workflow-run-repository"
       ]
     or
-    kind = "identity" and not name = "none"
+    kind = "identity" and not name = ["pull-request-author-identity", "none"]
+    or
+    kind = "pull-request-author-identity" and not name = "none"
     or
     kind = "pull-request-repository" and
     name = ["label-identity-pull-request-repository", "identity-pull-request-repository"]
@@ -221,6 +255,9 @@ private predicate atomProtectsMode(ExpressionNode node, ProtectionMode mode) {
   or
   (isActorCheckAtom(node) or isAssociationCheckAtom(node)) and
   mode.allows("identity")
+  or
+  isPullRequestAuthorAssociationCheckAtom(node) and
+  mode.allows("pull-request-author-identity")
   or
   isPullRequestRepositoryCheckAtom(node) and
   mode.allows("pull-request-repository")

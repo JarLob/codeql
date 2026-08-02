@@ -1,0 +1,36 @@
+on:
+  workflow_run:
+    workflows: [Build]
+    types: [completed]
+
+jobs:
+  workflow-run-repository-exact: # Expected: full-name provenance is recognized and protective.
+    if: >-
+      github.actor == 'octocat' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo exact repository
+
+  workflow-run-owner-exact: # Expected: owner provenance is recognized and protective.
+    if: >-
+      github.actor == 'octocat' &&
+      github.event.workflow_run.head_repository.owner.name == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo exact owner
+
+  workflow-run-repository-only: # Expected: repository provenance alone protects workflow_run.
+    if: github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo repository only
+
+  workflow-run-repository-bypassable: # Expected: recognized but not protective due to the failure branch.
+    if: >-
+      (github.actor == 'octocat' &&
+      github.event.workflow_run.head_repository.full_name == github.repository) ||
+      github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo bypassable

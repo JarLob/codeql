@@ -7,7 +7,7 @@ on:
 
 jobs:
 
-  deploy:
+  deploy: # Expected: no TOCTOU alert; the PR author controls the checked-out code and is trusted.
     name: Update deployment
     if: >
       github.event.issue.pull_request &&

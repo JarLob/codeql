@@ -1,0 +1,12 @@
+extensions:
+  - addsTo:
+      pack: codeql/actions-all
+      extensible: actionsControlBehaviorDataModel
+    data:
+      # actions-cool/check-user-permission added error-if-missing in v2.3.0.
+      - ["actions-cool/check-user-permission", ">=2.3.0", "error-if-missing"]
+      - ["actions-cool/check-user-permission", "7b90a27f92f3961b368376107661682c441f6103", "error-if-missing"] # v2.3.0
+      - ["actions-cool/check-user-permission", "c21884f3dda18dafc2f8b402fe807ccc9ec1aa5e", "error-if-missing"] # v2.4.0
+      - ["actions-cool/check-user-permission", "v2", "error-if-missing"]
+      - ["actions-cool/check-user-permission", "v2.x", "error-if-missing"]
+      - ["actions-cool/check-user-permission", "main", "error-if-missing"]

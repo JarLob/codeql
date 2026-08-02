@@ -15,11 +15,11 @@ jobs:
             github.event.issue.pull_request &&
             (contains(github.event.comment.body, '/deploy') || contains(github.event.comment.body, '/rollback')) &&
             contains(github.event.issue.labels.*.name, 'Deployment Update') &&
-            github.event.comment.user.type != 'Bot' &&
-            github.event.pull_request.author_association != 'FIRST_TIMER' &&
-            github.event.pull_request.author_association != 'FIRST_TIME_CONTRIBUTOR' &&
-            github.event.pull_request.author_association != 'MANNEQUIN' &&
-            github.event.pull_request.author_association != 'NONE'
+            github.event.comment.user.type != 'Bot' && contains(fromJson('["COLLABORATOR", "MEMBER", "OWNER"]'), github.event.comment.author_association) &&
+            github.event.issue.author_association != 'FIRST_TIMER' &&
+            github.event.issue.author_association != 'FIRST_TIME_CONTRIBUTOR' &&
+            github.event.issue.author_association != 'MANNEQUIN' &&
+            github.event.issue.author_association != 'NONE'
           }}
 
     runs-on: ubuntu-latest
@@ -65,15 +65,39 @@ jobs:
         PR_NUMBER: ${{ github.event.issue.number }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        pr="$(gh api /repos/${GH_REPO}/pulls/${PR_NUMBER})"
-        pushed_at="$(echo "$pr" | jq -r .pushed_at)"
+        pr="$(gh api "/repos/${GH_REPO}/pulls/${PR_NUMBER}")" || {
+          echo "Unable to retrieve pull request" >&2
+          exit 1
+        }
 
-        if [[ $(date -d "$pushed_at" +%s) -gt $(date -d "$COMMENT_AT" +%s) ]]; then
-          echo "Deployment not allowed because the PR was pushed to (at $pushed_at) after the triggering comment was issued (at $COMMENT_AT)"
+        # jq avoids GNU date -d and -j avoids CRLF in command substitutions on Windows.
+        # "pushed_at" can be null, but fromdateiso8601 invocation will fail in that case.
+        pushed_epoch="$(
+          jq -erj '.head.repo.pushed_at | fromdateiso8601' <<<"$pr"
+        )" || {
+          echo "Unable to parse the repository push timestamp" >&2
+          exit 1
+        }
+
+        comment_epoch="$(
+          jq -nerj --arg value "$COMMENT_AT" '$value | fromdateiso8601'
+        )" || {
+          echo "Unable to parse the approval comment timestamp" >&2
+          exit 1
+        }
+
+        # Both timestamps have one-second precision, so equality must be rejected.
+        if (( pushed_epoch >= comment_epoch )); then
+          # pushed_at covers the entire fork repository, not only the PR branch,
+          # so this check is conservative and may reject some valid PRs.
+          echo "The repository was pushed to at or after the approval comment" >&2
           exit 1
         fi
 
-  deploy:
+        # An attacker can still push after this check but before a mutable-ref checkout,
+        # especially when the check and checkout run in separate jobs.
+
+  deploy: # Expected: no untrusted-checkout alert; needs propagates the modeled author-association guard to this checkout and execution.
 
     name: Update deployment
     needs: security-checks

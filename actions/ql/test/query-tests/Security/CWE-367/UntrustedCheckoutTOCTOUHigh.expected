@@ -1,2 +1,2 @@
-| .github/workflows/test6.yml:42:7:47:4 | Uses Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/test6.yml:5:3:5:15 | issue_comment | issue_comment |
-| .github/workflows/test6.yml:92:7:97:4 | Uses Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/test6.yml:5:3:5:15 | issue_comment | issue_comment |
+| .github/workflows/comment_sha_cross_job.yml:112:9:116:2 | Uses Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/comment_sha_cross_job.yml:3:3:3:15 | issue_comment | issue_comment |
+| .github/workflows/comment_sha_high.yml:26:9:28:62 | Uses Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/comment_sha_high.yml:3:3:3:15 | issue_comment | issue_comment |

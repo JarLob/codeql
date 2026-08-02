@@ -179,6 +179,68 @@ predicate unsafePrCheckoutGuardDataModel(string action, string version) {
   Extensions::unsafePrCheckoutGuardDataModel(action, version)
 }
 
+private string releaseSemVerPattern() {
+  result = "^v?(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+}
+
+bindingset[version]
+private predicate parseReleaseSemVer(string version, int major, int minor, int patch) {
+  exists(string normalized |
+    normalized = version.toLowerCase() and
+    normalized.regexpMatch(releaseSemVerPattern()) and
+    major = normalized.regexpCapture(releaseSemVerPattern(), 1).toInt() and
+    minor = normalized.regexpCapture(releaseSemVerPattern(), 2).toInt() and
+    patch = normalized.regexpCapture(releaseSemVerPattern(), 3).toInt()
+  )
+}
+
+bindingset[version, minimum]
+private predicate releaseSemVerAtLeast(string version, string minimum) {
+  exists(int major, int minor, int patch, int minMajor, int minMinor, int minPatch |
+    parseReleaseSemVer(version, major, minor, patch) and
+    parseReleaseSemVer(minimum, minMajor, minMinor, minPatch) and
+    (
+      major > minMajor
+      or
+      major = minMajor and minor > minMinor
+      or
+      major = minMajor and minor = minMinor and patch >= minPatch
+    )
+  )
+}
+
+bindingset[modeledVersion]
+private predicate exactActionBehaviorVersionMatches(string version, string modeledVersion) {
+  version = modeledVersion and not modeledVersion.matches(">=%")
+}
+
+bindingset[version, modeledVersion]
+private predicate minimumActionBehaviorVersionMatches(string version, string modeledVersion) {
+  modeledVersion.matches(">=%") and
+  releaseSemVerAtLeast(version, modeledVersion.regexpCapture("^>=(.*)$", 1))
+}
+
+/**
+ * MaD models for versioned security-relevant action behavior.
+ * Fields:
+ *    - action: action name
+ *    - version: exact branch, tag, or commit SHA, or a minimum release such as `>=2.3.0`
+ *    - capability: modeled behavior name
+ */
+bindingset[action, version, capability]
+predicate actionsControlBehaviorDataModel(
+  string action, string version, string capability
+) {
+  exists(string modeledVersion |
+    Extensions::actionsControlBehaviorDataModel(action, modeledVersion, capability) and
+    (
+      exactActionBehaviorVersionMatches(version, modeledVersion)
+      or
+      minimumActionBehaviorVersionMatches(version, modeledVersion)
+    )
+  )
+}
+
 /**
  * MaD models for immutable actions
  * Fields:

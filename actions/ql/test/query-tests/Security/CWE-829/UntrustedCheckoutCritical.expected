@@ -150,6 +150,10 @@ edges
 | .github/workflows/environment_protection.yml:36:17:36:57 | github.event.pull_request.head.ref | .github/workflows/environment_protection.yml:33:9:37:6 | Uses Step |
 | .github/workflows/environment_protection.yml:43:9:47:6 | Uses Step | .github/workflows/environment_protection.yml:47:9:47:22 | Run Step |
 | .github/workflows/environment_protection.yml:46:17:46:57 | github.event.pull_request.head.ref | .github/workflows/environment_protection.yml:43:9:47:6 | Uses Step |
+| .github/workflows/event_filtered_artifact.yml:10:9:14:6 | Uses Step | .github/workflows/event_filtered_artifact.yml:14:9:14:23 | Run Step |
+| .github/workflows/event_filtered_path_traversal.yml:10:9:13:6 | Uses Step | .github/workflows/event_filtered_path_traversal.yml:13:9:14:6 | Run Step |
+| .github/workflows/event_filtered_path_traversal.yml:12:17:12:57 | github.event.pull_request.head.sha | .github/workflows/event_filtered_path_traversal.yml:10:9:13:6 | Uses Step |
+| .github/workflows/event_filtered_path_traversal.yml:13:9:14:6 | Run Step | .github/workflows/event_filtered_path_traversal.yml:14:9:19:2 | Uses Step |
 | .github/workflows/gitcheckout.yml:10:11:18:8 | Run Step | .github/workflows/gitcheckout.yml:18:11:21:8 | Uses Step |
 | .github/workflows/gitcheckout.yml:17:27:17:48 | github.head_ref | .github/workflows/gitcheckout.yml:10:11:18:8 | Run Step |
 | .github/workflows/gitcheckout.yml:18:11:21:8 | Uses Step | .github/workflows/gitcheckout.yml:21:11:23:22 | Run Step |
@@ -192,6 +196,9 @@ edges
 | .github/workflows/issue_comment_octokit.yml:98:17:98:47 | steps.sha.outputs.result | .github/workflows/issue_comment_octokit.yml:95:9:100:2 | Uses Step |
 | .github/workflows/issue_comment_octokit.yml:103:9:109:6 | Uses Step: request | .github/workflows/issue_comment_octokit.yml:109:9:114:66 | Uses Step |
 | .github/workflows/issue_comment_octokit.yml:114:17:114:66 | fromJson(steps.request.outputs.data).head.ref | .github/workflows/issue_comment_octokit.yml:109:9:114:66 | Uses Step |
+| .github/workflows/issue_comment_pr_author_association.yml:20:9:30:6 | Run Step: pr | .github/workflows/issue_comment_pr_author_association.yml:30:9:33:6 | Uses Step |
+| .github/workflows/issue_comment_pr_author_association.yml:30:9:33:6 | Uses Step | .github/workflows/issue_comment_pr_author_association.yml:33:9:33:42 | Run Step |
+| .github/workflows/issue_comment_pr_author_association.yml:32:17:32:48 | steps.pr.outputs.head_sha | .github/workflows/issue_comment_pr_author_association.yml:30:9:33:6 | Uses Step |
 | .github/workflows/label_trusted_checkout1.yml:11:7:15:4 | Uses Step | .github/workflows/label_trusted_checkout1.yml:15:7:16:4 | Uses Step |
 | .github/workflows/label_trusted_checkout1.yml:13:15:13:55 | github.event.pull_request.head.sha | .github/workflows/label_trusted_checkout1.yml:11:7:15:4 | Uses Step |
 | .github/workflows/label_trusted_checkout1.yml:15:7:16:4 | Uses Step | .github/workflows/label_trusted_checkout1.yml:16:7:20:4 | Run Step |
@@ -326,59 +333,59 @@ edges
 | .github/workflows/test9.yml:13:17:13:57 | github.event.pull_request.head.sha | .github/workflows/test9.yml:11:9:16:6 | Uses Step |
 | .github/workflows/test10.yml:20:9:25:6 | Uses Step | .github/workflows/test10.yml:25:9:30:2 | Run Step |
 | .github/workflows/test10.yml:23:17:23:79 | github.event.after \|\| github.event.pull_request.head.sha | .github/workflows/test10.yml:20:9:25:6 | Uses Step |
-| .github/workflows/test11.yml:30:7:45:4 | Run Step | .github/workflows/test11.yml:45:7:84:4 | Run Step: environment |
-| .github/workflows/test11.yml:45:7:84:4 | Run Step: environment | .github/workflows/test11.yml:84:7:90:4 | Uses Step |
-| .github/workflows/test11.yml:84:7:90:4 | Uses Step | .github/workflows/test11.yml:90:7:93:54 | Uses Step |
-| .github/workflows/test11.yml:88:15:88:55 | steps.environment.outputs.head_sha | .github/workflows/test11.yml:84:7:90:4 | Uses Step |
-| .github/workflows/test12.yml:32:7:47:4 | Run Step | .github/workflows/test12.yml:47:7:86:4 | Run Step: environment |
-| .github/workflows/test12.yml:47:7:86:4 | Run Step: environment | .github/workflows/test12.yml:86:7:92:4 | Uses Step |
-| .github/workflows/test12.yml:86:7:92:4 | Uses Step | .github/workflows/test12.yml:92:7:95:54 | Uses Step |
-| .github/workflows/test12.yml:90:15:90:55 | steps.environment.outputs.head_sha | .github/workflows/test12.yml:86:7:92:4 | Uses Step |
+| .github/workflows/test11.yml:30:7:45:4 | Run Step | .github/workflows/test11.yml:45:7:108:4 | Run Step: environment |
+| .github/workflows/test11.yml:45:7:108:4 | Run Step: environment | .github/workflows/test11.yml:108:7:114:4 | Uses Step |
+| .github/workflows/test11.yml:108:7:114:4 | Uses Step | .github/workflows/test11.yml:114:7:117:54 | Uses Step |
+| .github/workflows/test11.yml:112:15:112:55 | steps.environment.outputs.head_sha | .github/workflows/test11.yml:108:7:114:4 | Uses Step |
+| .github/workflows/test12.yml:32:7:47:4 | Run Step | .github/workflows/test12.yml:47:7:110:4 | Run Step: environment |
+| .github/workflows/test12.yml:47:7:110:4 | Run Step: environment | .github/workflows/test12.yml:110:7:116:4 | Uses Step |
+| .github/workflows/test12.yml:110:7:116:4 | Uses Step | .github/workflows/test12.yml:116:7:119:54 | Uses Step |
+| .github/workflows/test12.yml:114:15:114:55 | steps.environment.outputs.head_sha | .github/workflows/test12.yml:110:7:116:4 | Uses Step |
 | .github/workflows/test13.yml:14:7:20:4 | Uses Step | .github/workflows/test13.yml:20:7:25:4 | Uses Step |
 | .github/workflows/test13.yml:20:7:25:4 | Uses Step | .github/workflows/test13.yml:25:7:28:4 | Uses Step |
 | .github/workflows/test13.yml:23:25:23:56 | github.event.issue.number | .github/workflows/test13.yml:20:7:25:4 | Uses Step |
 | .github/workflows/test13.yml:25:7:28:4 | Uses Step | .github/workflows/test13.yml:28:7:31:50 | Run Step |
 | .github/workflows/test14.yml:38:7:41:4 | Uses Step | .github/workflows/test14.yml:41:7:44:4 | Run Step |
 | .github/workflows/test14.yml:41:7:44:4 | Run Step | .github/workflows/test14.yml:44:7:58:4 | Run Step |
-| .github/workflows/test14.yml:44:7:58:4 | Run Step | .github/workflows/test14.yml:58:7:76:2 | Run Step: environment |
-| .github/workflows/test14.yml:90:7:94:4 | Uses Step: comment-branch | .github/workflows/test14.yml:94:7:101:4 | Uses Step |
-| .github/workflows/test14.yml:94:7:101:4 | Uses Step | .github/workflows/test14.yml:101:7:105:4 | Uses Step |
-| .github/workflows/test14.yml:101:7:105:4 | Uses Step | .github/workflows/test14.yml:105:7:111:4 | Uses Step |
-| .github/workflows/test14.yml:105:7:111:4 | Uses Step | .github/workflows/test14.yml:111:7:135:4 | Run Step: environment |
-| .github/workflows/test14.yml:109:15:109:58 | steps.comment-branch.outputs.head_ref | .github/workflows/test14.yml:105:7:111:4 | Uses Step |
-| .github/workflows/test14.yml:111:7:135:4 | Run Step: environment | .github/workflows/test14.yml:135:7:141:4 | Run Step: email |
-| .github/workflows/test14.yml:135:7:141:4 | Run Step: email | .github/workflows/test14.yml:141:7:149:4 | Run Step: slack-id |
-| .github/workflows/test14.yml:141:7:149:4 | Run Step: slack-id | .github/workflows/test14.yml:149:7:169:4 | Uses Step: slack-initiate |
-| .github/workflows/test14.yml:149:7:169:4 | Uses Step: slack-initiate | .github/workflows/test14.yml:169:7:174:4 | Uses Step |
-| .github/workflows/test14.yml:169:7:174:4 | Uses Step | .github/workflows/test14.yml:174:7:187:4 | Run Step |
-| .github/workflows/test14.yml:174:7:187:4 | Run Step | .github/workflows/test14.yml:187:7:198:4 | Run Step |
-| .github/workflows/test14.yml:187:7:198:4 | Run Step | .github/workflows/test14.yml:198:7:206:4 | Uses Step |
-| .github/workflows/test14.yml:198:7:206:4 | Uses Step | .github/workflows/test14.yml:206:7:226:4 | Uses Step |
-| .github/workflows/test14.yml:206:7:226:4 | Uses Step | .github/workflows/test14.yml:226:7:227:45 | Run Step |
-| .github/workflows/test15.yml:38:7:56:4 | Run Step: environment | .github/workflows/test15.yml:56:7:60:4 | Uses Step: comment-branch |
-| .github/workflows/test15.yml:56:7:60:4 | Uses Step: comment-branch | .github/workflows/test15.yml:60:7:65:4 | Uses Step |
-| .github/workflows/test15.yml:60:7:65:4 | Uses Step | .github/workflows/test15.yml:65:7:68:4 | Uses Step |
-| .github/workflows/test15.yml:63:15:63:58 | steps.comment-branch.outputs.head_ref | .github/workflows/test15.yml:60:7:65:4 | Uses Step |
-| .github/workflows/test15.yml:65:7:68:4 | Uses Step | .github/workflows/test15.yml:68:7:83:2 | Run Step |
-| .github/workflows/test15.yml:106:7:110:4 | Uses Step: comment-branch | .github/workflows/test15.yml:110:7:115:4 | Uses Step |
-| .github/workflows/test15.yml:110:7:115:4 | Uses Step | .github/workflows/test15.yml:115:7:120:4 | Uses Step |
-| .github/workflows/test15.yml:113:15:113:58 | steps.comment-branch.outputs.head_ref | .github/workflows/test15.yml:110:7:115:4 | Uses Step |
-| .github/workflows/test15.yml:115:7:120:4 | Uses Step | .github/workflows/test15.yml:120:7:127:4 | Run Step |
-| .github/workflows/test15.yml:120:7:127:4 | Run Step | .github/workflows/test15.yml:127:7:131:4 | Run Step |
-| .github/workflows/test15.yml:127:7:131:4 | Run Step | .github/workflows/test15.yml:131:7:136:4 | Run Step |
-| .github/workflows/test15.yml:131:7:136:4 | Run Step | .github/workflows/test15.yml:136:7:141:2 | Run Step |
-| .github/workflows/test15.yml:169:7:173:4 | Uses Step: comment-branch | .github/workflows/test15.yml:173:7:180:4 | Uses Step |
-| .github/workflows/test15.yml:173:7:180:4 | Uses Step | .github/workflows/test15.yml:180:7:185:4 | Uses Step |
-| .github/workflows/test15.yml:180:7:185:4 | Uses Step | .github/workflows/test15.yml:185:7:197:4 | Run Step: pipeline-info |
-| .github/workflows/test15.yml:183:15:183:58 | steps.comment-branch.outputs.head_ref | .github/workflows/test15.yml:180:7:185:4 | Uses Step |
-| .github/workflows/test15.yml:185:7:197:4 | Run Step: pipeline-info | .github/workflows/test15.yml:197:7:203:4 | Run Step: email |
-| .github/workflows/test15.yml:197:7:203:4 | Run Step: email | .github/workflows/test15.yml:203:7:211:4 | Run Step: slack-id |
-| .github/workflows/test15.yml:203:7:211:4 | Run Step: slack-id | .github/workflows/test15.yml:211:7:231:4 | Uses Step: slack-initiate |
-| .github/workflows/test15.yml:211:7:231:4 | Uses Step: slack-initiate | .github/workflows/test15.yml:231:7:236:4 | Uses Step |
-| .github/workflows/test15.yml:231:7:236:4 | Uses Step | .github/workflows/test15.yml:236:7:242:4 | Run Step |
-| .github/workflows/test15.yml:236:7:242:4 | Run Step | .github/workflows/test15.yml:242:7:250:4 | Uses Step |
-| .github/workflows/test15.yml:242:7:250:4 | Uses Step | .github/workflows/test15.yml:250:7:270:4 | Uses Step |
-| .github/workflows/test15.yml:250:7:270:4 | Uses Step | .github/workflows/test15.yml:270:7:271:45 | Run Step |
+| .github/workflows/test14.yml:44:7:58:4 | Run Step | .github/workflows/test14.yml:58:7:100:2 | Run Step: environment |
+| .github/workflows/test14.yml:114:7:118:4 | Uses Step: comment-branch | .github/workflows/test14.yml:118:7:125:4 | Uses Step |
+| .github/workflows/test14.yml:118:7:125:4 | Uses Step | .github/workflows/test14.yml:125:7:129:4 | Uses Step |
+| .github/workflows/test14.yml:125:7:129:4 | Uses Step | .github/workflows/test14.yml:129:7:135:4 | Uses Step |
+| .github/workflows/test14.yml:129:7:135:4 | Uses Step | .github/workflows/test14.yml:135:7:159:4 | Run Step: environment |
+| .github/workflows/test14.yml:133:15:133:58 | steps.comment-branch.outputs.head_ref | .github/workflows/test14.yml:129:7:135:4 | Uses Step |
+| .github/workflows/test14.yml:135:7:159:4 | Run Step: environment | .github/workflows/test14.yml:159:7:165:4 | Run Step: email |
+| .github/workflows/test14.yml:159:7:165:4 | Run Step: email | .github/workflows/test14.yml:165:7:173:4 | Run Step: slack-id |
+| .github/workflows/test14.yml:165:7:173:4 | Run Step: slack-id | .github/workflows/test14.yml:173:7:193:4 | Uses Step: slack-initiate |
+| .github/workflows/test14.yml:173:7:193:4 | Uses Step: slack-initiate | .github/workflows/test14.yml:193:7:198:4 | Uses Step |
+| .github/workflows/test14.yml:193:7:198:4 | Uses Step | .github/workflows/test14.yml:198:7:211:4 | Run Step |
+| .github/workflows/test14.yml:198:7:211:4 | Run Step | .github/workflows/test14.yml:211:7:222:4 | Run Step |
+| .github/workflows/test14.yml:211:7:222:4 | Run Step | .github/workflows/test14.yml:222:7:230:4 | Uses Step |
+| .github/workflows/test14.yml:222:7:230:4 | Uses Step | .github/workflows/test14.yml:230:7:250:4 | Uses Step |
+| .github/workflows/test14.yml:230:7:250:4 | Uses Step | .github/workflows/test14.yml:250:7:251:45 | Run Step |
+| .github/workflows/test15.yml:38:7:80:4 | Run Step: environment | .github/workflows/test15.yml:80:7:84:4 | Uses Step: comment-branch |
+| .github/workflows/test15.yml:80:7:84:4 | Uses Step: comment-branch | .github/workflows/test15.yml:84:7:89:4 | Uses Step |
+| .github/workflows/test15.yml:84:7:89:4 | Uses Step | .github/workflows/test15.yml:89:7:92:4 | Uses Step |
+| .github/workflows/test15.yml:87:15:87:58 | steps.comment-branch.outputs.head_ref | .github/workflows/test15.yml:84:7:89:4 | Uses Step |
+| .github/workflows/test15.yml:89:7:92:4 | Uses Step | .github/workflows/test15.yml:92:7:107:2 | Run Step |
+| .github/workflows/test15.yml:130:7:134:4 | Uses Step: comment-branch | .github/workflows/test15.yml:134:7:139:4 | Uses Step |
+| .github/workflows/test15.yml:134:7:139:4 | Uses Step | .github/workflows/test15.yml:139:7:144:4 | Uses Step |
+| .github/workflows/test15.yml:137:15:137:58 | steps.comment-branch.outputs.head_ref | .github/workflows/test15.yml:134:7:139:4 | Uses Step |
+| .github/workflows/test15.yml:139:7:144:4 | Uses Step | .github/workflows/test15.yml:144:7:151:4 | Run Step |
+| .github/workflows/test15.yml:144:7:151:4 | Run Step | .github/workflows/test15.yml:151:7:155:4 | Run Step |
+| .github/workflows/test15.yml:151:7:155:4 | Run Step | .github/workflows/test15.yml:155:7:160:4 | Run Step |
+| .github/workflows/test15.yml:155:7:160:4 | Run Step | .github/workflows/test15.yml:160:7:165:2 | Run Step |
+| .github/workflows/test15.yml:193:7:197:4 | Uses Step: comment-branch | .github/workflows/test15.yml:197:7:204:4 | Uses Step |
+| .github/workflows/test15.yml:197:7:204:4 | Uses Step | .github/workflows/test15.yml:204:7:209:4 | Uses Step |
+| .github/workflows/test15.yml:204:7:209:4 | Uses Step | .github/workflows/test15.yml:209:7:221:4 | Run Step: pipeline-info |
+| .github/workflows/test15.yml:207:15:207:58 | steps.comment-branch.outputs.head_ref | .github/workflows/test15.yml:204:7:209:4 | Uses Step |
+| .github/workflows/test15.yml:209:7:221:4 | Run Step: pipeline-info | .github/workflows/test15.yml:221:7:227:4 | Run Step: email |
+| .github/workflows/test15.yml:221:7:227:4 | Run Step: email | .github/workflows/test15.yml:227:7:235:4 | Run Step: slack-id |
+| .github/workflows/test15.yml:227:7:235:4 | Run Step: slack-id | .github/workflows/test15.yml:235:7:255:4 | Uses Step: slack-initiate |
+| .github/workflows/test15.yml:235:7:255:4 | Uses Step: slack-initiate | .github/workflows/test15.yml:255:7:260:4 | Uses Step |
+| .github/workflows/test15.yml:255:7:260:4 | Uses Step | .github/workflows/test15.yml:260:7:266:4 | Run Step |
+| .github/workflows/test15.yml:260:7:266:4 | Run Step | .github/workflows/test15.yml:266:7:274:4 | Uses Step |
+| .github/workflows/test15.yml:266:7:274:4 | Uses Step | .github/workflows/test15.yml:274:7:294:4 | Uses Step |
+| .github/workflows/test15.yml:274:7:294:4 | Uses Step | .github/workflows/test15.yml:294:7:295:45 | Run Step |
 | .github/workflows/test16.yml:43:9:47:6 | Run Step | .github/workflows/test16.yml:47:9:49:6 | Uses Step |
 | .github/workflows/test16.yml:47:9:49:6 | Uses Step | .github/workflows/test16.yml:49:9:56:6 | Uses Step: get_token |
 | .github/workflows/test16.yml:49:9:56:6 | Uses Step: get_token | .github/workflows/test16.yml:56:9:68:2 | Uses Step: upgrade_check |
@@ -523,7 +530,7 @@ edges
 | .github/workflows/test7.yml:19:9:24:6 | Uses Step | .github/workflows/test7.yml:22:27:22:58 | github.event.issue.number | .github/workflows/test7.yml:59:9:60:6 | Run Step | Checkout of untrusted code from $@ in a privileged workflow with later potential execution (event trigger: $@). | .github/workflows/test7.yml:22:27:22:58 | github.event.issue.number | github.event.issue.number | .github/workflows/test7.yml:4:3:4:15 | issue_comment | issue_comment |
 | .github/workflows/test7.yml:19:9:24:6 | Uses Step | .github/workflows/test7.yml:22:27:22:58 | github.event.issue.number | .github/workflows/test7.yml:60:9:60:37 | Run Step | Checkout of untrusted code from $@ in a privileged workflow with later potential execution (event trigger: $@). | .github/workflows/test7.yml:22:27:22:58 | github.event.issue.number | github.event.issue.number | .github/workflows/test7.yml:4:3:4:15 | issue_comment | issue_comment |
 | .github/workflows/test10.yml:20:9:25:6 | Uses Step | .github/workflows/test10.yml:23:17:23:79 | github.event.after \|\| github.event.pull_request.head.sha | .github/workflows/test10.yml:25:9:30:2 | Run Step | Checkout of untrusted code from $@ in a privileged workflow with later potential execution (event trigger: $@). | .github/workflows/test10.yml:23:17:23:79 | github.event.after \|\| github.event.pull_request.head.sha | github.event.after \|\| github.event.pull_request.head.sha | .github/workflows/test10.yml:8:3:8:21 | pull_request_target | pull_request_target |
-| .github/workflows/test11.yml:84:7:90:4 | Uses Step | .github/workflows/test11.yml:88:15:88:55 | steps.environment.outputs.head_sha | .github/workflows/test11.yml:90:7:93:54 | Uses Step | Checkout of untrusted code from $@ in a privileged workflow with later potential execution (event trigger: $@). | .github/workflows/test11.yml:88:15:88:55 | steps.environment.outputs.head_sha | steps.environment.outputs.head_sha | .github/workflows/test11.yml:5:3:5:15 | issue_comment | issue_comment |
+| .github/workflows/test11.yml:108:7:114:4 | Uses Step | .github/workflows/test11.yml:112:15:112:55 | steps.environment.outputs.head_sha | .github/workflows/test11.yml:114:7:117:54 | Uses Step | Checkout of untrusted code from $@ in a privileged workflow with later potential execution (event trigger: $@). | .github/workflows/test11.yml:112:15:112:55 | steps.environment.outputs.head_sha | steps.environment.outputs.head_sha | .github/workflows/test11.yml:5:3:5:15 | issue_comment | issue_comment |
 | .github/workflows/test17.yml:12:15:19:12 | Uses Step | .github/workflows/test17.yml:16:25:16:68 | github.event.workflow_run.head_branch | .github/workflows/test17.yml:19:15:23:58 | Uses Step | Checkout of untrusted code from $@ in a privileged workflow with later potential execution (event trigger: $@). | .github/workflows/test17.yml:16:25:16:68 | github.event.workflow_run.head_branch | github.event.workflow_run.head_branch | .github/workflows/test17.yml:3:5:3:16 | workflow_run | workflow_run |
 | .github/workflows/test27.yml:18:9:21:6 | Uses Step | .github/workflows/test27.yml:20:17:20:37 | inputs.git_ref | .github/workflows/test27.yml:21:9:22:16 | Run Step | Checkout of untrusted code from $@ in a privileged workflow with later potential execution (event trigger: $@). | .github/workflows/test27.yml:20:17:20:37 | inputs.git_ref | inputs.git_ref | .github/workflows/test26.yml:4:3:4:14 | workflow_run | workflow_run |
 | .github/workflows/test28.yml:17:9:20:6 | Uses Step | .github/workflows/test28.yml:19:17:19:38 | github.head_ref | .github/workflows/test28.yml:20:9:20:22 | Run Step | Checkout of untrusted code from $@ in a privileged workflow with later potential execution (event trigger: $@). | .github/workflows/test28.yml:19:17:19:38 | github.head_ref | github.head_ref | .github/workflows/test28.yml:2:3:2:21 | pull_request_target | pull_request_target |
