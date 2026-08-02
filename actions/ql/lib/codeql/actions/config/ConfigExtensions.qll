@@ -85,6 +85,13 @@ extensible predicate vulnerableActionsDataModel(
 extensible predicate unsafePrCheckoutGuardDataModel(string action, string version);
 
 /**
+ * Holds if an action version implements a security-relevant control behavior.
+ */
+extensible predicate actionsControlBehaviorDataModel(
+  string action, string version, string capability
+);
+
+/**
  * Holds for actions that are known to be immutable.
  */
 extensible predicate immutableActionsDataModel(string action);

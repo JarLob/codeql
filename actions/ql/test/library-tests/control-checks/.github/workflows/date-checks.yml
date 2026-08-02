@@ -1,0 +1,68 @@
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  proper-jq:
+    runs-on: ubuntu-latest
+    steps:
+      - id: proper-jq-check # Expected: recognized; head.repo.pushed_at is compared with comment time.
+        env:
+          COMMENT_AT: ${{ github.event.comment.created_at }}
+        run: |
+          pushed_epoch="$(jq -erj '.head.repo.pushed_at | fromdateiso8601' <<<"$pr")"
+          comment_epoch="$(jq -nerj --arg value "$COMMENT_AT" '$value | fromdateiso8601')"
+          (( pushed_epoch < comment_epoch )) || exit 1
+
+  proper-date:
+    runs-on: ubuntu-latest
+    steps:
+      - id: issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const data = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number
+            })
+            return { pushed_at: data.data.head.repo.pushed_at }
+      - id: proper-date-check # Expected: recognized by the retained PUSHED_AT/COMMENT_AT heuristic.
+        env:
+          PUSHED_AT: ${{ fromJson(steps.issue.outputs.result).pushed_at }}
+          COMMENT_AT: ${{ github.event.comment.created_at }}
+        run: |
+          pushed_epoch="$(date -d "$PUSHED_AT" +%s)"
+          comment_epoch="$(date -d "$COMMENT_AT" +%s)"
+          (( pushed_epoch < comment_epoch )) || exit 1
+
+  base-jq:
+    runs-on: ubuntu-latest
+    steps:
+      - id: base-jq-check # Expected: not recognized; base pushes do not establish PR head freshness.
+        env:
+          COMMENT_AT: ${{ github.event.comment.created_at }}
+        run: |
+          pushed_epoch="$(jq -erj '.base.repo.pushed_at | fromdateiso8601' <<<"$pr")"
+          comment_epoch="$(jq -nerj --arg value "$COMMENT_AT" '$value | fromdateiso8601')"
+          (( pushed_epoch < comment_epoch )) || exit 1
+
+  duplicate-head-jq:
+    runs-on: ubuntu-latest
+    steps:
+      - id: duplicate-head-jq-check # Expected: not recognized; no comment timestamp is converted.
+        run: |
+          first_epoch="$(jq -erj '.head.repo.pushed_at | fromdateiso8601' <<<"$pr")"
+          second_epoch="$(jq -erj '.head.repo.pushed_at | fromdateiso8601' <<<"$pr")"
+          (( first_epoch < second_epoch )) || exit 1
+
+  duplicate-comment-jq:
+    runs-on: ubuntu-latest
+    steps:
+      - id: duplicate-comment-jq-check # Expected: not recognized; no head timestamp is converted.
+        env:
+          COMMENT_AT: ${{ github.event.comment.created_at }}
+        run: |
+          first_epoch="$(jq -nerj --arg value "$COMMENT_AT" '$value | fromdateiso8601')"
+          second_epoch="$(jq -nerj --arg value "$COMMENT_AT" '$value | fromdateiso8601')"
+          (( first_epoch < second_epoch )) || exit 1

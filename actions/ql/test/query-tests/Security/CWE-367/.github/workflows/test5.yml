@@ -7,7 +7,7 @@ on:
 
 jobs:
 
-  security-checks:
+  security-checks: # Expected: no direct TOCTOU alert; this job authorizes the request but performs no checkout.
 
     name: Carry out security checks
     if:  >-
@@ -15,11 +15,11 @@ jobs:
             github.event.issue.pull_request &&
             (contains(github.event.comment.body, '/deploy') || contains(github.event.comment.body, '/rollback')) &&
             contains(github.event.issue.labels.*.name, 'Deployment Update') &&
-            github.event.comment.user.type != 'Bot' &&
-            github.event.pull_request.author_association != 'FIRST_TIMER' &&
-            github.event.pull_request.author_association != 'FIRST_TIME_CONTRIBUTOR' &&
-            github.event.pull_request.author_association != 'MANNEQUIN' &&
-            github.event.pull_request.author_association != 'NONE'
+            github.event.comment.user.type != 'Bot' && contains(fromJson('["COLLABORATOR", "MEMBER", "OWNER"]'), github.event.comment.author_association) &&
+            github.event.issue.author_association != 'FIRST_TIMER' &&
+            github.event.issue.author_association != 'FIRST_TIME_CONTRIBUTOR' &&
+            github.event.issue.author_association != 'MANNEQUIN' &&
+            github.event.issue.author_association != 'NONE'
           }}
 
     runs-on: ubuntu-latest
@@ -55,7 +55,7 @@ jobs:
           exit 1
         fi
 
-  deploy:
+  deploy: # Expected: critical TOCTOU alerts; the mutable PR ref has no freshness check and checked-out code is later executed.
 
     name: Update deployment
     needs: security-checks

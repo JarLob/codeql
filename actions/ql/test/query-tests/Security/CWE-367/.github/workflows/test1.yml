@@ -7,7 +7,7 @@ on:
 
 jobs:
 
-  deploy:
+  deploy: # Expected: no TOCTOU alert; the modeled freshness check suppresses the SHA checkout and execution.
     name: Update deployment
     if: >
       github.event.issue.pull_request &&
@@ -15,9 +15,9 @@ jobs:
       contains(github.event.issue.labels.*.name, 'Deployment Update') &&
       github.event.comment.user.type != 'Bot' &&
       (
-        github.event.issue.author_association == 'OWNER' ||
-        github.event.issue.author_association == 'COLLABORATOR' ||
-        github.event.issue.author_association == 'MEMBER'
+        github.event.comment.author_association == 'OWNER' ||
+        github.event.comment.author_association == 'COLLABORATOR' ||
+        github.event.comment.author_association == 'MEMBER'
       ) 
     runs-on: [self-hosted, production]
 
@@ -54,14 +54,38 @@ jobs:
         PR_NUMBER: ${{ github.event.issue.number }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        pr="$(gh api /repos/${GH_REPO}/pulls/${PR_NUMBER})"
-        head_sha="$(echo "$pr" | jq -r .head.sha)"
-        pushed_at="$(echo "$pr" | jq -r .pushed_at)"
+        pr="$(gh api "/repos/${GH_REPO}/pulls/${PR_NUMBER}")" || {
+          echo "Unable to retrieve pull request" >&2
+          exit 1
+        }
 
-        if [[ $(date -d "$pushed_at" +%s) -gt $(date -d "$COMMENT_AT" +%s) ]]; then
-          echo "Deployment not allowed because the PR was pushed to (at $pushed_at) after the triggering comment was issued (at $COMMENT_AT)"
+        head_sha="$(echo "$pr" | jq -r .head.sha)"
+
+        # jq avoids GNU date -d and -j avoids CRLF in command substitutions on Windows.
+        # "pushed_at" can be null, but fromdateiso8601 invocation will fail in that case.
+        pushed_epoch="$(
+          jq -erj '.head.repo.pushed_at | fromdateiso8601' <<<"$pr"
+        )" || {
+          echo "Unable to parse the repository push timestamp" >&2
+          exit 1
+        }
+
+        comment_epoch="$(
+          jq -nerj --arg value "$COMMENT_AT" '$value | fromdateiso8601'
+        )" || {
+          echo "Unable to parse the approval comment timestamp" >&2
+          exit 1
+        }
+
+        # Both timestamps have one-second precision, so equality must be rejected.
+        if (( pushed_epoch >= comment_epoch )); then
+          # pushed_at covers the entire fork repository, not only the PR branch,
+          # so this check is conservative and may reject some valid PRs.
+          echo "The repository was pushed to at or after the approval comment" >&2
           exit 1
         fi
+
+        # The checkout uses the SHA captured from this API response, so a later push cannot change it.
 
         target=$(echo "$COMMENT_BODY" | sed 's/.* //') && \
         deploy_type=$(echo "$COMMENT_BODY" | sed 's/ .*//')

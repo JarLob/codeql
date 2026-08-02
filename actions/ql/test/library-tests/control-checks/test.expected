@@ -1,23 +1,75 @@
 labelChecks
-| .github/workflows/test.yml:7:9:7:67 | "contai ... safe')" |
-| .github/workflows/test.yml:13:9:13:96 | "contai ... tocat'" |
-| .github/workflows/test.yml:19:9:19:43 | "github ... 'safe'" |
-| .github/workflows/test.yml:31:9:31:96 | "contai ... tocat'" |
-| .github/workflows/test.yml:37:9:37:91 | "contai ... = true" |
-| .github/workflows/test.yml:55:9:55:102 | "github ... safe')" |
-| .github/workflows/test.yml:61:9:61:127 | "github ... safe')" |
-| .github/workflows/test.yml:67:9:70:9 | >- |
-| .github/workflows/test.yml:82:9:82:67 | "contai ... safe')" |
+| .github/workflows/test.yml:8:9:8:67 | "contai ... safe')" |
+| .github/workflows/test.yml:14:9:14:96 | "contai ... tocat'" |
+| .github/workflows/test.yml:20:9:20:43 | "github ... 'safe'" |
+| .github/workflows/test.yml:32:9:32:96 | "contai ... tocat'" |
+| .github/workflows/test.yml:38:9:38:102 | "contai ... pened'" |
+| .github/workflows/test.yml:56:9:56:102 | "github ... safe')" |
+| .github/workflows/test.yml:62:9:62:127 | "github ... safe')" |
+| .github/workflows/test.yml:68:9:71:9 | >- |
+| .github/workflows/test.yml:83:9:83:67 | "contai ... safe')" |
+| .github/workflows/test.yml:138:9:138:76 | "false  ... safe')" |
+| .github/workflows/test.yml:144:9:144:75 | "true \| ... safe')" |
+| .github/workflows/test.yml:150:9:150:75 | "null \| ... safe')" |
+| .github/workflows/test.yml:156:9:156:73 | "'' \|\|  ... safe')" |
+| .github/workflows/test.yml:162:9:162:79 | "'bypas ... safe')" |
+| .github/workflows/test.yml:168:9:168:72 | "0 \|\| c ... safe')" |
+| .github/workflows/test.yml:174:9:174:72 | "1 \|\| c ... safe')" |
 parsedChecks
-| .github/workflows/test.yml:7:9:7:67 | "contai ... safe')" |
-| .github/workflows/test.yml:13:9:13:96 | "contai ... tocat'" |
-| .github/workflows/test.yml:19:9:19:43 | "github ... 'safe'" |
-| .github/workflows/test.yml:31:9:31:96 | "contai ... tocat'" |
-| .github/workflows/test.yml:43:9:43:35 | "github ... tocat'" |
-| .github/workflows/test.yml:61:9:61:127 | "github ... safe')" |
-| .github/workflows/test.yml:67:9:70:9 | >- |
-| .github/workflows/test.yml:82:9:82:67 | "contai ... safe')" |
+| .github/workflows/test.yml:8:9:8:67 | "contai ... safe')" |
+| .github/workflows/test.yml:14:9:14:96 | "contai ... tocat'" |
+| .github/workflows/test.yml:20:9:20:43 | "github ... 'safe'" |
+| .github/workflows/test.yml:32:9:32:96 | "contai ... tocat'" |
+| .github/workflows/test.yml:44:9:44:35 | "github ... tocat'" |
+| .github/workflows/test.yml:62:9:62:127 | "github ... safe')" |
+| .github/workflows/test.yml:68:9:71:9 | >- |
+| .github/workflows/test.yml:83:9:83:67 | "contai ... safe')" |
+| .github/workflows/test.yml:138:9:138:76 | "false  ... safe')" |
+| .github/workflows/test.yml:150:9:150:75 | "null \| ... safe')" |
+| .github/workflows/test.yml:156:9:156:73 | "'' \|\|  ... safe')" |
+| .github/workflows/test.yml:168:9:168:72 | "0 \|\| c ... safe')" |
+| .github/workflows/test.yml:180:9:180:46 | "github ... tocat'" |
+| .github/workflows/test.yml:186:9:186:59 | "github ... tocat'" |
+| .github/workflows/test.yml:192:9:192:48 | "github ... tocat'" |
+| .github/workflows/test.yml:198:9:198:59 | "github ... tocat'" |
+| .github/workflows/test.yml:204:9:204:65 | "contai ... ocat')" |
 neededJobProtection
 | explicit-success-dependent |
 | output-protected-dependent |
 | protected-dependent |
+actionChecks
+| actions-cool-auto-fail | permission |
+| actions-cool-auto-fail-explicit-false | permission |
+| actions-cool-auto-fail-v2 | permission |
+| actions-cool-auto-fail-v2x | permission |
+| actions-cool-auto-fail-v230 | permission |
+| actions-cool-auto-fail-v230-sha | permission |
+| actions-cool-auto-fail-v240 | permission |
+| actions-cool-auto-fail-v240-sha | permission |
+| actions-cool-write | permission |
+| collaborator-octokit | permission |
+| collaborator-script | permission |
+| lannon-write | permission |
+| membership-octokit | association |
+| membership-script | association |
+| prince-admin | permission |
+| slash-default | permission |
+| sushichop-write | permission |
+| team-membership-default | association |
+| team-membership-exit-true | association |
+commentDateChecks
+| proper-date-check |
+| proper-jq-check |
+actionControlBehaviors
+| actions-cool/check-user-permission | 2.3.0 | error-if-missing |
+| actions-cool/check-user-permission | 7b90a27f92f3961b368376107661682c441f6103 | error-if-missing |
+| actions-cool/check-user-permission | c21884f3dda18dafc2f8b402fe807ccc9ec1aa5e | error-if-missing |
+| actions-cool/check-user-permission | main | error-if-missing |
+| actions-cool/check-user-permission | v2 | error-if-missing |
+| actions-cool/check-user-permission | v2.3.0 | error-if-missing |
+| actions-cool/check-user-permission | v2.3.1 | error-if-missing |
+| actions-cool/check-user-permission | v2.4.0 | error-if-missing |
+| actions-cool/check-user-permission | v2.9.0 | error-if-missing |
+| actions-cool/check-user-permission | v2.x | error-if-missing |
+| actions-cool/check-user-permission | v3.0.0 | error-if-missing |
+| actions-cool/check-user-permission | v10.0.0 | error-if-missing |

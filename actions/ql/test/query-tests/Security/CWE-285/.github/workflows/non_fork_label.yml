@@ -18,3 +18,32 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
       - run: make tidy && make all
+
+  bypassable-repository-branch: # Expected: alert; one authorization branch omits repository provenance.
+    permissions:
+      contents: write
+    if: >-
+      (contains(github.event.pull_request.labels.*.name, 'safe') &&
+      github.event.pull_request.head.repo.fork == false) ||
+      contains(github.event.pull_request.labels.*.name, 'force-safe')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+      - run: make test
+
+  repository-required-in-every-branch: # Expected: no alert; every authorization branch restricts provenance.
+    permissions:
+      contents: write
+    if: >-
+      (contains(github.event.pull_request.labels.*.name, 'safe') &&
+      github.event.pull_request.head.repo.fork == false) ||
+      (contains(github.event.pull_request.labels.*.name, 'trusted') &&
+      github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+      - run: make test

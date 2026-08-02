@@ -12,23 +12,13 @@
  */
 
 import actions
-import codeql.actions.security.UntrustedCheckoutQuery
 import codeql.actions.security.PoisonableSteps
-import codeql.actions.security.ControlChecks
-import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
+import codeql.actions.security.UntrustedCheckoutQuery
 
 query predicate edges(Step a, Step b) { a.getNextStep() = b }
 
-from MutableRefCheckoutStep checkout, PoisonableStep step, Event event
-where
-  // the checked-out code may lead to arbitrary code execution
-  checkout.getAFollowingStep() = step and
-  IntegratedCfg::orderedStepsMayReachForEvent(checkout, step, event) and
-  // the checkout occurs in a privileged context
-  inPrivilegedContext(checkout, event) and
-  // the mutable checkout step is protected by an Insufficient access check
-  exists(ControlCheck check1 | check1.protects(checkout, event, "untrusted-checkout")) and
-  not exists(ControlCheck check2 | check2.protects(checkout, event, "untrusted-checkout-toctou"))
+from PRHeadCheckoutStep checkout, PoisonableStep step, Event event
+where criticalSeverityUntrustedCheckoutTOCTOU(checkout, step, event)
 select step, checkout, step,
   "Insufficient protection against execution of untrusted code on a privileged workflow ($@).",
   event, event.getName()

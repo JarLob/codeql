@@ -1,0 +1,4 @@
+---
+category: minorAnalysis
+---
+* The `actions/untrusted-checkout-toctou/critical` and `actions/untrusted-checkout-toctou/high` queries now detect comment-approved workflows that resolve and check out the latest pull request head SHA after the triggering `issue_comment`. A dominating check that rejects commits pushed after the approval comment suppresses an immutable SHA checkout only when that SHA was captured no later than the check, including when the same SHA is passed through dependent-job outputs. It does not suppress a SHA resolved after the check or a mutable reference that can change after the check. Lower-severity results are suppressed when the same reference has an event-feasible downstream critical result. Pull requests authored by a trusted repository member, owner, or collaborator are not treated as stale comment approvals.

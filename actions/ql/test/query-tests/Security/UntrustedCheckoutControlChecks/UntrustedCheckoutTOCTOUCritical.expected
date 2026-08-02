@@ -1,0 +1,34 @@
+edges
+| .github/workflows/issue_comment.yml:11:9:12:6 | Uses Step | .github/workflows/issue_comment.yml:12:9:22:6 | Uses Step: issue |
+| .github/workflows/issue_comment.yml:12:9:22:6 | Uses Step: issue | .github/workflows/issue_comment.yml:22:9:30:6 | Run Step |
+| .github/workflows/issue_comment.yml:22:9:30:6 | Run Step | .github/workflows/issue_comment.yml:30:9:34:2 | Uses Step |
+| .github/workflows/issue_comment.yml:37:9:38:6 | Uses Step | .github/workflows/issue_comment.yml:38:9:48:6 | Uses Step: issue |
+| .github/workflows/issue_comment.yml:38:9:48:6 | Uses Step: issue | .github/workflows/issue_comment.yml:48:9:52:2 | Uses Step |
+| .github/workflows/issue_comment.yml:55:9:56:6 | Uses Step | .github/workflows/issue_comment.yml:56:9:66:6 | Uses Step: initial |
+| .github/workflows/issue_comment.yml:56:9:66:6 | Uses Step: initial | .github/workflows/issue_comment.yml:66:9:74:6 | Run Step |
+| .github/workflows/issue_comment.yml:66:9:74:6 | Run Step | .github/workflows/issue_comment.yml:74:9:84:6 | Uses Step: late |
+| .github/workflows/issue_comment.yml:74:9:84:6 | Uses Step: late | .github/workflows/issue_comment.yml:84:9:87:6 | Uses Step |
+| .github/workflows/issue_comment.yml:84:9:87:6 | Uses Step | .github/workflows/issue_comment.yml:87:9:87:18 | Run Step |
+| .github/workflows/pull_request_target.yml:10:9:11:6 | Uses Step | .github/workflows/pull_request_target.yml:11:9:15:6 | Uses Step |
+| .github/workflows/pull_request_target.yml:11:9:15:6 | Uses Step | .github/workflows/pull_request_target.yml:15:9:17:2 | Run Step |
+| .github/workflows/pull_request_target.yml:20:9:23:6 | Uses Step | .github/workflows/pull_request_target.yml:23:9:27:6 | Uses Step |
+| .github/workflows/pull_request_target.yml:23:9:27:6 | Uses Step | .github/workflows/pull_request_target.yml:27:9:29:2 | Run Step |
+| .github/workflows/pull_request_target.yml:32:9:36:6 | Uses Step: permission | .github/workflows/pull_request_target.yml:36:9:38:6 | Run Step |
+| .github/workflows/pull_request_target.yml:36:9:38:6 | Run Step | .github/workflows/pull_request_target.yml:38:9:42:6 | Uses Step |
+| .github/workflows/pull_request_target.yml:38:9:42:6 | Uses Step | .github/workflows/pull_request_target.yml:42:9:44:2 | Run Step |
+| .github/workflows/pull_request_target.yml:47:9:51:6 | Uses Step: permission | .github/workflows/pull_request_target.yml:51:9:53:6 | Run Step |
+| .github/workflows/pull_request_target.yml:51:9:53:6 | Run Step | .github/workflows/pull_request_target.yml:53:9:57:6 | Uses Step |
+| .github/workflows/pull_request_target.yml:53:9:57:6 | Uses Step | .github/workflows/pull_request_target.yml:57:9:59:2 | Run Step |
+| .github/workflows/pull_request_target.yml:62:9:65:6 | Uses Step | .github/workflows/pull_request_target.yml:65:9:69:6 | Uses Step |
+| .github/workflows/pull_request_target.yml:65:9:69:6 | Uses Step | .github/workflows/pull_request_target.yml:69:9:71:2 | Run Step |
+| .github/workflows/pull_request_target.yml:74:9:78:6 | Uses Step | .github/workflows/pull_request_target.yml:78:9:82:6 | Uses Step |
+| .github/workflows/pull_request_target.yml:78:9:82:6 | Uses Step | .github/workflows/pull_request_target.yml:82:9:84:2 | Run Step |
+| .github/workflows/pull_request_target.yml:87:9:92:6 | Uses Step | .github/workflows/pull_request_target.yml:92:9:96:6 | Uses Step |
+| .github/workflows/pull_request_target.yml:92:9:96:6 | Uses Step | .github/workflows/pull_request_target.yml:96:9:98:2 | Run Step |
+| .github/workflows/pull_request_target.yml:101:9:105:6 | Uses Step | .github/workflows/pull_request_target.yml:105:9:109:6 | Uses Step |
+| .github/workflows/pull_request_target.yml:105:9:109:6 | Uses Step | .github/workflows/pull_request_target.yml:109:9:111:2 | Run Step |
+| .github/workflows/pull_request_target.yml:114:9:118:6 | Uses Step: permission | .github/workflows/pull_request_target.yml:118:9:120:6 | Run Step |
+| .github/workflows/pull_request_target.yml:118:9:120:6 | Run Step | .github/workflows/pull_request_target.yml:120:9:124:6 | Uses Step |
+| .github/workflows/pull_request_target.yml:120:9:124:6 | Uses Step | .github/workflows/pull_request_target.yml:124:9:124:18 | Run Step |
+#select
+| .github/workflows/issue_comment.yml:87:9:87:18 | Run Step | .github/workflows/issue_comment.yml:84:9:87:6 | Uses Step | .github/workflows/issue_comment.yml:87:9:87:18 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/issue_comment.yml:2:3:2:15 | issue_comment | issue_comment |

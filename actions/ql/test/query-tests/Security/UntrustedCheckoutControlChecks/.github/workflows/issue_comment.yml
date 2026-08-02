@@ -1,0 +1,87 @@
+on:
+  issue_comment:
+    types: [created]
+
+permissions: write-all
+
+jobs:
+  association-date-captured: # Expected: no alert; the exact SHA is captured before a freshness check.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: TheModdingInquisition/actions-team-membership@master
+      - uses: actions/github-script@v7
+        id: issue
+        with:
+          script: |
+            const data = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number
+            })
+            return { sha: data.data.head.sha, pushed_at: data.data.head.repo.pushed_at }
+      - name: Reject pushes after the comment
+        env:
+          PUSHED_AT: ${{ fromJson(steps.issue.outputs.result).pushed_at }}
+          COMMENT_AT: ${{ github.event.comment.created_at }}
+        run: |
+          pushed_epoch="$(date -d "$PUSHED_AT" +%s)" || exit 1
+          comment_epoch="$(date -d "$COMMENT_AT" +%s)" || exit 1
+          (( pushed_epoch < comment_epoch )) || exit 1
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ fromJson(steps.issue.outputs.result).sha }}
+
+  association-no-date: # Expected: ordinary and TOCTOU high alerts; membership alone does not bind the SHA.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: TheModdingInquisition/actions-team-membership@master
+      - uses: actions/github-script@v7
+        id: issue
+        with:
+          script: |
+            const data = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number
+            })
+            return { sha: data.data.head.sha }
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ fromJson(steps.issue.outputs.result).sha }}
+
+  association-date-late-resolution: # Expected: TOCTOU critical alert; the executed SHA is resolved after the check.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: TheModdingInquisition/actions-team-membership@master
+      - uses: actions/github-script@v7
+        id: initial
+        with:
+          script: |
+            const data = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number
+            })
+            return { pushed_at: data.data.head.repo.pushed_at }
+      - name: Reject pushes after the comment
+        env:
+          PUSHED_AT: ${{ fromJson(steps.initial.outputs.result).pushed_at }}
+          COMMENT_AT: ${{ github.event.comment.created_at }}
+        run: |
+          pushed_epoch="$(date -d "$PUSHED_AT" +%s)" || exit 1
+          comment_epoch="$(date -d "$COMMENT_AT" +%s)" || exit 1
+          (( pushed_epoch < comment_epoch )) || exit 1
+      - uses: actions/github-script@v7
+        id: late
+        with:
+          script: |
+            const data = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number
+            })
+            return { sha: data.data.head.sha }
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ fromJson(steps.late.outputs.result).sha }}
+      - run: ./cmd

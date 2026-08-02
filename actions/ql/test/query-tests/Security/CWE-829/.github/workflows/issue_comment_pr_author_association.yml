@@ -1,0 +1,33 @@
+name: PR author association check
+on:
+  issue_comment:
+    types: [created]
+
+permissions: write-all
+
+jobs:
+  test: # Expected: no untrusted-checkout alert; the PR author is trusted even though the commenter is not checked.
+    if: >
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/run-tests ') &&
+      (
+        github.event.issue.author_association == 'OWNER' ||
+        github.event.issue.author_association == 'COLLABORATOR' ||
+        github.event.issue.author_association == 'MEMBER'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve PR head SHA
+        id: pr
+        env:
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr="$(gh api "/repos/${GH_REPO}/pulls/${PR_NUMBER}")" || exit 1
+          head_sha="$(jq -er '.head.sha' <<<"$pr")" || exit 1
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        with:
+          ref: ${{ steps.pr.outputs.head_sha }}
+      - run: bash comment_example/tests.sh

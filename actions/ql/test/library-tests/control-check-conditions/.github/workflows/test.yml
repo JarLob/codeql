@@ -15,7 +15,9 @@ jobs:
       - run: echo reversed owner
 
   bypassable-member:
-    if: github.event.pull_request.author_association == 'MEMBER' || vars.force == true
+    if: >-
+      github.event.pull_request.author_association == 'MEMBER' ||
+      github.event.action == 'opened'
     runs-on: ubuntu-latest
     steps:
       - run: echo bypassable member
@@ -51,7 +53,9 @@ jobs:
       - run: echo local branch
 
   non-fork-bypassable:
-    if: github.event.pull_request.head.repo.fork == false || vars.force
+    if: >-
+      github.event.pull_request.head.repo.fork == false ||
+      github.event.action == 'opened'
     runs-on: ubuntu-latest
     steps:
       - run: echo bypassable
@@ -96,3 +100,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo renovate
+
+  pr-repository-full-name: # Expected: recognized, protective, and required on the true path.
+    if: >-
+      github.actor == 'octocat' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo exact repository
+
+  pr-repository-owner: # Expected: recognized, protective, and required on the true path.
+    if: >-
+      github.actor == 'octocat' &&
+      github.event.pull_request.head.repo.owner.name == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo exact owner
+
+  pr-repository-bypassable: # Expected: recognized but not protective or required due to the OR branch.
+    if: >-
+      (github.actor == 'octocat' &&
+      github.event.pull_request.head.repo.full_name == github.repository) ||
+      github.event.action == 'synchronize'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo bypassable repository

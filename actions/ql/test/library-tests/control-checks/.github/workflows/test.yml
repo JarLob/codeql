@@ -1,6 +1,7 @@
 on:
   pull_request_target:
     types: [labeled]
+  push:
 
 jobs:
   direct-call:
@@ -34,7 +35,7 @@ jobs:
       - run: echo disjunctive
 
   bypassable-label:
-    if: "contains(github.event.pull_request.labels.*.name, 'safe') || inputs.force == true"
+    if: "contains(github.event.pull_request.labels.*.name, 'safe') || github.event.action == 'opened'"
     runs-on: ubuntu-latest
     steps:
       - run: echo bypassable
@@ -132,3 +133,233 @@ jobs:
     steps:
       - id: output-bypassable-sink
         run: echo output bypassable
+
+  false-or-label: # Expected: protective; a false literal cannot bypass the label.
+    if: "false || contains(github.event.pull_request.labels.*.name, 'safe')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo false or label
+
+  true-or-label: # Expected: not protective; a true literal always bypasses the label.
+    if: "true || contains(github.event.pull_request.labels.*.name, 'safe')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo true or label
+
+  null-or-label: # Expected: protective; null is falsey and cannot bypass the label.
+    if: "null || contains(github.event.pull_request.labels.*.name, 'safe')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo null or label
+
+  empty-string-or-label: # Expected: protective; an empty string cannot bypass the label.
+    if: "'' || contains(github.event.pull_request.labels.*.name, 'safe')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo empty string or label
+
+  nonempty-string-or-label: # Expected: not protective; the truthy string bypasses the label.
+    if: "'bypass' || contains(github.event.pull_request.labels.*.name, 'safe')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo nonempty string or label
+
+  zero-or-label: # Expected: protective; zero is falsey and cannot bypass the label.
+    if: "0 || contains(github.event.pull_request.labels.*.name, 'safe')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo zero or label
+
+  one-or-label: # Expected: not protective; nonzero is truthy and bypasses the label.
+    if: "1 || contains(github.event.pull_request.labels.*.name, 'safe')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo one or label
+
+  triggering-actor-only: # Expected: recognized as an actor identity check.
+    if: "github.triggering_actor == 'octocat'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo triggering actor
+
+  pull-request-user-only: # Expected: recognized as a pull request author identity check.
+    if: "github.event.pull_request.user.login == 'octocat'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo pull request user
+
+  sender-only: # Expected: recognized as an event sender identity check.
+    if: "github.event.sender.login == 'octocat'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo sender
+
+  head-commit-author-only: # Expected: recognized as a head commit author identity check.
+    if: "github.event.head_commit.author.name == 'octocat'"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo head commit author
+
+  commit-author-only: # Expected: recognized as a commit author identity check.
+    if: "contains(github.event.commits.*.author.name, 'octocat')"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo commit author
+
+  action-checks: # Expected: only enforcing action variants are controls; informational or bypassable variants are omitted.
+    runs-on: ubuntu-latest
+    steps:
+      - id: team-membership-default
+        uses: TheModdingInquisition/actions-team-membership@master
+      - id: team-membership-exit-true
+        uses: TheModdingInquisition/actions-team-membership@master
+        with:
+          exit: true
+      - id: team-membership-exit-false
+        uses: TheModdingInquisition/actions-team-membership@master
+        with:
+          exit: false
+      - id: membership-script
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.orgs.getMembershipForUserInOrg({ org: 'octo', username: context.actor })
+      - id: membership-octokit
+        uses: octokit/request-action@v2.x
+        with:
+          route: GET /orgs/{org}/memberships/{username}
+      - id: unrelated-octokit
+        uses: octokit/request-action@v2.x
+        with:
+          route: GET /repos/{owner}/{repo}/issues
+      - id: actions-cool-default
+        uses: actions-cool/check-user-permission@v2
+      - id: actions-cool-write
+        uses: actions-cool/check-user-permission@v2
+        with:
+          require: write
+      - if: steps.actions-cool-write.outputs.require-result == 'false'
+        run: exit 1
+      - id: actions-cool-read
+        uses: actions-cool/check-user-permission@v2
+        with:
+          require: read
+      - if: steps.actions-cool-read.outputs.require-result == 'false'
+        run: exit 1
+      - id: actions-cool-auto-fail
+        uses: actions-cool/check-user-permission@main
+        with:
+          require: admin
+          error-if-missing: true
+      - id: actions-cool-auto-fail-v2
+        uses: actions-cool/check-user-permission@v2
+        with:
+          require: write
+          error-if-missing: true
+      - id: actions-cool-auto-fail-v2x
+        uses: actions-cool/check-user-permission@v2.x
+        with:
+          require: write
+          error-if-missing: true
+      - id: actions-cool-auto-fail-v230
+        uses: actions-cool/check-user-permission@v2.3.0
+        with:
+          require: write
+          error-if-missing: true
+      - id: actions-cool-auto-fail-v230-sha
+        uses: actions-cool/check-user-permission@7b90a27f92f3961b368376107661682c441f6103
+        with:
+          require: write
+          error-if-missing: true
+      - id: actions-cool-auto-fail-v240
+        uses: actions-cool/check-user-permission@v2.4.0
+        with:
+          require: write
+          error-if-missing: true
+      - id: actions-cool-auto-fail-v240-sha
+        uses: actions-cool/check-user-permission@c21884f3dda18dafc2f8b402fe807ccc9ec1aa5e
+        with:
+          require: write
+          error-if-missing: true
+      - id: actions-cool-auto-fail-old-version
+        uses: actions-cool/check-user-permission@v2.2.1
+        with:
+          require: write
+          error-if-missing: true
+      - id: actions-cool-auto-fail-explicit-false
+        uses: actions-cool/check-user-permission@main
+        continue-on-error: false
+        with:
+          require: write
+          error-if-missing: true
+      - id: actions-cool-auto-fail-dynamic-continue
+        uses: actions-cool/check-user-permission@main
+        continue-on-error: ${{ github.event.action == 'opened' }}
+        with:
+          require: write
+          error-if-missing: true
+      - id: actions-cool-auto-fail-continued
+        uses: actions-cool/check-user-permission@main
+        continue-on-error: true
+        with:
+          require: write
+          error-if-missing: true
+      - id: actions-cool-nonfailing-gate
+        uses: actions-cool/check-user-permission@v2
+        with:
+          require: write
+      - if: steps.actions-cool-nonfailing-gate.outputs.require-result == 'false'
+        run: echo insufficient permission
+      - id: actions-cool-continued-gate
+        uses: actions-cool/check-user-permission@v2
+        with:
+          require: write
+      - if: steps.actions-cool-continued-gate.outputs.require-result == 'false'
+        continue-on-error: true
+        run: exit 1
+      - id: actions-cool-bypassable-gate
+        uses: actions-cool/check-user-permission@v2
+        with:
+          require: write
+      - if: >-
+          steps.actions-cool-bypassable-gate.outputs.require-result == 'false' &&
+          github.event.action == 'opened'
+        run: exit 1
+      - id: sushichop-write
+        uses: sushichop/action-repository-permission@v2
+        with:
+          required-permission: write
+      - id: sushichop-read
+        uses: sushichop/action-repository-permission@v2
+        with:
+          required-permission: read
+      - id: prince-admin
+        uses: prince-chrismc/check-actor-permissions-action@v2
+        with:
+          permission: admin
+      - id: lannon-write
+        uses: lannonbr/repo-permission-check-action@master
+        with:
+          permission: write
+      - id: slash-default
+        uses: xt0rted/slash-command-action@v2
+        with:
+          command: test
+      - id: slash-read
+        uses: xt0rted/slash-command-action@v2
+        with:
+          command: test
+          permission-level: read
+      - id: collaborator-script
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: context.actor
+            })
+      - id: collaborator-octokit
+        uses: octokit/request-action@v2.x
+        with:
+          route: GET /repos/{owner}/{repo}/collaborators/{username}/permission

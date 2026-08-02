@@ -367,13 +367,65 @@ class AssociationActionCheck extends AssociationCheck instanceof UsesStep {
   }
 }
 
+private predicate failureStopsStep(Step step) {
+  not exists(step.getContinueOnErrorValue())
+  or
+  step.getContinueOnErrorValue().trim().toLowerCase() = "false"
+}
+
+private predicate isFalseStringLiteral(ExpressionNode node) {
+  node instanceof LiteralExpression and
+  node.(LiteralExpression).getKind() = "StringLiteral" and
+  node.(LiteralExpression).getValue().toLowerCase() = ["'false'", "\"false\""]
+}
+
+private predicate checksActionsCoolRequireResult(If condition, UsesStep action) {
+  exists(BinaryExpression comparison, AccessExpression output, LiteralExpression falseValue |
+    comparison = condition.getConditionExpr().getRoot().getChild(0) and
+    comparison.getOperator() = "==" and
+    output.getAccessPath().toLowerCase() =
+      ("steps." + action.getId() + ".outputs.require-result").toLowerCase() and
+    (
+      output = comparison.getLeftOperand() and
+      falseValue = comparison.getRightOperand()
+      or
+      falseValue = comparison.getLeftOperand() and
+      output = comparison.getRightOperand()
+    ) and
+    isFalseStringLiteral(falseValue)
+  )
+}
+
+private predicate runExitsNonzero(Run run) {
+  exists(string command |
+    command = run.getScript().getACommand() and
+    command.trim().regexpMatch("exit\\s+[1-9][0-9]*")
+  )
+}
+
+private predicate hasActionsCoolFailureGate(UsesStep action) {
+  exists(Run gate |
+    action.getNextStep() = gate and
+    checksActionsCoolRequireResult(gate.getIf(), action) and
+    runExitsNonzero(gate) and
+    failureStopsStep(gate)
+  )
+}
+
+private predicate actionsCoolSupportsErrorIfMissing(UsesStep action) {
+  actionsControlBehaviorDataModel(action.getCallee(), action.getVersion(), "error-if-missing")
+}
+
 class PermissionActionCheck extends PermissionCheck instanceof UsesStep {
   PermissionActionCheck() {
     this.getCallee() = "actions-cool/check-user-permission" and
+    this.getArgument("require") = ["write", "admin"] and
+    failureStopsStep(this) and
     (
-      // default permission level is write
-      not exists(this.getArgument("permission-level")) or
-      this.getArgument("require") = ["write", "admin"]
+      actionsCoolSupportsErrorIfMissing(this) and
+      this.getArgument("error-if-missing").trim().toLowerCase() = "true"
+      or
+      hasActionsCoolFailureGate(this)
     )
     or
     this.getCallee() = "sushichop/action-repository-permission" and
@@ -400,15 +452,37 @@ class PermissionActionCheck extends PermissionCheck instanceof UsesStep {
   }
 }
 
+bindingset[command]
+pragma[inline_late]
+private predicate isHeadPushDateCommand(string command) {
+  command.toLowerCase().regexpMatch("date\\s+-d.*(commit|pushed)_at.*")
+  or
+  command.toLowerCase().regexpMatch(
+    "jq\\s+.*\\.head\\.repo\\.pushed_at.*fromdateiso8601.*"
+  )
+}
+
+bindingset[command]
+pragma[inline_late]
+private predicate isCommentDateCommand(string command) {
+  command.toLowerCase().regexpMatch(
+    "date\\s+-d.*(comment(_created)?_at|commented_at).*"
+  )
+  or
+  command.toLowerCase().regexpMatch(
+    "jq\\s+.*(comment(_created)?_at|comment\\.created_at|commented_at).*fromdateiso8601.*"
+  )
+}
+
 class BashCommentVsHeadDateCheck extends CommentVsHeadDateCheck, Run {
   BashCommentVsHeadDateCheck() {
     // eg: if [[ $(date -d "$pushed_at" +%s) -gt $(date -d "$COMMENT_AT" +%s) ]]; then
-    exists(string cmd1, string cmd2 |
-      cmd1 = this.getScript().getACommand() and
-      cmd2 = this.getScript().getACommand() and
-      not cmd1 = cmd2 and
-      cmd1.toLowerCase().regexpMatch("date\\s+-d.*(commit|pushed|comment|commented)_at.*") and
-      cmd2.toLowerCase().regexpMatch("date\\s+-d.*(commit|pushed|comment|commented)_at.*")
+    exists(string headCommand, string commentCommand |
+      headCommand = this.getScript().getACommand() and
+      commentCommand = this.getScript().getACommand() and
+      headCommand != commentCommand and
+      isHeadPushDateCommand(headCommand) and
+      isCommentDateCommand(commentCommand)
     )
   }
 }

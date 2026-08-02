@@ -5,7 +5,7 @@ on:
     types: [created]
 permissions: 'write-all'
 jobs:
-  test1:
+  test1: # Expected: critical TOCTOU alert; the head SHA is resolved after the approval comment.
     if: ${{ github.event.issue.pull_request && contains(fromJson('["MEMBER", "OWNER"]'), github.event.comment.author_association) && startsWith(github.event.comment.body, '/run-tests ') }}
     runs-on: ubuntu-latest
     steps:
@@ -31,7 +31,7 @@ jobs:
           ref: ${{ fromJson(steps.issue.outputs.result).sha }}
       - run: bash comment_example/tests.sh
 
-  test2:
+  test2: # Expected: critical TOCTOU alert; the mutable head ref is resolved after approval.
     if: ${{ github.event.issue.pull_request && contains(fromJson('["MEMBER", "OWNER"]'), github.event.comment.author_association) && startsWith(github.event.comment.body, '/run-tests ') }}
     runs-on: ubuntu-latest
     steps:
@@ -57,12 +57,12 @@ jobs:
           ref: ${{ fromJson(steps.issue.outputs.result).ref }}
       - run: bash comment_example/tests.sh
 
-  test3:
+  test3: # Expected: critical TOCTOU alert; the mutable pull request merge ref is checked out.
     if: ${{ github.event.issue.pull_request && contains(fromJson('["MEMBER", "OWNER"]'), github.event.comment.author_association) && startsWith(github.event.comment.body, '/run-tests ') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-          ref: "refs/pull/${{ github.event.number }}/merge"
+          ref: "refs/pull/${{ github.event.issue.number }}/merge"
       - run: bash comment_example/tests.sh

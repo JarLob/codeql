@@ -8,6 +8,7 @@ Verify that the code has not been modified after the security check. This may be
 
 - Deployment Environment Approval: Make sure to use a non-mutable reference to the code to be executed. For example use a `sha` instead of a `ref`.
 - Label Gates: Make sure to use a non-mutable reference to the code to be executed. For example use a `sha` instead of a `ref`.
+- IssueOps Comment Approval: The `issue_comment` payload does not contain the pull request head SHA. Capture the head SHA before checking that the pull request was not pushed to after the comment, then execute that exact captured commit. If execution happens in a dependent job, pass the captured SHA through a job output. Resolving a new SHA after the check or checking out a mutable reference remains unsafe.
 
 ## Example
 
