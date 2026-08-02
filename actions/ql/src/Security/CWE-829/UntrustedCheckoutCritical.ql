@@ -16,8 +16,6 @@
 import actions
 import codeql.actions.security.UntrustedCheckoutQuery
 import codeql.actions.security.PoisonableSteps
-import codeql.actions.security.ControlChecks
-import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 
 query predicate edges(AstNode predecessor, AstNode successor) {
   exists(Step previous, Step next |
@@ -35,37 +33,7 @@ from
 where
   checkoutReference = getCheckoutReference(checkout) and
   checkoutReferenceText = getCheckoutReferenceText(checkoutReference) and
-  // the checkout is followed by a known poisonable step
-  checkout.getAFollowingStep() = poisonable and
-  IntegratedCfg::orderedStepsMayReachForEvent(checkout, poisonable, event) and
-  (
-    poisonable instanceof Run and
-    (
-      // Check if the poisonable step is a local script execution step
-      // and the path of the command or script matches the path of the downloaded artifact
-      isSubpath(poisonable.(LocalScriptExecutionRunStep).getPath(), checkout.getPath())
-      or
-      // Checking the path for non local script execution steps is very difficult
-      not poisonable instanceof LocalScriptExecutionRunStep
-      // Its not easy to extract the path from a non-local script execution step so skipping this check for now
-      // and isSubpath(poisonable.(Run).getWorkingDirectory(), checkout.getPath())
-    )
-    or
-    poisonable instanceof UsesStep and
-    (
-      not poisonable instanceof LocalActionUsesStep and
-      checkout.getPath() = "GITHUB_WORKSPACE/"
-      or
-      isSubpath(poisonable.(LocalActionUsesStep).getPath(), checkout.getPath())
-    )
-  ) and
-  // the checkout occurs in a privileged context
-  inPrivilegedContext(poisonable, event) and
-  inPrivilegedContext(checkout, event) and
-  event.getName() = checkoutTriggers() and
-  not runtimeGuardPreventsCheckout(checkout, event) and
-  not exists(ControlCheck check | check.protects(checkout, event, "untrusted-checkout")) and
-  not exists(ControlCheck check | check.protects(poisonable, event, "untrusted-checkout"))
+  criticalSeverityUntrustedCheckout(checkout, poisonable, event)
 select checkout, checkoutReference, poisonable,
   "Checkout of untrusted code from $@ in a privileged workflow with later potential execution (event trigger: $@).",
   checkoutReference, checkoutReferenceText, event, event.getName()

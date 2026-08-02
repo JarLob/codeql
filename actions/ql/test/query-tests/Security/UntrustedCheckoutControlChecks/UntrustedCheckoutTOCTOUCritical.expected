@@ -1,4 +1,9 @@
 edges
+| .github/workflows/classification.yml:14:9:17:6 | Uses Step | .github/workflows/classification.yml:17:9:19:2 | Run Step |
+| .github/workflows/classification.yml:40:9:43:6 | Uses Step | .github/workflows/classification.yml:43:9:45:2 | Run Step |
+| .github/workflows/classification.yml:51:9:54:6 | Uses Step | .github/workflows/classification.yml:54:9:56:2 | Run Step |
+| .github/workflows/classification.yml:62:9:65:6 | Uses Step | .github/workflows/classification.yml:65:9:67:2 | Run Step |
+| .github/workflows/classification.yml:73:9:76:6 | Uses Step | .github/workflows/classification.yml:76:9:76:18 | Run Step |
 | .github/workflows/issue_comment.yml:11:9:12:6 | Uses Step | .github/workflows/issue_comment.yml:12:9:22:6 | Uses Step: issue |
 | .github/workflows/issue_comment.yml:12:9:22:6 | Uses Step: issue | .github/workflows/issue_comment.yml:22:9:30:6 | Run Step |
 | .github/workflows/issue_comment.yml:22:9:30:6 | Run Step | .github/workflows/issue_comment.yml:30:9:34:2 | Uses Step |
@@ -29,6 +34,11 @@ edges
 | .github/workflows/pull_request_target.yml:105:9:109:6 | Uses Step | .github/workflows/pull_request_target.yml:109:9:111:2 | Run Step |
 | .github/workflows/pull_request_target.yml:114:9:118:6 | Uses Step: permission | .github/workflows/pull_request_target.yml:118:9:120:6 | Run Step |
 | .github/workflows/pull_request_target.yml:118:9:120:6 | Run Step | .github/workflows/pull_request_target.yml:120:9:124:6 | Uses Step |
-| .github/workflows/pull_request_target.yml:120:9:124:6 | Uses Step | .github/workflows/pull_request_target.yml:124:9:124:18 | Run Step |
+| .github/workflows/pull_request_target.yml:120:9:124:6 | Uses Step | .github/workflows/pull_request_target.yml:124:9:126:2 | Run Step |
+| .github/workflows/pull_request_target.yml:129:9:131:6 | Uses Step | .github/workflows/pull_request_target.yml:131:9:135:6 | Uses Step |
+| .github/workflows/pull_request_target.yml:131:9:135:6 | Uses Step | .github/workflows/pull_request_target.yml:135:9:137:2 | Run Step |
+| .github/workflows/pull_request_target.yml:140:9:141:6 | Uses Step | .github/workflows/pull_request_target.yml:141:9:145:6 | Uses Step |
+| .github/workflows/pull_request_target.yml:141:9:145:6 | Uses Step | .github/workflows/pull_request_target.yml:145:9:145:18 | Run Step |
 #select
+| .github/workflows/classification.yml:17:9:19:2 | Run Step | .github/workflows/classification.yml:14:9:17:6 | Uses Step | .github/workflows/classification.yml:17:9:19:2 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/classification.yml:2:3:2:21 | pull_request_target | pull_request_target |
 | .github/workflows/issue_comment.yml:87:9:87:18 | Run Step | .github/workflows/issue_comment.yml:84:9:87:6 | Uses Step | .github/workflows/issue_comment.yml:87:9:87:18 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/issue_comment.yml:2:3:2:15 | issue_comment | issue_comment |

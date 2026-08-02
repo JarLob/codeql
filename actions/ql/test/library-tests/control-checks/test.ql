@@ -33,7 +33,13 @@ query predicate actionChecks(string stepId, string kind) {
     (
       kind = "association" and step instanceof AssociationActionCheck
       or
+      kind = "ineffective-association" and
+      step instanceof IneffectiveAssociationActionCheck
+      or
       kind = "permission" and step instanceof PermissionActionCheck
+      or
+      kind = "ineffective-permission" and
+      step instanceof IneffectivePermissionActionCheck
     )
   )
 }

@@ -13,25 +13,12 @@
 
 import codeql.actions.security.UntrustedCheckoutQuery
 import codeql.actions.security.ControlChecks
-private import codeql.actions.security.ControlCheckConditions as Conditions
 
-private predicate isStalePullRequestApprovalTrigger(Event event) {
-  event.getName() = "pull_request_target" and
-  event.getAnActivityType() = ["synchronize", "reopened"]
-}
-
-from LocalJob job, LabelIfCheck check, PRHeadCheckoutStep checkout, Event event
+from AuthorizationAttemptCheck check, PRHeadCheckoutStep checkout, Event event
 where
-  job.isPrivilegedExternallyTriggerable(event) and
-  job.getAContainedStep() = checkout and
-  check.dominates(checkout, event) and
-  not Conditions::conditionRequiresPullRequestRepositoryCheck(check) and
-  (
-    job.getATriggerEvent() = event and
-    isStalePullRequestApprovalTrigger(event)
-    or
-    not exists(job.getATriggerEvent())
-  )
+  knownImproperCheckoutAuthorization(checkout, event, check) and
+  // Preserve the query's existing high-severity privileged-context threshold.
+  inPrivilegedContext(checkout, event)
 select checkout,
-  "The pull request code can change after the authorization check $@ and trigger another privileged run.",
+  "The authorization check $@ does not prevent untrusted code from running in a privileged context.",
   check, check.toString()

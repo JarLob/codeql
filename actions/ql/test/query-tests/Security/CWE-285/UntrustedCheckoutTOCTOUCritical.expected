@@ -1,0 +1,20 @@
+edges
+| .github/workflows/non_fork_label.yml:17:9:20:6 | Uses Step | .github/workflows/non_fork_label.yml:20:9:22:2 | Run Step |
+| .github/workflows/non_fork_label.yml:31:9:34:6 | Uses Step | .github/workflows/non_fork_label.yml:34:9:36:2 | Run Step |
+| .github/workflows/non_fork_label.yml:46:9:49:6 | Uses Step | .github/workflows/non_fork_label.yml:49:9:49:22 | Run Step |
+| .github/workflows/reusable-read-callee.yml:12:9:17:6 | Uses Step | .github/workflows/reusable-read-callee.yml:17:9:17:18 | Run Step |
+| .github/workflows/reusable-reopened-sha-leaf.yml:10:9:13:6 | Uses Step | .github/workflows/reusable-reopened-sha-leaf.yml:13:9:13:18 | Run Step |
+| .github/workflows/reusable-write-callee.yml:11:9:16:6 | Uses Step | .github/workflows/reusable-write-callee.yml:16:9:16:18 | Run Step |
+| .github/workflows/sha-labeled.yml:14:9:17:6 | Uses Step | .github/workflows/sha-labeled.yml:17:9:17:18 | Run Step |
+| .github/workflows/sha-opened.yml:14:9:17:6 | Uses Step | .github/workflows/sha-opened.yml:17:9:17:18 | Run Step |
+| .github/workflows/sha-reopened.yml:14:9:17:6 | Uses Step | .github/workflows/sha-reopened.yml:17:9:17:18 | Run Step |
+| .github/workflows/sha-synchronize.yml:14:9:17:6 | Uses Step | .github/workflows/sha-synchronize.yml:17:9:17:18 | Run Step |
+| .github/workflows/test1.yml:15:7:20:4 | Uses Step | .github/workflows/test1.yml:20:7:20:17 | Run Step |
+| .github/workflows/test2.yml:15:7:20:4 | Uses Step | .github/workflows/test2.yml:20:7:20:17 | Run Step |
+#select
+| .github/workflows/reusable-reopened-sha-leaf.yml:13:9:13:18 | Run Step | .github/workflows/reusable-reopened-sha-leaf.yml:10:9:13:6 | Uses Step | .github/workflows/reusable-reopened-sha-leaf.yml:13:9:13:18 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/reusable-reopened-sha-caller.yml:2:3:2:21 | pull_request_target | pull_request_target |
+| .github/workflows/reusable-write-callee.yml:16:9:16:18 | Run Step | .github/workflows/reusable-write-callee.yml:11:9:16:6 | Uses Step | .github/workflows/reusable-write-callee.yml:16:9:16:18 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/reusable-write-caller.yml:2:3:2:21 | pull_request_target | pull_request_target |
+| .github/workflows/sha-reopened.yml:17:9:17:18 | Run Step | .github/workflows/sha-reopened.yml:14:9:17:6 | Uses Step | .github/workflows/sha-reopened.yml:17:9:17:18 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/sha-reopened.yml:2:3:2:21 | pull_request_target | pull_request_target |
+| .github/workflows/sha-synchronize.yml:17:9:17:18 | Run Step | .github/workflows/sha-synchronize.yml:14:9:17:6 | Uses Step | .github/workflows/sha-synchronize.yml:17:9:17:18 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/sha-synchronize.yml:2:3:2:21 | pull_request_target | pull_request_target |
+| .github/workflows/test1.yml:20:7:20:17 | Run Step | .github/workflows/test1.yml:15:7:20:4 | Uses Step | .github/workflows/test1.yml:20:7:20:17 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/test1.yml:4:3:4:21 | pull_request_target | pull_request_target |
+| .github/workflows/test2.yml:20:7:20:17 | Run Step | .github/workflows/test2.yml:15:7:20:4 | Uses Step | .github/workflows/test2.yml:20:7:20:17 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/test2.yml:4:3:4:21 | pull_request_target | pull_request_target |

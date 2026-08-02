@@ -7,7 +7,7 @@ Untrusted Checkout is protected by a security check but the checked-out branch c
 Verify that the code has not been modified after the security check. This may be achieved differently depending on the type of check:
 
 - Deployment Environment Approval: Make sure to use a non-mutable reference to the code to be executed. For example use a `sha` instead of a `ref`.
-- Label Gates: Make sure to use a non-mutable reference to the code to be executed. For example use a `sha` instead of a `ref`.
+- Label Gates: Use an immutable SHA and trigger the privileged run when the label is applied. A label retained across `synchronize` or `reopened` can authorize a new SHA that was never reviewed.
 - IssueOps Comment Approval: The `issue_comment` payload does not contain the pull request head SHA. Capture the head SHA before checking that the pull request was not pushed to after the comment, then execute that exact captured commit. If execution happens in a dependent job, pass the captured SHA through a job output. Resolving a new SHA after the check or checking out a mutable reference remains unsafe.
 
 ## Example
@@ -95,6 +95,28 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
       - run: ./cmd
 ```
+
+### Incorrect Usage (Retained Label Approval)
+
+An immutable SHA does not help when a persistent label is reused by a later `synchronize` or `reopened` event. The event's head SHA can identify code that was pushed after the label was approved.
+
+```yaml
+on:
+  pull_request_target:
+    types: [opened, labeled, synchronize, reopened]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'safe-to-test')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: ./cmd
+```
+
+Trigger on `labeled` as in the preceding correct example, or otherwise bind approval to the exact commit that was reviewed.
 
 ## References
 

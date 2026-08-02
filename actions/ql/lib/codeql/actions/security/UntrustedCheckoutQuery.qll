@@ -4,6 +4,7 @@ private import codeql.actions.config.Config
 private import codeql.actions.dataflow.FlowSources
 private import codeql.actions.TaintTracking
 private import codeql.actions.security.ControlChecks
+private import codeql.actions.security.ControlCheckConditions as Conditions
 private import codeql.actions.security.PoisonableSteps
 private import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 private import codeql.actions.JobSynchronization as JobSync
@@ -299,12 +300,19 @@ abstract class SHACheckoutStep extends PRHeadCheckoutStep { }
  *
  * Mutable references can change after any approval. An `issue_comment` payload does not contain
  * the pull request head SHA, so even an immutable head SHA must be resolved after the triggering
- * comment and may already identify code that was pushed after the approval.
+ * comment and may already identify code that was pushed after the approval. A label retained by a
+ * `synchronize` or `reopened` event can likewise authorize a new immutable SHA that was never
+ * reviewed.
  */
 predicate mayCheckoutCodeChangedAfterApproval(PRHeadCheckoutStep checkout, Event event) {
   checkout instanceof MutableRefCheckoutStep
   or
-  checkout instanceof SHACheckoutStep and event.getName() = "issue_comment"
+  checkout instanceof SHACheckoutStep and
+  (
+    event.getName() = "issue_comment"
+    or
+    exists(LabelIfCheck check | hasStalePullRequestLabelAuthorization(checkout, event, check))
+  )
 }
 
 /** Gets `reference` or a job output expression transitively referenced by it. */
@@ -388,6 +396,187 @@ predicate hasEffectiveCheckoutTOCTOUProtection(PRHeadCheckoutStep checkout, Even
   )
 }
 
+/** Holds if an effective authorization control protects `checkout` for `event`. */
+predicate hasEffectiveCheckoutAuthorization(PRHeadCheckoutStep checkout, Event event) {
+  exists(ControlCheck check | check.protects(checkout, event, "untrusted-checkout"))
+}
+
+private predicate isStalePullRequestApprovalTrigger(Event event) {
+  event.getName() = "pull_request_target" and
+  event.getAnActivityType() = ["synchronize", "reopened"]
+}
+
+/**
+ * Holds if `check` is an effective label authorization that can be retained after the pull request
+ * code changes.
+ */
+private predicate hasStalePullRequestLabelAuthorization(
+  PRHeadCheckoutStep checkout, Event event, LabelIfCheck check
+) {
+  isStalePullRequestApprovalTrigger(event) and
+  check.protects(checkout, event, "untrusted-checkout") and
+  not Conditions::conditionRequiresPullRequestRepositoryCheck(check)
+}
+
+/** Holds if `check` is a recognized authorization attempt that does not protect `checkout`. */
+predicate knownImproperCheckoutAuthorization(
+  PRHeadCheckoutStep checkout, Event event, AuthorizationAttemptCheck check
+) {
+  // Only classify checks on events for which authorization controls model an external actor.
+  event.getName() = any_event() and
+  check.dominates(checkout, event) and
+  (
+    not check.protects(checkout, event, "untrusted-checkout")
+    or
+    check instanceof PullRequestTargetRepositoryIfCheck and
+    not Conditions::conditionRequiresPullRequestRepositoryCheck(check)
+    or
+    check instanceof WorkflowRunRepositoryIfCheck and
+    not Conditions::conditionRequiresPullRequestRepositoryCheck(check)
+  )
+}
+
+private predicate isClassifiableCheckout(PRHeadCheckoutStep checkout, Event event) {
+  checkout.getATriggerEvent() = event and
+  event.getName() = [checkoutTriggers(), "pull_request"] and
+  IntegratedCfg::mayExecuteForEvent(checkout, event) and
+  not runtimeGuardPreventsCheckout(checkout, event)
+}
+
+/** Holds if `checkout` is classified as an improper-access-control case for `event`. */
+predicate classifiedAsImproperAccessControl(PRHeadCheckoutStep checkout, Event event) {
+  isClassifiableCheckout(checkout, event) and
+  exists(AuthorizationAttemptCheck check | knownImproperCheckoutAuthorization(checkout, event, check))
+}
+
+/** Holds if `checkout` is authorized but insufficiently bound to the approved revision. */
+predicate classifiedAsUntrustedCheckoutTOCTOU(PRHeadCheckoutStep checkout, Event event) {
+  isClassifiableCheckout(checkout, event) and
+  not classifiedAsImproperAccessControl(checkout, event) and
+  // The checkout has ordinary actor/access control protection.
+  hasEffectiveCheckoutAuthorization(checkout, event) and
+  mayCheckoutCodeChangedAfterApproval(checkout, event) and
+  // The ordinary protection does not effectively bind approval to the checked-out revision.
+  not hasEffectiveCheckoutTOCTOUProtection(checkout, event)
+}
+
+/**
+ * Holds if no effective authorization protects `checkout` for `event`.
+ *
+ * For `issue_comment`, actor/access controls authorize the comment. A date comparison only checks
+ * freshness and therefore does not turn an otherwise untrusted checkout into an authorized one.
+ * The same ordinary-authorization rule applies to non-`issue_comment` trigger events.
+ */
+predicate classifiedAsUntrustedCheckout(PRHeadCheckoutStep checkout, Event event) {
+  isClassifiableCheckout(checkout, event) and
+  not classifiedAsImproperAccessControl(checkout, event) and
+  not hasEffectiveCheckoutAuthorization(checkout, event)
+}
+
+/** Holds if `checkout` has effective authorization and revision binding for `event`. */
+predicate classifiedAsProtectedCheckout(PRHeadCheckoutStep checkout, Event event) {
+  isClassifiableCheckout(checkout, event) and
+  not classifiedAsImproperAccessControl(checkout, event) and
+  hasEffectiveCheckoutAuthorization(checkout, event) and
+  (
+    not mayCheckoutCodeChangedAfterApproval(checkout, event)
+    or
+    hasEffectiveCheckoutTOCTOUProtection(checkout, event)
+  )
+}
+
+/** Gets the single security classification of `checkout` for `event`. */
+string getCheckoutSecurityClassification(PRHeadCheckoutStep checkout, Event event) {
+  classifiedAsImproperAccessControl(checkout, event) and result = "improper-access-control"
+  or
+  classifiedAsUntrustedCheckoutTOCTOU(checkout, event) and result = "toctou"
+  or
+  classifiedAsUntrustedCheckout(checkout, event) and result = "untrusted-checkout"
+  or
+  classifiedAsProtectedCheckout(checkout, event) and result = "protected"
+}
+
+/** Holds if `poisonable` is known to execute code from `checkout` for `event`. */
+predicate checkoutMayLeadToCodeExecution(
+  PRHeadCheckoutStep checkout, PoisonableStep poisonable, Event event
+) {
+  // The checkout is followed by a known poisonable step.
+  checkout.getAFollowingStep() = poisonable and
+  IntegratedCfg::orderedStepsMayReachForEvent(checkout, poisonable, event) and
+  (
+    poisonable instanceof Run and
+    (
+      // Check if the poisonable step is a local script execution step and the path of the command
+      // or script matches the path of the downloaded code.
+      isSubpath(poisonable.(LocalScriptExecutionRunStep).getPath(), checkout.getPath())
+      or
+      // Checking the working directory for non-local script execution steps is very difficult.
+      not poisonable instanceof LocalScriptExecutionRunStep
+      // It is not easy to extract the path from a non-local script execution step, so skip this
+      // check for now:
+      // isSubpath(poisonable.(Run).getWorkingDirectory(), checkout.getPath())
+    )
+    or
+    poisonable instanceof UsesStep and
+    (
+      not poisonable instanceof LocalActionUsesStep and
+      checkout.getPath() = "GITHUB_WORKSPACE/"
+      or
+      isSubpath(poisonable.(LocalActionUsesStep).getPath(), checkout.getPath())
+    )
+  )
+}
+
+private predicate criticalSeverityCheckout(
+  PRHeadCheckoutStep checkout, PoisonableStep poisonable, Event event
+) {
+  // The checked-out code may lead to arbitrary code execution.
+  checkoutMayLeadToCodeExecution(checkout, poisonable, event) and
+  // The checkout and execution both occur in a privileged context.
+  inPrivilegedContext(checkout, event) and
+  inPrivilegedContext(poisonable, event)
+}
+
+private predicate highSeverityCheckout(PRHeadCheckoutStep checkout, Event event) {
+  IntegratedCfg::mayExecuteForEvent(checkout, event) and
+  // The checkout occurs in a privileged context.
+  inPrivilegedContext(checkout, event) and
+  // There is no evidence that the checked-out code is executed.
+  not exists(PoisonableStep poisonable |
+    checkoutMayLeadToCodeExecution(checkout, poisonable, event)
+  )
+}
+
+/** Holds if `checkout` forms a critical ordinary untrusted-checkout finding. */
+predicate criticalSeverityUntrustedCheckout(
+  PRHeadCheckoutStep checkout, PoisonableStep poisonable, Event event
+) {
+  classifiedAsUntrustedCheckout(checkout, event) and
+  criticalSeverityCheckout(checkout, poisonable, event) and
+  // No effective control between checkout and execution protects the poisonable step.
+  not exists(ControlCheck check | check.protects(poisonable, event, "untrusted-checkout"))
+}
+
+/** Holds if `checkout` forms a high ordinary untrusted-checkout finding. */
+predicate highSeverityUntrustedCheckout(PRHeadCheckoutStep checkout, Event event) {
+  classifiedAsUntrustedCheckout(checkout, event) and
+  highSeverityCheckout(checkout, event)
+}
+
+/** Holds if `checkout` forms a medium ordinary untrusted-checkout finding. */
+predicate mediumSeverityUntrustedCheckout(PRHeadCheckoutStep checkout) {
+  // The checkout occurs in a non-privileged context.
+  inNonPrivilegedContext(checkout) and
+  mayExecuteUnsafeCheckout(checkout) and
+  (
+    exists(Event event | classifiedAsUntrustedCheckout(checkout, event))
+    or
+    // Reusable workflows without a modeled caller may not expose a concrete trigger event. Keep
+    // the medium query conservative in that case, as it was before classification was shared.
+    not exists(Event event | isClassifiableCheckout(checkout, event))
+  )
+}
+
 /**
  * Holds if `checkout` and `poisonable` form a critical untrusted-checkout TOCTOU finding for
  * `event`.
@@ -395,17 +584,8 @@ predicate hasEffectiveCheckoutTOCTOUProtection(PRHeadCheckoutStep checkout, Even
 predicate criticalSeverityUntrustedCheckoutTOCTOU(
   PRHeadCheckoutStep checkout, PoisonableStep poisonable, Event event
 ) {
-  mayCheckoutCodeChangedAfterApproval(checkout, event) and
-  // The checked-out code may lead to arbitrary code execution.
-  checkout.getAFollowingStep() = poisonable and
-  IntegratedCfg::orderedStepsMayReachForEvent(checkout, poisonable, event) and
-  // The checkout occurs in a privileged context.
-  inPrivilegedContext(checkout, event) and
-  // The checkout has ordinary protection, but no effective protection against mutation.
-  exists(ControlCheck check |
-    check.protects(checkout, event, "untrusted-checkout")
-  ) and
-  not hasEffectiveCheckoutTOCTOUProtection(checkout, event)
+  classifiedAsUntrustedCheckoutTOCTOU(checkout, event) and
+  criticalSeverityCheckout(checkout, poisonable, event)
 }
 
 bindingset[checkout, event]
@@ -423,21 +603,12 @@ private predicate hasDownstreamCriticalFindingForSameReference(
 
 /** Holds if `checkout` forms a high untrusted-checkout TOCTOU finding for `event`. */
 predicate highSeverityUntrustedCheckoutTOCTOU(PRHeadCheckoutStep checkout, Event event) {
-  mayCheckoutCodeChangedAfterApproval(checkout, event) and
-  IntegratedCfg::mayExecuteForEvent(checkout, event) and
-  // There is no evidence that the checked-out code is executed.
-  not exists(PoisonableStep poisonable |
-    checkout.getAFollowingStep() = poisonable and
-    IntegratedCfg::orderedStepsMayReachForEvent(checkout, poisonable, event)
-  ) and
+  classifiedAsUntrustedCheckoutTOCTOU(checkout, event) and
+  highSeverityCheckout(checkout, event) and
   not hasDownstreamCriticalFindingForSameReference(checkout, event) and
-  // The checkout occurs in a privileged context.
-  inPrivilegedContext(checkout, event) and
-  // The checkout has ordinary protection, but no effective protection against mutation.
-  exists(ControlCheck check |
-    check.protects(checkout, event, "untrusted-checkout")
-  ) and
-  not hasEffectiveCheckoutTOCTOUProtection(checkout, event)
+  not exists(PoisonableStep poisonable |
+    criticalSeverityUntrustedCheckoutTOCTOU(checkout, poisonable, event)
+  )
 }
 
 private predicate hasOnlyStaticMatrixValues(Expression expr) {

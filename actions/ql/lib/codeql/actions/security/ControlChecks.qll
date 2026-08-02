@@ -222,7 +222,10 @@ private predicate unprotectedCallerChain(ExternalJob caller, Event event, string
   )
 }
 
-abstract class AssociationCheck extends ControlCheck {
+/** A recognized attempt to authorize access to untrusted code. */
+abstract class AuthorizationAttemptCheck extends ControlCheck { }
+
+abstract class AssociationCheck extends AuthorizationAttemptCheck {
   // Checks if the actor is a MEMBER/OWNER the repo
   // - they are effective against pull requests and workflow_run (since these are triggered by pull_requests) since they can control who is making the PR
   // - they are not effective against issue_comment since the author of the comment may not be the same as the author of the PR
@@ -233,7 +236,7 @@ abstract class AssociationCheck extends ControlCheck {
   }
 }
 
-abstract class ActorCheck extends ControlCheck {
+abstract class ActorCheck extends AuthorizationAttemptCheck {
   // checks for a specific actor
   // - they are effective against pull requests and workflow_run (since these are triggered by pull_requests) since they can control who is making the PR
   // - they are not effective against issue_comment since the author of the comment may not be the same as the author of the PR
@@ -244,14 +247,14 @@ abstract class ActorCheck extends ControlCheck {
   }
 }
 
-abstract class RepositoryCheck extends ControlCheck {
+abstract class RepositoryCheck extends AuthorizationAttemptCheck {
   // checks that the origin of the code is the same as the repository.
   // for pull_requests, that means that it triggers only on local branches or repos from the same org
   // - they are effective against pull requests/workflow_run since they can control where the code is coming from
   // - they are not effective against issue_comment since the repository will always be the same
 }
 
-abstract class PermissionCheck extends ControlCheck {
+abstract class PermissionCheck extends AuthorizationAttemptCheck {
   // checks that the actor has a specific permission level
   // - they are effective against pull requests/workflow_run since they can control who can make changes
   // - they are not effective against issue_comment since the author of the comment may not be the same as the author of the PR
@@ -262,7 +265,7 @@ abstract class PermissionCheck extends ControlCheck {
   }
 }
 
-abstract class LabelCheck extends ControlCheck {
+abstract class LabelCheck extends AuthorizationAttemptCheck {
   // checks if the issue/pull_request is labeled, which implies that it could have been approved
   // - they dont protect against mutation attacks
   override predicate protectsCategoryAndEvent(string category, string event) {
@@ -353,10 +356,11 @@ class AssociationIfCheck extends AssociationCheck instanceof If {
 class AssociationActionCheck extends AssociationCheck instanceof UsesStep {
   AssociationActionCheck() {
     this.getCallee() = "TheModdingInquisition/actions-team-membership" and
+    failureStopsStep(this) and
     (
       not exists(this.getArgument("exit"))
       or
-      this.getArgument("exit") = "true"
+      this.getArgument("exit").trim().toLowerCase() = "true"
     )
     or
     this.getCallee() = "actions/github-script" and
@@ -371,6 +375,16 @@ private predicate failureStopsStep(Step step) {
   not exists(step.getContinueOnErrorValue())
   or
   step.getContinueOnErrorValue().trim().toLowerCase() = "false"
+}
+
+/** A membership check configured so that an authorization failure does not stop execution. */
+class IneffectiveAssociationActionCheck extends AuthorizationAttemptCheck instanceof UsesStep {
+  IneffectiveAssociationActionCheck() {
+    this.getCallee() = "TheModdingInquisition/actions-team-membership" and
+    not this instanceof AssociationActionCheck
+  }
+
+  override predicate protectsCategoryAndEvent(string category, string event) { none() }
 }
 
 private predicate isFalseStringLiteral(ExpressionNode node) {
@@ -416,6 +430,23 @@ private predicate actionsCoolSupportsErrorIfMissing(UsesStep action) {
   actionsControlBehaviorDataModel(action.getCallee(), action.getVersion(), "error-if-missing")
 }
 
+private predicate isKnownPermissionActionAttempt(UsesStep action) {
+  action.getCallee() = "actions-cool/check-user-permission" and
+  exists(action.getArgument("require"))
+  or
+  action.getCallee() = "sushichop/action-repository-permission" and
+  exists(action.getArgument("required-permission"))
+  or
+  action.getCallee() =
+    [
+      "prince-chrismc/check-actor-permissions-action", "lannonbr/repo-permission-check-action"
+    ] and
+  exists(action.getArgument("permission"))
+  or
+  action.getCallee() = "xt0rted/slash-command-action" and
+  exists(action.getArgument("permission-level"))
+}
+
 class PermissionActionCheck extends PermissionCheck instanceof UsesStep {
   PermissionActionCheck() {
     this.getCallee() = "actions-cool/check-user-permission" and
@@ -450,6 +481,16 @@ class PermissionActionCheck extends PermissionCheck instanceof UsesStep {
     this.getCallee() = "octokit/request-action" and
     this.getArgument("route").regexpMatch("GET.*(collaborators|permission).*")
   }
+}
+
+/** A recognized permission check whose configured threshold or failure behavior is ineffective. */
+class IneffectivePermissionActionCheck extends AuthorizationAttemptCheck instanceof UsesStep {
+  IneffectivePermissionActionCheck() {
+    isKnownPermissionActionAttempt(this) and
+    not this instanceof PermissionActionCheck
+  }
+
+  override predicate protectsCategoryAndEvent(string category, string event) { none() }
 }
 
 bindingset[command]

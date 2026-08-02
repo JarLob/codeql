@@ -1,0 +1,15 @@
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+permissions: {}
+
+jobs:
+  trigger-discriminated-label: # Expected: ordinary medium; pull_request is outside the privileged authorization-event model.
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'safe-to-test'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}

@@ -17,8 +17,5 @@ import actions
 import codeql.actions.security.UntrustedCheckoutQuery
 
 from PRHeadCheckoutStep checkout
-where
-  // the checkout occurs in a non-privileged context
-  inNonPrivilegedContext(checkout) and
-  mayExecuteUnsafeCheckout(checkout)
+where mediumSeverityUntrustedCheckout(checkout)
 select checkout, "Potential unsafe checkout of untrusted pull request on non-privileged workflow."

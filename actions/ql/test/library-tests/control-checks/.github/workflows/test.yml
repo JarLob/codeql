@@ -219,6 +219,9 @@ jobs:
         uses: TheModdingInquisition/actions-team-membership@master
         with:
           exit: false
+      - id: team-membership-continued
+        uses: TheModdingInquisition/actions-team-membership@master
+        continue-on-error: true
       - id: membership-script
         uses: actions/github-script@v7
         with:
