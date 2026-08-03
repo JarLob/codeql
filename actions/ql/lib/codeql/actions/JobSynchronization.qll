@@ -251,6 +251,12 @@ class MatrixJobInstance extends TMatrixJobInstance {
 
   string getMatrixValue(string name) { result = this.getCombination().getValue(name) }
 
+  /** Gets a statically known output value from the reusable workflow called by this instance. */
+  string getReusableWorkflowOutputValue(string name) {
+    name = getCalledReusableWorkflow(this.getJob()).getOutputs().getAnOutputName() and
+    result = getMatrixReusableWorkflowOutputStringValue(this, name)
+  }
+
   string toString() { result = this.getJob().getId() + "[" + this.getAssignment() + "]" }
 }
 
@@ -778,6 +784,17 @@ private JobStatus getAPossibleExecutedJobConclusionForEvent(Job job, Event event
   result = getAPossibleNonReusableJobConclusionForEvent(job, event)
 }
 
+private predicate reusableMatrixInstanceMayCompleteForEvent(
+  MatrixJobInstance instance, Event event, JobStatus status
+) {
+  exists(ReusableWorkflow workflow, JobStatus outcome |
+    workflow = getCalledReusableWorkflow(instance.getJob()) and
+    instance.getJob().getATriggerEvent() = event and
+    reusableWorkflowMayCompleteForEvent(workflow, event, outcome) and
+    status = getAMatrixJobConclusionForOutcome(instance, event, outcome)
+  )
+}
+
 private predicate decisionMayHaveOutcome(Job job, boolean outcome) {
   not exists(job.getIf()) and
   isRootJob(job) and
@@ -1090,6 +1107,75 @@ private string getStaticExpressionOutputStringValue(Expression output) {
   result = ""
 }
 
+bindingset[expression, instance]
+pragma[inline_late]
+private string getMatrixInstanceExpressionStringValue(
+  Expression expression, MatrixJobInstance instance
+) {
+  result = getStaticExpressionOutputStringValue(expression)
+  or
+  exists(AccessExpression access, string key |
+    access = expression.getRoot().getChild(0) and
+    key = instance.getAMatrixKey() and
+    access.getAccessPath().toLowerCase() = ("matrix." + key).toLowerCase() and
+    result = instance.getMatrixValue(key)
+  )
+}
+
+bindingset[instance, inputName]
+pragma[inline_late]
+private string getMatrixReusableWorkflowInputStringValue(
+  MatrixJobInstance instance, string inputName
+) {
+  exists(ExternalJob caller, ReusableWorkflow workflow |
+    caller = instance.getJob() and
+    workflow = getCalledReusableWorkflow(caller) and
+    inputName = workflow.getAnInput().toString() and
+    result = getMatrixInstanceExpressionStringValue(caller.getArgumentExpr(inputName), instance)
+  )
+}
+
+bindingset[instance, outputJob, outputName]
+pragma[inline_late]
+private string getMatrixReusableJobOutputStringValue(
+  MatrixJobInstance instance, Job outputJob, string outputName
+) {
+  outputName = outputJob.getOutputs().getAnOutputName() and
+  (
+    result = getStaticExpressionOutputStringValue(outputJob.getOutputExpr(outputName))
+    or
+    exists(AccessExpression access, string inputName |
+      access = outputJob.getOutputExpr(outputName).getRoot().getChild(0) and
+      inputName = getCalledReusableWorkflow(instance.getJob()).getAnInput().toString() and
+      access.getAccessPath().toLowerCase() = ("inputs." + inputName).toLowerCase() and
+      result = getMatrixReusableWorkflowInputStringValue(instance, inputName)
+    )
+  )
+}
+
+bindingset[instance, outputName]
+pragma[inline_late]
+private string getMatrixReusableWorkflowOutputStringValue(
+  MatrixJobInstance instance, string outputName
+) {
+  exists(ReusableWorkflow workflow |
+    workflow = getCalledReusableWorkflow(instance.getJob()) and
+    outputName = workflow.getOutputs().getAnOutputName() and
+    (
+      result = getStaticExpressionOutputStringValue(workflow.getOutputExpr(outputName))
+      or
+      exists(AccessExpression access, Job outputJob, string jobOutputName |
+        access = workflow.getOutputExpr(outputName).getRoot().getChild(0) and
+        jobOutputName = outputJob.getOutputs().getAnOutputName() and
+        access.getAccessPath().toLowerCase() =
+          ("jobs." + outputJob.getId() + ".outputs." + jobOutputName).toLowerCase() and
+        outputJob.getWorkflow() = workflow and
+        result = getMatrixReusableJobOutputStringValue(instance, outputJob, jobOutputName)
+      )
+    )
+  )
+}
+
 private string getStaticOutputStringValue(Job needed, string outputName) {
   result = getStaticExpressionOutputStringValue(needed.getOutputExpr(outputName))
   or
@@ -1108,6 +1194,13 @@ private string getStaticOutputStringValue(Job needed, string outputName) {
       ("jobs." + outputJob.getId() + ".outputs." + jobOutputName).toLowerCase() and
     outputJob.getWorkflow() = workflow and
     result = getStaticOutputStringValue(outputJob, jobOutputName)
+  )
+  or
+  exists(MatrixJobInstance instance, ReusableWorkflow workflow |
+    instance.getJob() = needed and
+    workflow = getCalledReusableWorkflow(needed) and
+    outputName = workflow.getOutputs().getAnOutputName() and
+    result = getMatrixReusableWorkflowOutputStringValue(instance, outputName)
   )
 }
 
@@ -1673,6 +1766,7 @@ private predicate synchronizationSuccessor(Node predecessor, Node successor) {
   or
   exists(JobDecisionNode decision, WorkflowEntryNode entry |
     predecessor = decision and
+    not decision.getJob().getStrategy().hasMatrix() and
     entry.getWorkflow() = getCalledReusableWorkflow(decision.getJob()) and
     decisionMayHaveOutcome(decision.getJob(), true) and
     successor = entry
@@ -1702,13 +1796,28 @@ private predicate synchronizationSuccessor(Node predecessor, Node successor) {
   or
   exists(MatrixJobExecutionNode execution, MatrixJobCompletionNode completion |
     predecessor = execution and
+    not exists(getCalledReusableWorkflow(execution.getJob())) and
     completion.getInstance() = execution.getInstance() and
     successor = completion
+  )
+  or
+  exists(MatrixJobExecutionNode execution, WorkflowEntryNode entry |
+    predecessor = execution and
+    entry.getWorkflow() = getCalledReusableWorkflow(execution.getJob()) and
+    successor = entry
   )
   or
   exists(MatrixJobCompletionNode completion, MatrixJobFanInNode fanIn |
     predecessor = completion and
     completion.getJob() = fanIn.getJob() and
+    (
+      not exists(getCalledReusableWorkflow(completion.getJob()))
+      or
+      exists(Event event |
+        reusableMatrixInstanceMayCompleteForEvent(completion.getInstance(), event,
+          completion.getStatus())
+      )
+    ) and
     successor = fanIn
   )
   or
@@ -1736,12 +1845,21 @@ private predicate synchronizationSuccessor(Node predecessor, Node successor) {
     ) and
     successor = completion
   )
+  or
+  exists(WorkflowExitNode exit, MatrixJobCompletionNode completion, Event event |
+    predecessor = exit and
+    exit.getWorkflow() = getCalledReusableWorkflow(completion.getJob()) and
+    reusableMatrixInstanceMayCompleteForEvent(completion.getInstance(), event,
+      completion.getStatus()) and
+    successor = completion
+  )
 }
 
 private predicate synchronizationSuccessorForEvent(Node predecessor, Node successor, Event event) {
   synchronizationSuccessor(predecessor, successor) and
   not predecessor instanceof JobDecisionNode and
   not predecessor instanceof NeedsJoinNode and
+  not predecessor instanceof MatrixJobCompletionNode and
   not predecessor instanceof WorkflowExitNode
   or
   exists(NeedsJoinNode join, JobDecisionNode decision |
@@ -1759,8 +1877,17 @@ private predicate synchronizationSuccessorForEvent(Node predecessor, Node succes
     successor = execution
   )
   or
+  exists(JobDecisionNode decision, MatrixJobExecutionNode execution |
+    predecessor = decision and
+    execution.getJob() = decision.getJob() and
+    needsStatusMayOccurForEvent(decision.getJob(), event, decision.getNeedsStatus()) and
+    decisionMayHaveOutcome(decision.getJob(), event, decision.getNeedsStatus(), true) and
+    successor = execution
+  )
+  or
   exists(JobDecisionNode decision, WorkflowEntryNode entry |
     predecessor = decision and
+    not decision.getJob().getStrategy().hasMatrix() and
     entry.getWorkflow() = getCalledReusableWorkflow(decision.getJob()) and
     needsStatusMayOccurForEvent(decision.getJob(), event, decision.getNeedsStatus()) and
     decisionMayHaveOutcome(decision.getJob(), event, decision.getNeedsStatus(), true) and
@@ -1782,6 +1909,21 @@ private predicate synchronizationSuccessorForEvent(Node predecessor, Node succes
     not completion.getStatus() instanceof SkippedStatus and
     reusableWorkflowMayCompleteForEvent(exit.getWorkflow(), event, completion.getStatus()) and
     successor = completion
+  )
+  or
+  exists(WorkflowExitNode exit, MatrixJobCompletionNode completion |
+    predecessor = exit and
+    exit.getWorkflow() = getCalledReusableWorkflow(completion.getJob()) and
+    reusableMatrixInstanceMayCompleteForEvent(completion.getInstance(), event,
+      completion.getStatus()) and
+    successor = completion
+  )
+  or
+  exists(MatrixJobCompletionNode completion, MatrixJobFanInNode fanIn |
+    predecessor = completion and
+    synchronizationSuccessor(completion, fanIn) and
+    jobMayCompleteForEvent(fanIn.getJob(), event, fanIn.getStatus()) and
+    successor = fanIn
   )
 }
 

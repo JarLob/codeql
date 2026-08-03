@@ -1,0 +1,23 @@
+"on":
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+    secrets:
+      token:
+        required: true
+    outputs:
+      selected:
+        value: "${{ jobs.matrix-reusable-terminal.outputs.selected }}"
+      direct:
+        value: "${{ 'matrix-direct' }}"
+
+jobs:
+  matrix-reusable-terminal:
+    continue-on-error: true
+    outputs:
+      selected: "${{ inputs.target }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ inputs.target }} ${{ secrets.token }}" && exit 1
