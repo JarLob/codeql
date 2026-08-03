@@ -21,6 +21,7 @@ classifications
 | pull_request_target.yml | permission-protected | protected |
 | pull_request_target.yml | permission-read | improper-access-control |
 | pull_request_target.yml | permission-unchecked-write | improper-access-control |
+| workflow_run.yml | event-specific-label | untrusted-checkout |
 | workflow_run.yml | repository-bypass | improper-access-control |
 | workflow_run.yml | repository-protected | protected |
 overlappingClassifications
