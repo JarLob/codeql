@@ -6,7 +6,14 @@ private module MatrixReusableFlowConfig implements DataFlow::ConfigSig {
   predicate isSource(DataFlow::Node source) {
     exists(ExternalJob caller |
       caller.getId() = "matrix-call-reusable" and
-      source.asExpr() = [caller.getArgumentExpr("target"), caller.getSecretExpr("token")]
+      (
+        exists(string inputName |
+          inputName = ["target", "active", "retries"] and
+          source.asExpr() = caller.getArgumentExpr(inputName)
+        )
+        or
+        source.asExpr() = caller.getSecretExpr("token")
+      )
     )
   }
 
@@ -14,7 +21,10 @@ private module MatrixReusableFlowConfig implements DataFlow::ConfigSig {
     exists(ReusableWorkflow workflow |
       workflow.getACaller().getId() = "matrix-call-reusable" and
       (
-        sink.asExpr().(InputsExpression).getTarget() = workflow.getInput("target")
+        exists(string inputName |
+          inputName = ["target", "active", "retries"] and
+          sink.asExpr().(InputsExpression).getTarget() = workflow.getInput(inputName)
+        )
         or
         workflow.getASecretExpr() = sink.asExpr()
       )
@@ -235,7 +245,10 @@ query predicate matrixContinueOnErrorTransformations(
 ) {
   exists(MatrixJobInstance matrixInstance, Event event, FailureStatus failure |
     matrixInstance.getJob().getId() =
-      ["matrix-job-continue-expression", "matrix-include-only"] and
+      [
+        "matrix-job-continue-complex", "matrix-job-continue-dynamic",
+        "matrix-job-continue-expression", "matrix-job-continue-nested", "matrix-include-only"
+      ] and
     event.getName() = "push" and
     scope = "job" and
     instance = matrixInstance.toString() and
@@ -245,9 +258,10 @@ query predicate matrixContinueOnErrorTransformations(
   )
   or
   exists(MatrixJobInstance matrixInstance, Step step, Event event, FailureStatus failure |
-    matrixInstance.getJob().getId() = "matrix-step-continue-expression" and
+    matrixInstance.getJob().getId() =
+      ["matrix-job-continue-nested", "matrix-step-continue-expression"] and
     step.getEnclosingJob() = matrixInstance.getJob() and
-    step.getId() = "matrix-step-continue" and
+    step.getId() = ["matrix-step-continue", "matrix-step-continue-nested"] and
     event.getName() = "push" and
     scope = "step" and
     instance = matrixInstance.toString() and
@@ -263,8 +277,9 @@ query predicate matrixContinueOnErrorCompletionOutcomes(
   exists(MatrixJobCompletionNode completion, Event event |
     completion.getJob().getId() =
       [
-        "matrix-job-continue-expression", "matrix-step-continue-expression",
-        "matrix-include-only"
+        "matrix-job-continue-complex", "matrix-job-continue-dynamic",
+        "matrix-job-continue-expression", "matrix-job-continue-nested",
+        "matrix-step-continue-expression", "matrix-include-only"
       ] and
     event.getName() = "push" and
     job = completion.getJob().getId() and
@@ -279,7 +294,10 @@ query predicate matrixContributingStepOutcomes(
 ) {
   exists(MatrixJobCompletionNode completion, Step completedStep, Event event |
     completion.getJob().getId() =
-      ["matrix-job-continue-expression", "matrix-step-continue-expression"] and
+      [
+        "matrix-job-continue-expression", "matrix-job-continue-nested",
+        "matrix-step-continue-expression"
+      ] and
     completedStep.getEnclosingJob() = completion.getJob() and
     event.getName() = "push" and
     job = completion.getJob().getId() and
@@ -391,10 +409,19 @@ query predicate matrixReusableBoundaryFlows(
     caller.getId() = "matrix-call-reusable" and
     instance = matrixInstance.toString() and
     (
-      source.asExpr() = caller.getArgumentExpr("target") and
-      value = matrixInstance.getMatrixValue("target") and
-      sink.asExpr() instanceof InputsExpression and
-      kind = "input"
+      exists(string inputName, string accessPath |
+        (
+          inputName = "target" and accessPath = "platform.target"
+          or
+          inputName = "active" and accessPath = "platform.active"
+          or
+          inputName = "retries" and accessPath = "platform.retries"
+        ) and
+        source.asExpr() = caller.getArgumentExpr(inputName) and
+        value = matrixInstance.getMatrixValue(accessPath) and
+        sink.asExpr() instanceof InputsExpression and
+        kind = "input:" + inputName
+      )
       or
       source.asExpr() = caller.getSecretExpr("token") and
       value = "mapped" and
@@ -407,7 +434,7 @@ query predicate matrixReusableBoundaryFlows(
 query predicate matrixReusableOutputValues(string instance, string output, string value) {
   exists(MatrixJobInstance matrixInstance |
     matrixInstance.getJob().getId() = "matrix-call-reusable" and
-    output = ["direct", "selected"] and
+    output = ["active", "direct", "retries", "selected"] and
     instance = matrixInstance.toString() and
     value = matrixInstance.getReusableWorkflowOutputValue(output)
   )
@@ -418,7 +445,8 @@ query predicate matrixReusableOutputDecisions(string job, string status, string 
     decision.getJob().getId() =
       [
         "after-matrix-reusable", "after-matrix-reusable-selected-alpha",
-        "after-matrix-reusable-selected-beta", "after-matrix-reusable-selected-gamma"
+        "after-matrix-reusable-selected-beta", "after-matrix-reusable-selected-gamma",
+        "after-matrix-reusable-active", "after-matrix-reusable-retries-three"
       ] and
     event.getName() = "push" and
     job = decision.getJob().getId() and

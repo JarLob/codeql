@@ -1417,6 +1417,86 @@ private string getBaseMatrixDimensionValue(
   result = strategy.getMatrixDimensionValue(name, getBaseMatrixDimensionIndex(assignment, name))
 }
 
+bindingset[strategy, assignment, name]
+pragma[inline_late]
+private YamlValue getBaseMatrixDimensionElement(
+  StrategyImpl strategy, string assignment, string name
+) {
+  name = strategy.getAMatrixDimensionName() and
+  result =
+    strategy
+        .getMatrix()
+        .lookup(name)
+        .(YamlSequence)
+        .getElement(getBaseMatrixDimensionIndex(assignment, name))
+}
+
+bindingset[strategy, assignment, accessPath]
+pragma[inline_late]
+private YamlScalar getBaseMatrixAccessScalar(
+  StrategyImpl strategy, string assignment, string accessPath
+) {
+  exists(string dimension, YamlValue element |
+    dimension = strategy.getAMatrixDimensionName() and
+    element = getBaseMatrixDimensionElement(strategy, assignment, dimension) and
+    (
+      accessPath.toLowerCase() = dimension.toLowerCase() and result = element
+      or
+      exists(string suffix |
+        accessPath.toLowerCase().indexOf((dimension + ".").toLowerCase()) = 0 and
+        suffix = accessPath.suffix(dimension.length() + 1) and
+        result = resolveMatrixScalarAccess(element.(YamlMappingLikeNode), suffix)
+      )
+    )
+  )
+}
+
+bindingset[root, accessPath]
+pragma[inline_late]
+private YamlScalar resolveMatrixScalarAccess(
+  YamlMappingLikeNode root, string accessPath
+) {
+  not exists(accessPath.indexOf(".")) and result = root.getNode(accessPath)
+  or
+  exists(string first, string second |
+    first = accessPath.splitAt(".", 0) and
+    second = accessPath.splitAt(".", 1) and
+    not exists(accessPath.splitAt(".", 2)) and
+    result = root.getNode(first).(YamlMappingLikeNode).getNode(second)
+  )
+  or
+  exists(string first, string second, string third |
+    first = accessPath.splitAt(".", 0) and
+    second = accessPath.splitAt(".", 1) and
+    third = accessPath.splitAt(".", 2) and
+    not exists(accessPath.splitAt(".", 3)) and
+    result =
+      root
+          .getNode(first)
+          .(YamlMappingLikeNode)
+          .getNode(second)
+          .(YamlMappingLikeNode)
+          .getNode(third)
+  )
+  or
+  exists(string first, string second, string third, string fourth |
+    first = accessPath.splitAt(".", 0) and
+    second = accessPath.splitAt(".", 1) and
+    third = accessPath.splitAt(".", 2) and
+    fourth = accessPath.splitAt(".", 3) and
+    not exists(accessPath.splitAt(".", 4)) and
+    result =
+      root
+          .getNode(first)
+          .(YamlMappingLikeNode)
+          .getNode(second)
+          .(YamlMappingLikeNode)
+          .getNode(third)
+          .(YamlMappingLikeNode)
+          .getNode(fourth)
+  )
+}
+
 bindingset[strategy, kind]
 pragma[inline_late]
 private YamlMapping getMatrixControlEntry(StrategyImpl strategy, string kind, int index) {
@@ -1539,38 +1619,61 @@ class MatrixCombinationImpl extends TMatrixCombination {
     )
   }
 
-  string getValue(string key) {
+  bindingset[accessPath]
+  pragma[inline_late]
+  private YamlScalar getAccessScalar(string accessPath) {
     exists(string assignment, int includeIndex, YamlMapping entry |
       this = TBaseMatrixCombination(_, assignment) and
       entry = getMatrixControlEntry(this.getStrategy(), "include", includeIndex) and
       matrixIncludeMatchesBase(this.getStrategy(), assignment, entry) and
-      key = getMatrixEntryKey(entry) and
+      accessPath = getMatrixEntryKey(entry) and
       not exists(int laterIndex, YamlMapping laterEntry |
         laterIndex > includeIndex and
         laterEntry = getMatrixControlEntry(this.getStrategy(), "include", laterIndex) and
         matrixIncludeMatchesBase(this.getStrategy(), assignment, laterEntry) and
-        key = getMatrixEntryKey(laterEntry)
+        accessPath = getMatrixEntryKey(laterEntry)
       ) and
-      result = getMatrixEntryValue(entry, key)
+      result = entry.lookup(accessPath)
     )
     or
     exists(string assignment |
       this = TBaseMatrixCombination(_, assignment) and
-      key = this.getStrategy().getAMatrixDimensionName() and
-      not exists(int includeIndex, YamlMapping entry |
+      not exists(int includeIndex, YamlMapping entry, string key |
+        (key = accessPath.prefix(accessPath.indexOf(".")) or key = accessPath) and
         entry = getMatrixControlEntry(this.getStrategy(), "include", includeIndex) and
         matrixIncludeMatchesBase(this.getStrategy(), assignment, entry) and
         key = getMatrixEntryKey(entry)
       ) and
-      result = getBaseMatrixDimensionValue(this.getStrategy(), assignment, key)
+      result = getBaseMatrixAccessScalar(this.getStrategy(), assignment, accessPath)
     )
     or
     exists(int includeIndex, YamlMapping entry |
       this = TIncludedMatrixCombination(_, includeIndex) and
       entry = getMatrixControlEntry(this.getStrategy(), "include", includeIndex) and
-      key = getMatrixEntryKey(entry) and
-      result = getMatrixEntryValue(entry, key)
+      accessPath = getMatrixEntryKey(entry) and
+      result = entry.lookup(accessPath)
     )
+  }
+
+  bindingset[accessPath]
+  pragma[inline_late]
+  string getValue(string accessPath) { result = this.getAccessScalar(accessPath).getValue() }
+
+  bindingset[accessPath]
+  pragma[inline_late]
+  string getValueKind(string accessPath) {
+    this.getAccessScalar(accessPath) instanceof YamlBool and result = "BooleanLiteral"
+    or
+    (
+      this.getAccessScalar(accessPath) instanceof YamlInteger
+      or
+      this.getAccessScalar(accessPath) instanceof YamlFloat
+    ) and
+    result = "NumberLiteral"
+    or
+    this.getAccessScalar(accessPath) instanceof YamlNull and result = "NullLiteral"
+    or
+    this.getAccessScalar(accessPath) instanceof YamlString and result = "StringLiteral"
   }
 
   string toString() { result = this.getAssignment() }

@@ -292,8 +292,15 @@ class MatrixCombination instanceof MatrixCombinationImpl {
   /** Gets a key defined for this combination. */
   string getAKey() { result = super.getAKey() }
 
-  /** Gets the effective scalar value for `key`. */
-  string getValue(string key) { result = super.getValue(key) }
+  /** Gets the effective scalar value for `accessPath`. */
+  bindingset[accessPath]
+  pragma[inline_late]
+  string getValue(string accessPath) { result = super.getValue(accessPath) }
+
+  /** Gets the expression literal kind of the effective scalar at `accessPath`. */
+  bindingset[accessPath]
+  pragma[inline_late]
+  string getValueKind(string accessPath) { result = super.getValueKind(accessPath) }
 
   string toString() { result = super.toString() }
 }

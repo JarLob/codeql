@@ -144,3 +144,58 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo combined
+
+  matrix-scalars:
+    strategy:
+      matrix:
+        os: [ubuntu, windows]
+        experimental: [true, false]
+        version: [1, 2]
+    runs-on: ubuntu-latest
+    steps:
+      - id: compound
+        if: "matrix.os == 'windows' && matrix.experimental"
+        run: echo compound
+      - id: numeric
+        if: "matrix.version >= 2"
+        run: echo numeric
+      - id: string-function
+        if: "startsWith(matrix.os, 'win')"
+        run: echo string function
+      - id: direct-boolean
+        if: "matrix.experimental"
+        run: echo direct boolean
+      - id: partial-unknown
+        if: "matrix.os == 'windows' && github.actor == 'octocat'"
+        run: echo partially unknown
+      - id: status-and-matrix
+        if: "success() && matrix.experimental"
+        run: echo status and matrix
+
+  matrix-structured:
+    strategy:
+      matrix:
+        platform:
+          - os: ubuntu
+            experimental: false
+          - os: windows
+            experimental: true
+    runs-on: ubuntu-latest
+    steps:
+      - id: nested
+        if: "matrix.platform.os == 'windows' && matrix.platform.experimental"
+        run: echo nested
+
+  matrix-types:
+    strategy:
+      matrix:
+        nullable: [null]
+        text: ["false"]
+    runs-on: ubuntu-latest
+    steps:
+      - id: null-equality
+        if: "matrix.nullable == null"
+        run: echo null
+      - id: quoted-false
+        if: "matrix.text"
+        run: echo quoted false is a nonempty string
