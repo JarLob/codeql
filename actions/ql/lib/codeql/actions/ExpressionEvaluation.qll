@@ -1,10 +1,13 @@
 import codeql.actions.Ast
 private import codeql.actions.config.Config
 
-private predicate getStringLiteralValue(ExpressionNode node, string value) {
+/** Gets the decoded value of the string literal `node`. */
+bindingset[node]
+pragma[inline_late]
+string getStringLiteralValue(ExpressionNode node) {
   node instanceof LiteralExpression and
   node.getKind() = "StringLiteral" and
-  value =
+  result =
     node.(LiteralExpression)
         .getValue()
         .substring(1, node.(LiteralExpression).getValue().length() - 1)
@@ -12,7 +15,7 @@ private predicate getStringLiteralValue(ExpressionNode node, string value) {
 }
 
 private predicate getStringValue(ExpressionNode node, Event event, string value) {
-  getStringLiteralValue(node, value)
+  value = getStringLiteralValue(node)
   or
   node instanceof AccessExpression and
   node.(AccessExpression).getAccessPath() = "github.event_name" and
@@ -116,8 +119,15 @@ private predicate getBooleanValue(
   evaluateFunctionCall(node.(FunctionCallExpression), event, statusMode, outcome)
 }
 
+/**
+ * Holds if applying the Boolean comparison `operator` to `left` and `right` evaluates to
+ * `outcome`. Unsupported operators yield no result.
+ */
 bindingset[left, operator, right]
-private predicate compareBooleans(boolean left, string operator, boolean right, boolean outcome) {
+pragma[inline_late]
+predicate booleanComparisonEvaluatesTo(
+  boolean left, string operator, boolean right, boolean outcome
+) {
   operator = "==" and left = right and outcome = true
   or
   operator = "==" and left != right and outcome = false
@@ -127,8 +137,15 @@ private predicate compareBooleans(boolean left, string operator, boolean right, 
   operator = "!=" and left = right and outcome = false
 }
 
+/**
+ * Holds if applying the case-insensitive string comparison `operator` to `left` and `right`
+ * evaluates to `outcome`. Unsupported operators yield no result.
+ */
 bindingset[left, operator, right]
-private predicate compareStrings(string left, string operator, string right, boolean outcome) {
+pragma[inline_late]
+predicate stringComparisonEvaluatesTo(
+  string left, string operator, string right, boolean outcome
+) {
   operator = "==" and left.toLowerCase() = right.toLowerCase() and outcome = true
   or
   operator = "==" and left.toLowerCase() != right.toLowerCase() and outcome = false
@@ -138,8 +155,15 @@ private predicate compareStrings(string left, string operator, string right, boo
   operator = "!=" and left.toLowerCase() = right.toLowerCase() and outcome = false
 }
 
+/**
+ * Holds if applying the numeric comparison `operator` to `left` and `right` evaluates to
+ * `outcome`. Unsupported operators yield no result.
+ */
 bindingset[left, operator, right]
-private predicate compareNumbers(float left, string operator, float right, boolean outcome) {
+pragma[inline_late]
+predicate numericComparisonEvaluatesTo(
+  float left, string operator, float right, boolean outcome
+) {
   operator = "==" and left = right and outcome = true
   or
   operator = "==" and left != right and outcome = false
@@ -165,36 +189,57 @@ private predicate compareNumbers(float left, string operator, float right, boole
   operator = "<=" and left > right and outcome = false
 }
 
+/** Holds if the Actions truthiness of the string `value` is `outcome`. */
+bindingset[value]
+pragma[inline_late]
+predicate stringTruthinessEvaluatesTo(string value, boolean outcome) {
+  value = "" and outcome = false
+  or
+  value != "" and outcome = true
+}
+
+/** Holds if the Actions truthiness of the number `value` is `outcome`. */
+bindingset[value]
+pragma[inline_late]
+predicate numericTruthinessEvaluatesTo(float value, boolean outcome) {
+  value = 0 and outcome = false
+  or
+  value != 0 and outcome = true
+}
+
+/** Holds if comparing two null values with `operator` evaluates to `outcome`. */
+bindingset[operator]
+pragma[inline_late]
+predicate nullComparisonEvaluatesTo(string operator, boolean outcome) {
+  operator = "==" and outcome = true
+  or
+  operator = "!=" and outcome = false
+}
+
 private predicate evaluateEquality(
   BinaryExpression expression, Event event, TStatusMode statusMode, boolean outcome
 ) {
   exists(string left, string right |
     getStringValue(expression.getLeftOperand(), event, left) and
     getStringValue(expression.getRightOperand(), event, right) and
-    compareStrings(left, expression.getOperator(), right, outcome)
+    stringComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
   )
   or
   exists(boolean left, boolean right |
     getBooleanValue(expression.getLeftOperand(), event, statusMode, left) and
     getBooleanValue(expression.getRightOperand(), event, statusMode, right) and
-    compareBooleans(left, expression.getOperator(), right, outcome)
+    booleanComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
   )
   or
   exists(float left, float right |
     getNumberValue(expression.getLeftOperand(), left) and
     getNumberValue(expression.getRightOperand(), right) and
-    compareNumbers(left, expression.getOperator(), right, outcome)
+    numericComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
   )
   or
   isKnownNullValue(expression.getLeftOperand(), event) and
   isKnownNullValue(expression.getRightOperand(), event) and
-  expression.getOperator() = "==" and
-  outcome = true
-  or
-  isKnownNullValue(expression.getLeftOperand(), event) and
-  isKnownNullValue(expression.getRightOperand(), event) and
-  expression.getOperator() = "!=" and
-  outcome = false
+  nullComparisonEvaluatesTo(expression.getOperator(), outcome)
 }
 
 private predicate logicalOperandEvaluatesTo(
@@ -329,30 +374,24 @@ private predicate conditionEvaluateEquality(
     exists(string left, string right |
       conditionEqualityStringOperand(expression, 0, event, left) and
       conditionEqualityStringOperand(expression, 1, event, right) and
-      compareStrings(left, expression.getOperator(), right, outcome)
+      stringComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
     )
     or
     exists(boolean left, boolean right |
       conditionEqualityBooleanOperand(condition, expression, 0, event, statusMode, left) and
       conditionEqualityBooleanOperand(condition, expression, 1, event, statusMode, right) and
-      compareBooleans(left, expression.getOperator(), right, outcome)
+      booleanComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
     )
     or
     exists(float left, float right |
       conditionEqualityNumberOperand(expression, 0, left) and
       conditionEqualityNumberOperand(expression, 1, right) and
-      compareNumbers(left, expression.getOperator(), right, outcome)
+      numericComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
     )
     or
     conditionEqualityOperandIsKnownNull(expression, 0, event) and
     conditionEqualityOperandIsKnownNull(expression, 1, event) and
-    expression.getOperator() = "==" and
-    outcome = true
-    or
-    conditionEqualityOperandIsKnownNull(expression, 0, event) and
-    conditionEqualityOperandIsKnownNull(expression, 1, event) and
-    expression.getOperator() = "!=" and
-    outcome = false
+    nullComparisonEvaluatesTo(expression.getOperator(), outcome)
   )
 }
 
@@ -454,15 +493,11 @@ private predicate conditionEvaluatesToBooleanWithStatus(
     isKnownNullValue(node, event) and outcome = false
     or
     exists(string value | getStringValue(node, event, value) |
-      value = "" and outcome = false
-      or
-      value != "" and outcome = true
+      stringTruthinessEvaluatesTo(value, outcome)
     )
     or
     exists(float value | getNumberValue(node, value) |
-      value = 0 and outcome = false
-      or
-      value != 0 and outcome = true
+      numericTruthinessEvaluatesTo(value, outcome)
     )
   )
 }
@@ -484,6 +519,276 @@ private predicate conditionMayEvaluateToBooleanWithStatus(
       conditionEvaluatesToBooleanWithStatus(condition, node, event, statusMode, known)
     )
   )
+}
+
+bindingset[node, combination]
+pragma[inline_late]
+private predicate getMatrixScalarValue(
+  ExpressionNode node, MatrixCombination combination, string kind, string value
+) {
+  exists(AccessExpression access, string path, string accessPath |
+    access = node and
+    path = access.getAccessPath() and
+    path.toLowerCase().matches("matrix.%") and
+    accessPath = path.suffix("matrix.".length()) and
+    kind = combination.getValueKind(accessPath) and
+    value = combination.getValue(accessPath)
+  )
+}
+
+private predicate matrixGetStringValue(
+  ExpressionNode node, Event event, MatrixCombination combination, string value
+) {
+  getStringValue(node, event, value)
+  or
+  getMatrixScalarValue(node, combination, "StringLiteral", value)
+}
+
+private predicate matrixGetNumberValue(
+  ExpressionNode node, MatrixCombination combination, float value
+) {
+  getNumberValue(node, value)
+  or
+  exists(string raw |
+    getMatrixScalarValue(node, combination, "NumberLiteral", raw) and value = raw.toFloat()
+  )
+}
+
+private predicate matrixIsKnownNullValue(
+  ExpressionNode node, Event event, MatrixCombination combination
+) {
+  isKnownNullValue(node, event)
+  or
+  exists(string value | getMatrixScalarValue(node, combination, "NullLiteral", value))
+}
+
+private predicate matrixGetBooleanValue(
+  ExpressionNode node, Event event, TStatusMode statusMode, MatrixCombination combination,
+  boolean outcome
+) {
+  getBooleanValue(node, event, statusMode, outcome)
+  or
+  exists(string raw |
+    getMatrixScalarValue(node, combination, "BooleanLiteral", raw) and
+    raw.toLowerCase() = outcome.toString()
+  )
+  or
+  node instanceof ExpressionRoot and
+  matrixGetBooleanValue(node.getAChild(), event, statusMode, combination, outcome)
+  or
+  node instanceof UnaryExpression and
+  node.(UnaryExpression).getOperator() = "!" and
+  exists(boolean operandOutcome |
+    matrixEvaluatesToBooleanWithStatus(node.(UnaryExpression).getOperand(), event, statusMode,
+      combination, operandOutcome) and
+    (
+      operandOutcome = true and outcome = false
+      or
+      operandOutcome = false and outcome = true
+    )
+  )
+  or
+  node instanceof BinaryExpression and
+  matrixEvaluateLogical(node.(BinaryExpression), event, statusMode, combination, outcome)
+  or
+  node instanceof BinaryExpression and
+  node.(BinaryExpression).getOperator() = ["==", "!=", ">", ">=", "<", "<="] and
+  matrixEvaluateEquality(node.(BinaryExpression), event, statusMode, combination, outcome)
+  or
+  node instanceof FunctionCallExpression and
+  matrixEvaluateFunctionCall(node.(FunctionCallExpression), event, statusMode, combination,
+    outcome)
+}
+
+private predicate matrixEvaluateEquality(
+  BinaryExpression expression, Event event, TStatusMode statusMode,
+  MatrixCombination combination, boolean outcome
+) {
+  exists(string left, string right |
+    matrixGetStringValue(expression.getLeftOperand(), event, combination, left) and
+    matrixGetStringValue(expression.getRightOperand(), event, combination, right) and
+    stringComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
+  )
+  or
+  exists(boolean left, boolean right |
+    matrixGetBooleanValue(expression.getLeftOperand(), event, statusMode, combination, left) and
+    matrixGetBooleanValue(expression.getRightOperand(), event, statusMode, combination, right) and
+    booleanComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
+  )
+  or
+  exists(float left, float right |
+    matrixGetNumberValue(expression.getLeftOperand(), combination, left) and
+    matrixGetNumberValue(expression.getRightOperand(), combination, right) and
+    numericComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
+  )
+  or
+  matrixIsKnownNullValue(expression.getLeftOperand(), event, combination) and
+  matrixIsKnownNullValue(expression.getRightOperand(), event, combination) and
+  nullComparisonEvaluatesTo(expression.getOperator(), outcome)
+}
+
+private predicate matrixLogicalOperandEvaluatesTo(
+  BinaryExpression expression, int index, Event event, TStatusMode statusMode,
+  MatrixCombination combination, boolean outcome
+) {
+  index = 0 and
+  matrixEvaluatesToBooleanWithStatus(expression.getLeftOperand(), event, statusMode, combination,
+    outcome)
+  or
+  index = 1 and
+  matrixEvaluatesToBooleanWithStatus(expression.getRightOperand(), event, statusMode, combination,
+    outcome)
+}
+
+private predicate matrixEvaluateLogical(
+  BinaryExpression expression, Event event, TStatusMode statusMode,
+  MatrixCombination combination, boolean outcome
+) {
+  expression.getOperator() = "&&" and
+  outcome = false and
+  matrixLogicalOperandEvaluatesTo(expression, _, event, statusMode, combination, false)
+  or
+  expression.getOperator() = "&&" and
+  outcome = true and
+  matrixLogicalOperandEvaluatesTo(expression, 0, event, statusMode, combination, true) and
+  matrixLogicalOperandEvaluatesTo(expression, 1, event, statusMode, combination, true)
+  or
+  expression.getOperator() = "||" and
+  outcome = true and
+  matrixLogicalOperandEvaluatesTo(expression, _, event, statusMode, combination, true)
+  or
+  expression.getOperator() = "||" and
+  outcome = false and
+  matrixLogicalOperandEvaluatesTo(expression, 0, event, statusMode, combination, false) and
+  matrixLogicalOperandEvaluatesTo(expression, 1, event, statusMode, combination, false)
+}
+
+private predicate matrixEvaluateFunctionCall(
+  FunctionCallExpression call, Event event, TStatusMode statusMode,
+  MatrixCombination combination, boolean outcome
+) {
+  evaluateFunctionCall(call, event, statusMode, outcome)
+  or
+  exists(string left, string right |
+    matrixGetStringValue(call.getArgument(0), event, combination, left) and
+    matrixGetStringValue(call.getArgument(1), event, combination, right) and
+    (
+      stringFunctionHolds(call, left, right) and outcome = true
+      or
+      call.getCallee().getName().toLowerCase() = ["contains", "startswith", "endswith"] and
+      not stringFunctionHolds(call, left, right) and
+      outcome = false
+    )
+  )
+}
+
+private predicate matrixEvaluatesToBooleanWithStatus(
+  ExpressionNode node, Event event, TStatusMode statusMode, MatrixCombination combination,
+  boolean outcome
+) {
+  (
+    node.getExpression().getATriggerEvent() = event
+    or
+    not exists(node.getExpression().getATriggerEvent())
+  ) and
+  (
+    matrixGetBooleanValue(node, event, statusMode, combination, outcome)
+    or
+    matrixIsKnownNullValue(node, event, combination) and outcome = false
+    or
+    exists(string value | matrixGetStringValue(node, event, combination, value) |
+      stringTruthinessEvaluatesTo(value, outcome)
+    )
+    or
+    exists(float value | matrixGetNumberValue(node, combination, value) |
+      numericTruthinessEvaluatesTo(value, outcome)
+    )
+  )
+}
+
+private predicate matrixMayEvaluateToBooleanWithStatus(
+  ExpressionNode node, Event event, TStatusMode statusMode, MatrixCombination combination,
+  boolean outcome
+) {
+  matrixEvaluatesToBooleanWithStatus(node, event, statusMode, combination, outcome)
+  or
+  outcome in [false, true] and
+  not exists(boolean known |
+    matrixEvaluatesToBooleanWithStatus(node, event, statusMode, combination, known)
+  )
+}
+
+private ExpressionNode getMatrixEvaluationNode(ExpressionNode node) {
+  node instanceof ExpressionRoot and result = node.getAChild()
+  or
+  not node instanceof ExpressionRoot and result = node
+}
+
+/** Holds if `node` is known to evaluate to `outcome` for this matrix combination. */
+predicate evaluatesToBooleanForMatrixCombination(
+  ExpressionNode node, Event event, MatrixCombination combination, boolean outcome
+) {
+  matrixEvaluatesToBooleanWithStatus(getMatrixEvaluationNode(node), event, unknownStatusMode(),
+    combination, outcome)
+}
+
+/** Holds if `node` may evaluate to `outcome` for this matrix combination. */
+predicate mayEvaluateToBooleanForMatrixCombination(
+  ExpressionNode node, Event event, MatrixCombination combination, boolean outcome
+) {
+  matrixMayEvaluateToBooleanWithStatus(getMatrixEvaluationNode(node), event, unknownStatusMode(),
+    combination, outcome)
+}
+
+/** Holds if `condition` may evaluate to `outcome` for this matrix combination. */
+predicate mayEvaluateConditionToBooleanForMatrixCombination(
+  If condition, ExpressionNode node, Event event, MatrixCombination combination, boolean outcome
+) {
+  condition.getConditionExpr() = node.getExpression() and
+  matrixMayEvaluateToBooleanWithStatus(getMatrixEvaluationNode(node), event, unknownStatusMode(),
+    combination, outcome)
+}
+
+/** Holds if `condition` may permit this matrix combination to execute. */
+predicate isConditionFeasibleForMatrixCombination(
+  If condition, Event event, MatrixCombination combination
+) {
+  mayEvaluateConditionToBooleanForMatrixCombination(condition,
+    condition.getConditionExpr().getRoot(), event, combination, true)
+}
+
+/** Holds if `node` may evaluate to `outcome` for a matrix combination and needs state. */
+bindingset[hasFailure, hasCancellation, hasSkip]
+pragma[inline_late]
+predicate mayEvaluateToBooleanForMatrixCombinationAfterNeedsState(
+  ExpressionNode node, Event event, MatrixCombination combination, boolean hasFailure,
+  boolean hasCancellation, boolean hasSkip, boolean outcome
+) {
+  matrixMayEvaluateToBooleanWithStatus(getMatrixEvaluationNode(node), event,
+    knownNeedsStatusMode(hasFailure, hasCancellation, hasSkip), combination, outcome)
+}
+
+/** Holds if `node` is known to evaluate to `outcome` for a matrix combination and needs state. */
+bindingset[hasFailure, hasCancellation, hasSkip]
+pragma[inline_late]
+predicate evaluatesToBooleanForMatrixCombinationAfterNeedsState(
+  ExpressionNode node, Event event, MatrixCombination combination, boolean hasFailure,
+  boolean hasCancellation, boolean hasSkip, boolean outcome
+) {
+  matrixEvaluatesToBooleanWithStatus(getMatrixEvaluationNode(node), event,
+    knownNeedsStatusMode(hasFailure, hasCancellation, hasSkip), combination, outcome)
+}
+
+/** Holds if `condition` may evaluate to `outcome` for a matrix combination and needs state. */
+bindingset[hasFailure, hasCancellation, hasSkip]
+pragma[inline_late]
+predicate mayEvaluateConditionToBooleanForMatrixCombinationAfterNeedsState(
+  If condition, ExpressionNode node, Event event, MatrixCombination combination,
+  boolean hasFailure, boolean hasCancellation, boolean hasSkip, boolean outcome
+) {
+  condition.getConditionExpr() = node.getExpression() and
+  matrixMayEvaluateToBooleanWithStatus(getMatrixEvaluationNode(node), event,
+    knownNeedsStatusMode(hasFailure, hasCancellation, hasSkip), combination, outcome)
 }
 
 /**
@@ -508,15 +813,11 @@ private predicate evaluatesToBooleanWithStatus(
     isKnownNullValue(node, event) and outcome = false
     or
     exists(string value | getStringValue(node, event, value) |
-      value = "" and outcome = false
-      or
-      value != "" and outcome = true
+      stringTruthinessEvaluatesTo(value, outcome)
     )
     or
     exists(float value | getNumberValue(node, value) |
-      value = 0 and outcome = false
-      or
-      value != 0 and outcome = true
+      numericTruthinessEvaluatesTo(value, outcome)
     )
   )
 }

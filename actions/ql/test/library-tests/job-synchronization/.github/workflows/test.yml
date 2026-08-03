@@ -255,6 +255,24 @@ jobs:
       - id: matrix-job-step
         run: exit 1
 
+  matrix-job-continue-complex:
+    strategy:
+      matrix:
+        os: [ubuntu, windows]
+        experimental: [true, false]
+    continue-on-error: "${{ matrix.os == 'windows' && matrix.experimental }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 1
+
+  matrix-job-continue-dynamic:
+    strategy:
+      matrix: "${{ fromJSON(github.event.repository.name) }}"
+    continue-on-error: "${{ matrix.os == 'windows' && matrix.experimental }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 1
+
   matrix-step-continue-expression:
     strategy:
       matrix:
@@ -324,10 +342,18 @@ jobs:
   matrix-call-reusable:
     strategy:
       matrix:
-        target: [alpha, beta]
+        platform:
+          - target: alpha
+            active: false
+            retries: 1
+          - target: beta
+            active: true
+            retries: 2
     uses: ./.github/workflows/matrix-reusable.yml
     with:
-      target: "${{ matrix.target }}"
+      target: "${{ matrix.platform.target }}"
+      active: "${{ matrix.platform.active }}"
+      retries: "${{ matrix.platform.retries }}"
     secrets:
       token: "${{ github.token }}"
 
@@ -361,6 +387,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo impossible output
+
+  # One invocation returns true, so this output gate may execute after successful fan-in.
+  after-matrix-reusable-active:
+    needs: matrix-call-reusable
+    if: needs.matrix-call-reusable.outputs.active == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo active output
+
+  # Neither invocation returns three, so successful fan-in must still skip this job.
+  after-matrix-reusable-retries-three:
+    needs: matrix-call-reusable
+    if: needs.matrix-call-reusable.outputs.retries == '3'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo impossible retries output
 
   after-reusable:
     needs: call-reusable

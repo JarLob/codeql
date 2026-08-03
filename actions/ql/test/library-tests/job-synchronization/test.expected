@@ -1,5 +1,7 @@
 joinRequirements
 | after-matrix-reusable | matrix-call-reusable |
+| after-matrix-reusable-active | matrix-call-reusable |
+| after-matrix-reusable-retries-three | matrix-call-reusable |
 | after-matrix-reusable-selected-alpha | matrix-call-reusable |
 | after-matrix-reusable-selected-beta | matrix-call-reusable |
 | after-matrix-reusable-selected-gamma | matrix-call-reusable |
@@ -164,6 +166,12 @@ joinDecisionStatuses
 | after-matrix-reusable | cancelled |
 | after-matrix-reusable | failure |
 | after-matrix-reusable | success |
+| after-matrix-reusable-active | cancelled |
+| after-matrix-reusable-active | failure |
+| after-matrix-reusable-active | success |
+| after-matrix-reusable-retries-three | cancelled |
+| after-matrix-reusable-retries-three | failure |
+| after-matrix-reusable-retries-three | success |
 | after-matrix-reusable-selected-alpha | cancelled |
 | after-matrix-reusable-selected-alpha | failure |
 | after-matrix-reusable-selected-alpha | success |
@@ -310,6 +318,10 @@ joinDecisionStatuses
 decisionEdges
 | after-matrix-reusable | complete after-matrix-reusable as skipped |
 | after-matrix-reusable | execute after-matrix-reusable |
+| after-matrix-reusable-active | complete after-matrix-reusable-active as skipped |
+| after-matrix-reusable-active | execute after-matrix-reusable-active |
+| after-matrix-reusable-retries-three | complete after-matrix-reusable-retries-three as skipped |
+| after-matrix-reusable-retries-three | execute after-matrix-reusable-retries-three |
 | after-matrix-reusable-selected-alpha | complete after-matrix-reusable-selected-alpha as skipped |
 | after-matrix-reusable-selected-alpha | execute after-matrix-reusable-selected-alpha |
 | after-matrix-reusable-selected-beta | complete after-matrix-reusable-selected-beta as skipped |
@@ -352,8 +364,8 @@ decisionEdges
 | dependent | execute dependent |
 | failure-dependent | complete failure-dependent as skipped |
 | failure-dependent | execute failure-dependent |
-| matrix-call-reusable | execute matrix-call-reusable[target=0] |
-| matrix-call-reusable | execute matrix-call-reusable[target=1] |
+| matrix-call-reusable | execute matrix-call-reusable[platform=0] |
+| matrix-call-reusable | execute matrix-call-reusable[platform=1] |
 | matrix-continue-dependent | complete matrix-continue-dependent as skipped |
 | matrix-continue-dependent | execute matrix-continue-dependent |
 | matrix-continue-true | execute matrix-continue-true[version=0] |
@@ -388,8 +400,16 @@ decisionEdges
 | matrix-include | execute matrix-include[include=3] |
 | matrix-include-only | execute matrix-include-only[include=0] |
 | matrix-include-only | execute matrix-include-only[include=1] |
+| matrix-job-continue-complex | execute matrix-job-continue-complex[experimental=0,os=0] |
+| matrix-job-continue-complex | execute matrix-job-continue-complex[experimental=0,os=1] |
+| matrix-job-continue-complex | execute matrix-job-continue-complex[experimental=1,os=0] |
+| matrix-job-continue-complex | execute matrix-job-continue-complex[experimental=1,os=1] |
+| matrix-job-continue-dynamic | execute matrix-job-continue-dynamic[*] |
 | matrix-job-continue-expression | execute matrix-job-continue-expression[experimental=0] |
 | matrix-job-continue-expression | execute matrix-job-continue-expression[experimental=1] |
+| matrix-job-continue-nested | execute matrix-job-continue-nested[platform=0] |
+| matrix-job-continue-nested | execute matrix-job-continue-nested[platform=1] |
+| matrix-job-continue-nested | execute matrix-job-continue-nested[platform=2] |
 | matrix-object-axis | execute matrix-object-axis[tool=0] |
 | matrix-object-axis | execute matrix-object-axis[tool=1] |
 | matrix-output-blocked | complete matrix-output-blocked as skipped |
@@ -468,6 +488,9 @@ decisionEdges
 pushDecisionEdges
 | after-matrix-reusable | complete after-matrix-reusable as skipped |
 | after-matrix-reusable | execute after-matrix-reusable |
+| after-matrix-reusable-active | complete after-matrix-reusable-active as skipped |
+| after-matrix-reusable-active | execute after-matrix-reusable-active |
+| after-matrix-reusable-retries-three | complete after-matrix-reusable-retries-three as skipped |
 | after-matrix-reusable-selected-alpha | complete after-matrix-reusable-selected-alpha as skipped |
 | after-matrix-reusable-selected-alpha | execute after-matrix-reusable-selected-alpha |
 | after-matrix-reusable-selected-beta | complete after-matrix-reusable-selected-beta as skipped |
@@ -505,8 +528,8 @@ pushDecisionEdges
 | dependent | execute dependent |
 | failure-dependent | complete failure-dependent as skipped |
 | failure-dependent | execute failure-dependent |
-| matrix-call-reusable | execute matrix-call-reusable[target=0] |
-| matrix-call-reusable | execute matrix-call-reusable[target=1] |
+| matrix-call-reusable | execute matrix-call-reusable[platform=0] |
+| matrix-call-reusable | execute matrix-call-reusable[platform=1] |
 | matrix-continue-dependent | complete matrix-continue-dependent as skipped |
 | matrix-continue-dependent | execute matrix-continue-dependent |
 | matrix-continue-true | execute matrix-continue-true[version=0] |
@@ -541,8 +564,16 @@ pushDecisionEdges
 | matrix-include | execute matrix-include[include=3] |
 | matrix-include-only | execute matrix-include-only[include=0] |
 | matrix-include-only | execute matrix-include-only[include=1] |
+| matrix-job-continue-complex | execute matrix-job-continue-complex[experimental=0,os=0] |
+| matrix-job-continue-complex | execute matrix-job-continue-complex[experimental=0,os=1] |
+| matrix-job-continue-complex | execute matrix-job-continue-complex[experimental=1,os=0] |
+| matrix-job-continue-complex | execute matrix-job-continue-complex[experimental=1,os=1] |
+| matrix-job-continue-dynamic | execute matrix-job-continue-dynamic[*] |
 | matrix-job-continue-expression | execute matrix-job-continue-expression[experimental=0] |
 | matrix-job-continue-expression | execute matrix-job-continue-expression[experimental=1] |
+| matrix-job-continue-nested | execute matrix-job-continue-nested[platform=0] |
+| matrix-job-continue-nested | execute matrix-job-continue-nested[platform=1] |
+| matrix-job-continue-nested | execute matrix-job-continue-nested[platform=2] |
 | matrix-object-axis | execute matrix-object-axis[tool=0] |
 | matrix-object-axis | execute matrix-object-axis[tool=1] |
 | matrix-output-blocked | complete matrix-output-blocked as skipped |
@@ -717,6 +748,12 @@ executionCompletions
 | after-matrix-reusable | cancelled |
 | after-matrix-reusable | failure |
 | after-matrix-reusable | success |
+| after-matrix-reusable-active | cancelled |
+| after-matrix-reusable-active | failure |
+| after-matrix-reusable-active | success |
+| after-matrix-reusable-retries-three | cancelled |
+| after-matrix-reusable-retries-three | failure |
+| after-matrix-reusable-retries-three | success |
 | after-matrix-reusable-selected-alpha | cancelled |
 | after-matrix-reusable-selected-alpha | failure |
 | after-matrix-reusable-selected-alpha | success |
@@ -864,60 +901,62 @@ executionCompletions
 | unknown-named-result | failure |
 | unknown-named-result | success |
 executionCfgNodes
-| after-matrix-reusable | .github/workflows/test.yml:336:5:343:2 | Job: after-matrix-reusable |
-| after-matrix-reusable-selected-alpha | .github/workflows/test.yml:344:5:350:2 | Job: after-matrix-reusable-selected-alpha |
-| after-matrix-reusable-selected-beta | .github/workflows/test.yml:351:5:358:2 | Job: after-matrix-reusable-selected-beta |
-| after-matrix-reusable-selected-gamma | .github/workflows/test.yml:359:5:365:2 | Job: after-matrix-reusable-selected-gamma |
-| after-nested-reusable | .github/workflows/test.yml:397:5:403:2 | Job: after-nested-reusable |
-| after-reusable | .github/workflows/test.yml:366:5:372:2 | Job: after-reusable |
-| after-reusable-blocked | .github/workflows/test.yml:373:5:379:2 | Job: after-reusable-blocked |
-| after-reusable-direct | .github/workflows/test.yml:380:5:386:2 | Job: after-reusable-direct |
-| after-reusable-dynamic | .github/workflows/test.yml:387:5:393:2 | Job: after-reusable-dynamic |
-| always-dependent | .github/workflows/test.yml:432:5:438:2 | Job: always-dependent |
-| cancelled-dependent | .github/workflows/test.yml:453:5:459:2 | Job: cancelled-dependent |
-| combined-dependent | .github/workflows/test.yml:467:5:473:2 | Job: combined-dependent |
-| continue-dynamic | .github/workflows/test.yml:285:5:292:2 | Job: continue-dynamic |
-| continue-dynamic-result-dependent | .github/workflows/test.yml:314:5:320:2 | Job: continue-dynamic-result-dependent |
-| continue-false | .github/workflows/test.yml:277:5:284:2 | Job: continue-false |
-| continue-true | .github/workflows/test.yml:269:5:276:2 | Job: continue-true |
-| continue-true-failure-dependent | .github/workflows/test.yml:307:5:313:2 | Job: continue-true-failure-dependent |
-| continue-true-success-dependent | .github/workflows/test.yml:300:5:306:2 | Job: continue-true-success-dependent |
-| correlated-dependent | .github/workflows/test.yml:410:5:416:2 | Job: correlated-dependent |
-| correlated-gate | .github/workflows/test.yml:404:5:409:2 | Job: correlated-gate |
-| dependent | .github/workflows/test.yml:425:5:431:2 | Job: dependent |
-| failure-dependent | .github/workflows/test.yml:446:5:452:2 | Job: failure-dependent |
+| after-matrix-reusable | .github/workflows/test.yml:362:5:369:2 | Job: after-matrix-reusable |
+| after-matrix-reusable-active | .github/workflows/test.yml:393:5:400:2 | Job: after-matrix-reusable-active |
+| after-matrix-reusable-retries-three | .github/workflows/test.yml:401:5:407:2 | Job: after-matrix-reusable-retries-three |
+| after-matrix-reusable-selected-alpha | .github/workflows/test.yml:370:5:376:2 | Job: after-matrix-reusable-selected-alpha |
+| after-matrix-reusable-selected-beta | .github/workflows/test.yml:377:5:384:2 | Job: after-matrix-reusable-selected-beta |
+| after-matrix-reusable-selected-gamma | .github/workflows/test.yml:385:5:392:2 | Job: after-matrix-reusable-selected-gamma |
+| after-nested-reusable | .github/workflows/test.yml:439:5:445:2 | Job: after-nested-reusable |
+| after-reusable | .github/workflows/test.yml:408:5:414:2 | Job: after-reusable |
+| after-reusable-blocked | .github/workflows/test.yml:415:5:421:2 | Job: after-reusable-blocked |
+| after-reusable-direct | .github/workflows/test.yml:422:5:428:2 | Job: after-reusable-direct |
+| after-reusable-dynamic | .github/workflows/test.yml:429:5:435:2 | Job: after-reusable-dynamic |
+| always-dependent | .github/workflows/test.yml:474:5:480:2 | Job: always-dependent |
+| cancelled-dependent | .github/workflows/test.yml:495:5:501:2 | Job: cancelled-dependent |
+| combined-dependent | .github/workflows/test.yml:509:5:515:2 | Job: combined-dependent |
+| continue-dynamic | .github/workflows/test.yml:303:5:310:2 | Job: continue-dynamic |
+| continue-dynamic-result-dependent | .github/workflows/test.yml:332:5:338:2 | Job: continue-dynamic-result-dependent |
+| continue-false | .github/workflows/test.yml:295:5:302:2 | Job: continue-false |
+| continue-true | .github/workflows/test.yml:287:5:294:2 | Job: continue-true |
+| continue-true-failure-dependent | .github/workflows/test.yml:325:5:331:2 | Job: continue-true-failure-dependent |
+| continue-true-success-dependent | .github/workflows/test.yml:318:5:324:2 | Job: continue-true-success-dependent |
+| correlated-dependent | .github/workflows/test.yml:452:5:458:2 | Job: correlated-dependent |
+| correlated-gate | .github/workflows/test.yml:446:5:451:2 | Job: correlated-gate |
+| dependent | .github/workflows/test.yml:467:5:473:2 | Job: dependent |
+| failure-dependent | .github/workflows/test.yml:488:5:494:2 | Job: failure-dependent |
 | matrix-continue-dependent | .github/workflows/test.yml:243:5:248:2 | Job: matrix-continue-dependent |
 | matrix-dependent | .github/workflows/test.yml:37:5:42:2 | Job: matrix-dependent |
 | matrix-output-blocked | .github/workflows/test.yml:50:5:56:2 | Job: matrix-output-blocked |
 | matrix-output-dynamic | .github/workflows/test.yml:57:5:63:2 | Job: matrix-output-dynamic |
 | matrix-output-enabled | .github/workflows/test.yml:43:5:49:2 | Job: matrix-output-enabled |
-| matrix-reusable-terminal | .github/workflows/matrix-reusable.yml:18:5:23:71 | Job: matrix-reusable-terminal |
-| mixed-dependent | .github/workflows/test.yml:474:5:480:2 | Job: mixed-dependent |
-| named-results | .github/workflows/test.yml:488:5:498:2 | Job: named-results |
-| not-success-dependent | .github/workflows/test.yml:460:5:466:2 | Job: not-success-dependent |
-| output-always-dependent | .github/workflows/test.yml:513:5:523:2 | Job: output-always-dependent |
-| output-blocked-dependent | .github/workflows/test.yml:524:5:530:2 | Job: output-blocked-dependent |
-| output-boolean-dependent | .github/workflows/test.yml:564:5:570:2 | Job: output-boolean-dependent |
-| output-default-dependent | .github/workflows/test.yml:506:5:512:2 | Job: output-default-dependent |
-| output-dynamic-dependent | .github/workflows/test.yml:545:5:554:2 | Job: output-dynamic-dependent |
-| output-empty-dependent | .github/workflows/test.yml:555:5:563:2 | Job: output-empty-dependent |
-| output-failure-dependent | .github/workflows/test.yml:538:5:544:2 | Job: output-failure-dependent |
-| output-negated-dependent | .github/workflows/test.yml:531:5:537:2 | Job: output-negated-dependent |
-| output-skipped-dependent | .github/workflows/test.yml:571:5:577:2 | Job: output-skipped-dependent |
+| matrix-reusable-terminal | .github/workflows/matrix-reusable.yml:28:5:35:114 | Job: matrix-reusable-terminal |
+| mixed-dependent | .github/workflows/test.yml:516:5:522:2 | Job: mixed-dependent |
+| named-results | .github/workflows/test.yml:530:5:540:2 | Job: named-results |
+| not-success-dependent | .github/workflows/test.yml:502:5:508:2 | Job: not-success-dependent |
+| output-always-dependent | .github/workflows/test.yml:555:5:565:2 | Job: output-always-dependent |
+| output-blocked-dependent | .github/workflows/test.yml:566:5:572:2 | Job: output-blocked-dependent |
+| output-boolean-dependent | .github/workflows/test.yml:606:5:612:2 | Job: output-boolean-dependent |
+| output-default-dependent | .github/workflows/test.yml:548:5:554:2 | Job: output-default-dependent |
+| output-dynamic-dependent | .github/workflows/test.yml:587:5:596:2 | Job: output-dynamic-dependent |
+| output-empty-dependent | .github/workflows/test.yml:597:5:605:2 | Job: output-empty-dependent |
+| output-failure-dependent | .github/workflows/test.yml:580:5:586:2 | Job: output-failure-dependent |
+| output-negated-dependent | .github/workflows/test.yml:573:5:579:2 | Job: output-negated-dependent |
+| output-skipped-dependent | .github/workflows/test.yml:613:5:619:2 | Job: output-skipped-dependent |
 | reusable-root | .github/workflows/reusable.yml:15:5:19:2 | Job: reusable-root |
 | reusable-skipped-terminal | .github/workflows/reusable.yml:20:5:25:2 | Job: reusable-skipped-terminal |
 | reusable-terminal | .github/workflows/reusable.yml:26:5:34:36 | Job: reusable-terminal |
 | root-a | .github/workflows/test.yml:6:5:18:2 | Job: root-a |
 | root-b | .github/workflows/test.yml:19:5:23:2 | Job: root-b |
-| skipped-output-source | .github/workflows/test.yml:417:5:424:2 | Job: skipped-output-source |
-| step-continue-only | .github/workflows/test.yml:293:5:299:2 | Job: step-continue-only |
-| success-dependent | .github/workflows/test.yml:439:5:445:2 | Job: success-dependent |
-| terminal | .github/workflows/test.yml:578:5:581:26 | Job: terminal |
-| transitive-combined | .github/workflows/test.yml:481:5:487:2 | Job: transitive-combined |
-| unknown-named-result | .github/workflows/test.yml:499:5:505:2 | Job: unknown-named-result |
+| skipped-output-source | .github/workflows/test.yml:459:5:466:2 | Job: skipped-output-source |
+| step-continue-only | .github/workflows/test.yml:311:5:317:2 | Job: step-continue-only |
+| success-dependent | .github/workflows/test.yml:481:5:487:2 | Job: success-dependent |
+| terminal | .github/workflows/test.yml:620:5:623:26 | Job: terminal |
+| transitive-combined | .github/workflows/test.yml:523:5:529:2 | Job: transitive-combined |
+| unknown-named-result | .github/workflows/test.yml:541:5:547:2 | Job: unknown-named-result |
 matrixExecutions
-| matrix-call-reusable | matrix-call-reusable[target=0] |
-| matrix-call-reusable | matrix-call-reusable[target=1] |
+| matrix-call-reusable | matrix-call-reusable[platform=0] |
+| matrix-call-reusable | matrix-call-reusable[platform=1] |
 | matrix-continue-true | matrix-continue-true[version=0] |
 | matrix-continue-true | matrix-continue-true[version=1] |
 | matrix-dynamic | matrix-dynamic[*] |
@@ -948,8 +987,16 @@ matrixExecutions
 | matrix-include | matrix-include[include=3] |
 | matrix-include-only | matrix-include-only[include=0] |
 | matrix-include-only | matrix-include-only[include=1] |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=0,os=0] |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=0,os=1] |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=1,os=0] |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=1,os=1] |
+| matrix-job-continue-dynamic | matrix-job-continue-dynamic[*] |
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=0] |
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=1] |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=0] |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=1] |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=2] |
 | matrix-object-axis | matrix-object-axis[tool=0] |
 | matrix-object-axis | matrix-object-axis[tool=1] |
 | matrix-over-cap | matrix-over-cap[*] |
@@ -1014,6 +1061,12 @@ matrixFanInRequirements
 | after-matrix-reusable | matrix-call-reusable | cancelled |
 | after-matrix-reusable | matrix-call-reusable | failure |
 | after-matrix-reusable | matrix-call-reusable | success |
+| after-matrix-reusable-active | matrix-call-reusable | cancelled |
+| after-matrix-reusable-active | matrix-call-reusable | failure |
+| after-matrix-reusable-active | matrix-call-reusable | success |
+| after-matrix-reusable-retries-three | matrix-call-reusable | cancelled |
+| after-matrix-reusable-retries-three | matrix-call-reusable | failure |
+| after-matrix-reusable-retries-three | matrix-call-reusable | success |
 | after-matrix-reusable-selected-alpha | matrix-call-reusable | cancelled |
 | after-matrix-reusable-selected-alpha | matrix-call-reusable | failure |
 | after-matrix-reusable-selected-alpha | matrix-call-reusable | success |
@@ -1107,8 +1160,20 @@ contributingStepOutcomes
 matrixContinueOnErrorTransformations
 | job | matrix-include-only[include=0] | failure | failure |
 | job | matrix-include-only[include=1] | failure | success |
+| job | matrix-job-continue-complex[experimental=0,os=0] | failure | failure |
+| job | matrix-job-continue-complex[experimental=0,os=1] | failure | success |
+| job | matrix-job-continue-complex[experimental=1,os=0] | failure | failure |
+| job | matrix-job-continue-complex[experimental=1,os=1] | failure | failure |
+| job | matrix-job-continue-dynamic[*] | failure | failure |
+| job | matrix-job-continue-dynamic[*] | failure | success |
 | job | matrix-job-continue-expression[experimental=0] | failure | success |
 | job | matrix-job-continue-expression[experimental=1] | failure | failure |
+| job | matrix-job-continue-nested[platform=0] | failure | failure |
+| job | matrix-job-continue-nested[platform=1] | failure | success |
+| job | matrix-job-continue-nested[platform=2] | failure | success |
+| step | matrix-job-continue-nested[platform=0] | failure | failure |
+| step | matrix-job-continue-nested[platform=1] | failure | success |
+| step | matrix-job-continue-nested[platform=2] | failure | success |
 | step | matrix-step-continue-expression[experimental=0] | failure | success |
 | step | matrix-step-continue-expression[experimental=1] | failure | failure |
 matrixContinueOnErrorCompletionOutcomes
@@ -1118,12 +1183,37 @@ matrixContinueOnErrorCompletionOutcomes
 | matrix-include-only | matrix-include-only[include=1] | cancelled | cancelled |
 | matrix-include-only | matrix-include-only[include=1] | success | failure |
 | matrix-include-only | matrix-include-only[include=1] | success | success |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=0,os=0] | cancelled | cancelled |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=0,os=0] | failure | failure |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=0,os=0] | success | success |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=0,os=1] | cancelled | cancelled |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=0,os=1] | success | failure |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=0,os=1] | success | success |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=1,os=0] | cancelled | cancelled |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=1,os=0] | failure | failure |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=1,os=0] | success | success |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=1,os=1] | cancelled | cancelled |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=1,os=1] | failure | failure |
+| matrix-job-continue-complex | matrix-job-continue-complex[experimental=1,os=1] | success | success |
+| matrix-job-continue-dynamic | matrix-job-continue-dynamic[*] | cancelled | cancelled |
+| matrix-job-continue-dynamic | matrix-job-continue-dynamic[*] | failure | failure |
+| matrix-job-continue-dynamic | matrix-job-continue-dynamic[*] | success | failure |
+| matrix-job-continue-dynamic | matrix-job-continue-dynamic[*] | success | success |
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=0] | cancelled | cancelled |
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=0] | success | failure |
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=0] | success | success |
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=1] | cancelled | cancelled |
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=1] | failure | failure |
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=1] | success | success |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=0] | cancelled | cancelled |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=0] | failure | failure |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=0] | success | success |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=1] | cancelled | cancelled |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=1] | success | failure |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=1] | success | success |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=2] | cancelled | cancelled |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=2] | success | failure |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=2] | success | success |
 | matrix-step-continue-expression | matrix-step-continue-expression[experimental=0] | cancelled | cancelled |
 | matrix-step-continue-expression | matrix-step-continue-expression[experimental=0] | success | success |
 | matrix-step-continue-expression | matrix-step-continue-expression[experimental=1] | cancelled | cancelled |
@@ -1136,6 +1226,15 @@ matrixContributingStepOutcomes
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=1] | matrix-job-step | cancelled | cancelled |
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=1] | matrix-job-step | failure | failure |
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=1] | matrix-job-step | success | success |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=0] | matrix-step-continue-nested | cancelled | cancelled |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=0] | matrix-step-continue-nested | failure | failure |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=0] | matrix-step-continue-nested | success | success |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=1] | matrix-step-continue-nested | cancelled | cancelled |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=1] | matrix-step-continue-nested | success | failure |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=1] | matrix-step-continue-nested | success | success |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=2] | matrix-step-continue-nested | cancelled | cancelled |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=2] | matrix-step-continue-nested | success | failure |
+| matrix-job-continue-nested | matrix-job-continue-nested[platform=2] | matrix-step-continue-nested | success | success |
 | matrix-step-continue-expression | matrix-step-continue-expression[experimental=0] | matrix-step-continue | cancelled | cancelled |
 | matrix-step-continue-expression | matrix-step-continue-expression[experimental=0] | matrix-step-continue | success | failure |
 | matrix-step-continue-expression | matrix-step-continue-expression[experimental=0] | matrix-step-continue | success | success |
@@ -1158,38 +1257,55 @@ reusableCallerCompletionStatuses
 | call-reusable | cancelled |
 | call-reusable | success |
 matrixReusableWorkflowBoundaryEdges
-| matrix-call-reusable | matrix-call-reusable[target=0] | callee-entry | enter jobs in "on": |
-| matrix-call-reusable | matrix-call-reusable[target=0] | caller-completion | complete matrix-call-reusable[target=0] as cancelled |
-| matrix-call-reusable | matrix-call-reusable[target=0] | caller-completion | complete matrix-call-reusable[target=0] as success |
-| matrix-call-reusable | matrix-call-reusable[target=1] | callee-entry | enter jobs in "on": |
-| matrix-call-reusable | matrix-call-reusable[target=1] | caller-completion | complete matrix-call-reusable[target=1] as cancelled |
-| matrix-call-reusable | matrix-call-reusable[target=1] | caller-completion | complete matrix-call-reusable[target=1] as success |
+| matrix-call-reusable | matrix-call-reusable[platform=0] | callee-entry | enter jobs in "on": |
+| matrix-call-reusable | matrix-call-reusable[platform=0] | caller-completion | complete matrix-call-reusable[platform=0] as cancelled |
+| matrix-call-reusable | matrix-call-reusable[platform=0] | caller-completion | complete matrix-call-reusable[platform=0] as success |
+| matrix-call-reusable | matrix-call-reusable[platform=1] | callee-entry | enter jobs in "on": |
+| matrix-call-reusable | matrix-call-reusable[platform=1] | caller-completion | complete matrix-call-reusable[platform=1] as cancelled |
+| matrix-call-reusable | matrix-call-reusable[platform=1] | caller-completion | complete matrix-call-reusable[platform=1] as success |
 matrixReusableInstanceCompletionStatuses
-| matrix-call-reusable[target=0] | cancelled |
-| matrix-call-reusable[target=0] | success |
-| matrix-call-reusable[target=1] | cancelled |
-| matrix-call-reusable[target=1] | success |
+| matrix-call-reusable[platform=0] | cancelled |
+| matrix-call-reusable[platform=0] | success |
+| matrix-call-reusable[platform=1] | cancelled |
+| matrix-call-reusable[platform=1] | success |
 matrixReusableCalleeExecutions
-| matrix-call-reusable[target=0] | matrix-reusable-terminal | execute matrix-reusable-terminal |
-| matrix-call-reusable[target=1] | matrix-reusable-terminal | execute matrix-reusable-terminal |
+| matrix-call-reusable[platform=0] | matrix-reusable-terminal | execute matrix-reusable-terminal |
+| matrix-call-reusable[platform=1] | matrix-reusable-terminal | execute matrix-reusable-terminal |
 matrixReusableFanInStatuses
 | matrix-call-reusable | cancelled |
 | matrix-call-reusable | success |
 matrixReusableBoundaryFlows
-| matrix-call-reusable[target=0] | input | alpha | .github/workflows/test.yml:330:15:330:34 | matrix.target | .github/workflows/matrix-reusable.yml:20:17:20:36 | inputs.target |
-| matrix-call-reusable[target=0] | input | alpha | .github/workflows/test.yml:330:15:330:34 | matrix.target | .github/workflows/matrix-reusable.yml:23:21:23:40 | inputs.target |
-| matrix-call-reusable[target=0] | secret | mapped | .github/workflows/test.yml:332:14:332:32 | github.token | .github/workflows/matrix-reusable.yml:23:42:23:61 | secret token |
-| matrix-call-reusable[target=1] | input | beta | .github/workflows/test.yml:330:15:330:34 | matrix.target | .github/workflows/matrix-reusable.yml:20:17:20:36 | inputs.target |
-| matrix-call-reusable[target=1] | input | beta | .github/workflows/test.yml:330:15:330:34 | matrix.target | .github/workflows/matrix-reusable.yml:23:21:23:40 | inputs.target |
-| matrix-call-reusable[target=1] | secret | mapped | .github/workflows/test.yml:332:14:332:32 | github.token | .github/workflows/matrix-reusable.yml:23:42:23:61 | secret token |
+| matrix-call-reusable[platform=0] | input:active | false | .github/workflows/test.yml:355:15:355:43 | matrix.platform.active | .github/workflows/matrix-reusable.yml:31:15:31:34 | inputs.active |
+| matrix-call-reusable[platform=0] | input:active | false | .github/workflows/test.yml:355:15:355:43 | matrix.platform.active | .github/workflows/matrix-reusable.yml:35:42:35:61 | inputs.active |
+| matrix-call-reusable[platform=0] | input:retries | 1 | .github/workflows/test.yml:356:16:356:45 | matrix.platform.retries | .github/workflows/matrix-reusable.yml:32:16:32:36 | inputs.retries |
+| matrix-call-reusable[platform=0] | input:retries | 1 | .github/workflows/test.yml:356:16:356:45 | matrix.platform.retries | .github/workflows/matrix-reusable.yml:35:63:35:83 | inputs.retries |
+| matrix-call-reusable[platform=0] | input:target | alpha | .github/workflows/test.yml:354:15:354:43 | matrix.platform.target | .github/workflows/matrix-reusable.yml:30:17:30:36 | inputs.target |
+| matrix-call-reusable[platform=0] | input:target | alpha | .github/workflows/test.yml:354:15:354:43 | matrix.platform.target | .github/workflows/matrix-reusable.yml:35:21:35:40 | inputs.target |
+| matrix-call-reusable[platform=0] | secret | mapped | .github/workflows/test.yml:358:14:358:32 | github.token | .github/workflows/matrix-reusable.yml:35:85:35:104 | secret token |
+| matrix-call-reusable[platform=1] | input:active | true | .github/workflows/test.yml:355:15:355:43 | matrix.platform.active | .github/workflows/matrix-reusable.yml:31:15:31:34 | inputs.active |
+| matrix-call-reusable[platform=1] | input:active | true | .github/workflows/test.yml:355:15:355:43 | matrix.platform.active | .github/workflows/matrix-reusable.yml:35:42:35:61 | inputs.active |
+| matrix-call-reusable[platform=1] | input:retries | 2 | .github/workflows/test.yml:356:16:356:45 | matrix.platform.retries | .github/workflows/matrix-reusable.yml:32:16:32:36 | inputs.retries |
+| matrix-call-reusable[platform=1] | input:retries | 2 | .github/workflows/test.yml:356:16:356:45 | matrix.platform.retries | .github/workflows/matrix-reusable.yml:35:63:35:83 | inputs.retries |
+| matrix-call-reusable[platform=1] | input:target | beta | .github/workflows/test.yml:354:15:354:43 | matrix.platform.target | .github/workflows/matrix-reusable.yml:30:17:30:36 | inputs.target |
+| matrix-call-reusable[platform=1] | input:target | beta | .github/workflows/test.yml:354:15:354:43 | matrix.platform.target | .github/workflows/matrix-reusable.yml:35:21:35:40 | inputs.target |
+| matrix-call-reusable[platform=1] | secret | mapped | .github/workflows/test.yml:358:14:358:32 | github.token | .github/workflows/matrix-reusable.yml:35:85:35:104 | secret token |
 matrixReusableOutputValues
-| matrix-call-reusable[target=0] | direct | matrix-direct |
-| matrix-call-reusable[target=0] | selected | alpha |
-| matrix-call-reusable[target=1] | direct | matrix-direct |
-| matrix-call-reusable[target=1] | selected | beta |
+| matrix-call-reusable[platform=0] | active | false |
+| matrix-call-reusable[platform=0] | direct | matrix-direct |
+| matrix-call-reusable[platform=0] | retries | 1 |
+| matrix-call-reusable[platform=0] | selected | alpha |
+| matrix-call-reusable[platform=1] | active | true |
+| matrix-call-reusable[platform=1] | direct | matrix-direct |
+| matrix-call-reusable[platform=1] | retries | 2 |
+| matrix-call-reusable[platform=1] | selected | beta |
 matrixReusableOutputDecisions
 | after-matrix-reusable | cancelled | complete after-matrix-reusable as skipped |
 | after-matrix-reusable | success | execute after-matrix-reusable |
+| after-matrix-reusable-active | cancelled | complete after-matrix-reusable-active as skipped |
+| after-matrix-reusable-active | success | complete after-matrix-reusable-active as skipped |
+| after-matrix-reusable-active | success | execute after-matrix-reusable-active |
+| after-matrix-reusable-retries-three | cancelled | complete after-matrix-reusable-retries-three as skipped |
+| after-matrix-reusable-retries-three | success | complete after-matrix-reusable-retries-three as skipped |
 | after-matrix-reusable-selected-alpha | cancelled | complete after-matrix-reusable-selected-alpha as skipped |
 | after-matrix-reusable-selected-alpha | success | complete after-matrix-reusable-selected-alpha as skipped |
 | after-matrix-reusable-selected-alpha | success | execute after-matrix-reusable-selected-alpha |
@@ -1222,7 +1338,10 @@ workflowBoundaries
 | entry | matrix-generated-cap |
 | entry | matrix-include |
 | entry | matrix-include-only |
+| entry | matrix-job-continue-complex |
+| entry | matrix-job-continue-dynamic |
 | entry | matrix-job-continue-expression |
+| entry | matrix-job-continue-nested |
 | entry | matrix-object-axis |
 | entry | matrix-over-cap |
 | entry | matrix-post-cap |
@@ -1237,6 +1356,8 @@ workflowBoundaries
 | entry | skipped-output-source |
 | entry | step-continue-only |
 | exit | after-matrix-reusable |
+| exit | after-matrix-reusable-active |
+| exit | after-matrix-reusable-retries-three |
 | exit | after-matrix-reusable-selected-alpha |
 | exit | after-matrix-reusable-selected-beta |
 | exit | after-matrix-reusable-selected-gamma |
@@ -1283,6 +1404,7 @@ synchronizationCycles
 impossibleStatusSummaries
 requiredSuccessfulJobs
 | after-matrix-reusable | matrix-call-reusable |
+| after-matrix-reusable-active | matrix-call-reusable |
 | after-matrix-reusable-selected-alpha | matrix-call-reusable |
 | after-matrix-reusable-selected-beta | matrix-call-reusable |
 | after-nested-reusable | call-nested-reusable |

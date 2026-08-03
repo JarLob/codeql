@@ -4,12 +4,22 @@
       target:
         required: true
         type: string
+      active:
+        required: true
+        type: boolean
+      retries:
+        required: true
+        type: number
     secrets:
       token:
         required: true
     outputs:
       selected:
         value: "${{ jobs.matrix-reusable-terminal.outputs.selected }}"
+      active:
+        value: "${{ jobs.matrix-reusable-terminal.outputs.active }}"
+      retries:
+        value: "${{ jobs.matrix-reusable-terminal.outputs.retries }}"
       direct:
         value: "${{ 'matrix-direct' }}"
 
@@ -18,6 +28,8 @@ jobs:
     continue-on-error: true
     outputs:
       selected: "${{ inputs.target }}"
+      active: "${{ inputs.active }}"
+      retries: "${{ inputs.retries }}"
     runs-on: ubuntu-latest
     steps:
-      - run: echo "${{ inputs.target }} ${{ secrets.token }}" && exit 1
+      - run: echo "${{ inputs.target }} ${{ inputs.active }} ${{ inputs.retries }} ${{ secrets.token }}" && exit 1

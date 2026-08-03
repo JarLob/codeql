@@ -249,6 +249,8 @@ class MatrixJobInstance extends TMatrixJobInstance {
 
   string getAMatrixKey() { result = this.getCombination().getAKey() }
 
+  bindingset[name]
+  pragma[inline_late]
   string getMatrixValue(string name) { result = this.getCombination().getValue(name) }
 
   /** Gets a statically known output value from the reusable workflow called by this instance. */
@@ -260,17 +262,162 @@ class MatrixJobInstance extends TMatrixJobInstance {
   string toString() { result = this.getJob().getId() + "[" + this.getAssignment() + "]" }
 }
 
-private predicate getInstanceContinueOnErrorValue(
-  Expression expression, MatrixJobInstance instance, boolean outcome
+/**
+ * Holds if `node` is a literal or an exactly known scalar for `instance`.
+ *
+ * Wildcard matrix instances deliberately yield no value here. Callers treat that absence as an
+ * unknown expression result rather than choosing a value for the dynamic matrix.
+ */
+private predicate getMatrixInstanceScalarValue(
+  ExpressionNode node, MatrixJobInstance instance, string kind, string value
 ) {
-  getStaticContinueOnErrorValue(expression, outcome)
-  or
-  exists(AccessExpression access, string key |
-    access = expression.getRoot().getChild(0) and
-    key = instance.getAMatrixKey() and
-    access.getAccessPath().toLowerCase() = ("matrix." + key).toLowerCase() and
-    instance.getMatrixValue(key).toLowerCase() = outcome.toString()
+  node instanceof LiteralExpression and
+  kind = node.getKind() and
+  (
+    kind = "StringLiteral" and value = getStringLiteralValue(node)
+    or
+    kind = ["BooleanLiteral", "NumberLiteral", "NullLiteral"] and
+    value = node.(LiteralExpression).getValue()
   )
+  or
+  exists(AccessExpression access, MatrixCombination combination, string path, string accessPath |
+    access = node and
+    combination = instance.getCombination() and
+    path = access.getAccessPath() and
+    path.toLowerCase().matches("matrix.%") and
+    accessPath = path.suffix("matrix.".length()) and
+    kind = combination.getValueKind(accessPath) and
+    value = combination.getValue(accessPath)
+  )
+}
+
+private predicate matrixContinueOnErrorScalarEvaluatesTo(
+  ExpressionNode node, MatrixJobInstance instance, boolean outcome
+) {
+  exists(string value |
+    getMatrixInstanceScalarValue(node, instance, "BooleanLiteral", value) and
+    value.toLowerCase() = outcome.toString()
+  )
+  or
+  getMatrixInstanceScalarValue(node, instance, "NullLiteral", _) and outcome = false
+  or
+  exists(string value |
+    getMatrixInstanceScalarValue(node, instance, "StringLiteral", value) and
+    stringTruthinessEvaluatesTo(value, outcome)
+  )
+  or
+  exists(string value, float number |
+    getMatrixInstanceScalarValue(node, instance, "NumberLiteral", value) and
+    number = value.toFloat() and
+    numericTruthinessEvaluatesTo(number, outcome)
+  )
+}
+
+private predicate matrixContinueOnErrorComparisonEvaluatesTo(
+  BinaryExpression expression, MatrixJobInstance instance, boolean outcome
+) {
+  exists(string left, string right |
+    getMatrixInstanceScalarValue(expression.getLeftOperand(), instance, "StringLiteral", left) and
+    getMatrixInstanceScalarValue(expression.getRightOperand(), instance, "StringLiteral", right) and
+    stringComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
+  )
+  or
+  exists(string left, string right, boolean leftBoolean, boolean rightBoolean |
+    getMatrixInstanceScalarValue(expression.getLeftOperand(), instance, "BooleanLiteral", left) and
+    getMatrixInstanceScalarValue(expression.getRightOperand(), instance, "BooleanLiteral", right) and
+    left.toLowerCase() = leftBoolean.toString() and
+    right.toLowerCase() = rightBoolean.toString() and
+    booleanComparisonEvaluatesTo(leftBoolean, expression.getOperator(), rightBoolean, outcome)
+  )
+  or
+  exists(string left, string right, float leftNumber, float rightNumber |
+    getMatrixInstanceScalarValue(expression.getLeftOperand(), instance, "NumberLiteral", left) and
+    getMatrixInstanceScalarValue(expression.getRightOperand(), instance, "NumberLiteral", right) and
+    leftNumber = left.toFloat() and
+    rightNumber = right.toFloat() and
+    numericComparisonEvaluatesTo(leftNumber, expression.getOperator(), rightNumber, outcome)
+  )
+  or
+  getMatrixInstanceScalarValue(expression.getLeftOperand(), instance, "NullLiteral", _) and
+  getMatrixInstanceScalarValue(expression.getRightOperand(), instance, "NullLiteral", _) and
+  nullComparisonEvaluatesTo(expression.getOperator(), outcome)
+}
+
+private predicate matrixContinueOnErrorLevel0EvaluatesTo(
+  ExpressionNode node, MatrixJobInstance instance, boolean outcome
+) {
+  matrixContinueOnErrorScalarEvaluatesTo(node, instance, outcome)
+  or
+  node instanceof BinaryExpression and
+  node.(BinaryExpression).getOperator() = ["==", "!=", ">", ">=", "<", "<="] and
+  matrixContinueOnErrorComparisonEvaluatesTo(node.(BinaryExpression), instance, outcome)
+}
+
+private predicate matrixContinueOnErrorLevel0OperandEvaluatesTo(
+  BinaryExpression expression, int index, MatrixJobInstance instance, boolean outcome
+) {
+  index = 0 and
+  matrixContinueOnErrorLevel0EvaluatesTo(expression.getLeftOperand(), instance, outcome)
+  or
+  index = 1 and
+  matrixContinueOnErrorLevel0EvaluatesTo(expression.getRightOperand(), instance, outcome)
+}
+
+/**
+ * Holds if one bounded logical layer evaluates to `outcome` for `instance`.
+ *
+ * The bound avoids joining synchronization against the recursive public matrix evaluator.
+ * Deeper or unsupported expressions yield no result here, allowing callers to retain both outcomes.
+ */
+private predicate matrixContinueOnErrorLevel1EvaluatesTo(
+  ExpressionNode node, MatrixJobInstance instance, boolean outcome
+) {
+  matrixContinueOnErrorLevel0EvaluatesTo(node, instance, outcome)
+  or
+  node instanceof UnaryExpression and
+  node.(UnaryExpression).getOperator() = "!" and
+  exists(boolean operandOutcome |
+    matrixContinueOnErrorLevel0EvaluatesTo(
+      node.(UnaryExpression).getOperand(), instance, operandOutcome
+    ) and
+    (
+      operandOutcome = true and outcome = false
+      or
+      operandOutcome = false and outcome = true
+    )
+  )
+  or
+  node instanceof BinaryExpression and
+  (
+    node.(BinaryExpression).getOperator() = "&&" and
+    outcome = false and
+    matrixContinueOnErrorLevel0OperandEvaluatesTo(node.(BinaryExpression), _, instance, false)
+    or
+    node.(BinaryExpression).getOperator() = "&&" and
+    outcome = true and
+    matrixContinueOnErrorLevel0OperandEvaluatesTo(node.(BinaryExpression), 0, instance, true) and
+    matrixContinueOnErrorLevel0OperandEvaluatesTo(node.(BinaryExpression), 1, instance, true)
+    or
+    node.(BinaryExpression).getOperator() = "||" and
+    outcome = true and
+    matrixContinueOnErrorLevel0OperandEvaluatesTo(node.(BinaryExpression), _, instance, true)
+    or
+    node.(BinaryExpression).getOperator() = "||" and
+    outcome = false and
+    matrixContinueOnErrorLevel0OperandEvaluatesTo(node.(BinaryExpression), 0, instance, false) and
+    matrixContinueOnErrorLevel0OperandEvaluatesTo(node.(BinaryExpression), 1, instance, false)
+  )
+}
+
+private predicate getInstanceContinueOnErrorValue(
+  Expression expression, MatrixJobInstance instance, Event event, boolean outcome
+) {
+  (
+    expression.getATriggerEvent() = event
+    or
+    not exists(expression.getATriggerEvent())
+  ) and
+  matrixContinueOnErrorLevel1EvaluatesTo(expression.getRoot().getChild(0), instance, outcome)
 }
 
 private predicate jobHasDynamicContinueOnError(Job job) {
@@ -287,21 +434,35 @@ private predicate stepHasDynamicContinueOnError(Step step) {
   )
 }
 
+/**
+ * Holds if the job-level `continue-on-error` may evaluate to `outcome` for `instance`.
+ *
+ * If the bounded evaluator establishes neither Boolean value, both outcomes are retained. This
+ * covers wildcard matrices and unsupported expressions without suppressing a feasible conclusion.
+ */
 private predicate matrixJobContinueOnErrorMayEvaluateTo(
   MatrixJobInstance instance, Event event, boolean outcome
 ) {
   instance.getJob().getATriggerEvent() = event and
   jobHasDynamicContinueOnError(instance.getJob()) and
   (
-    getInstanceContinueOnErrorValue(instance.getJob().getContinueOnErrorExpr(), instance, outcome)
+    getInstanceContinueOnErrorValue(instance.getJob().getContinueOnErrorExpr(), instance, event,
+      outcome)
     or
     not exists(boolean known |
-      getInstanceContinueOnErrorValue(instance.getJob().getContinueOnErrorExpr(), instance, known)
+      getInstanceContinueOnErrorValue(instance.getJob().getContinueOnErrorExpr(), instance, event,
+        known)
     ) and
     outcome in [false, true]
   )
 }
 
+/**
+ * Holds if the step-level `continue-on-error` may evaluate to `outcome` for `instance`.
+ *
+ * As for job-level evaluation, an unresolved expression retains both outcomes so synchronization
+ * does not assume that a dynamically configured step either always or never masks a failure.
+ */
 private predicate matrixStepContinueOnErrorMayEvaluateTo(
   Step step, MatrixJobInstance instance, Event event, boolean outcome
 ) {
@@ -309,10 +470,10 @@ private predicate matrixStepContinueOnErrorMayEvaluateTo(
   step.getATriggerEvent() = event and
   stepHasDynamicContinueOnError(step) and
   (
-    getInstanceContinueOnErrorValue(step.getContinueOnErrorExpr(), instance, outcome)
+    getInstanceContinueOnErrorValue(step.getContinueOnErrorExpr(), instance, event, outcome)
     or
     not exists(boolean known |
-      getInstanceContinueOnErrorValue(step.getContinueOnErrorExpr(), instance, known)
+      getInstanceContinueOnErrorValue(step.getContinueOnErrorExpr(), instance, event, known)
     ) and
     outcome in [false, true]
   )
@@ -784,6 +945,13 @@ private JobStatus getAPossibleExecutedJobConclusionForEvent(Job job, Event event
   result = getAPossibleNonReusableJobConclusionForEvent(job, event)
 }
 
+/**
+ * Holds if a reusable-workflow matrix invocation may complete with `status` for `event`.
+ *
+ * Callee completion is not specialized by the caller's per-instance inputs, so every callee status
+ * feasible for the event is retained for each instance. The caller's `continue-on-error` is still
+ * applied per instance.
+ */
 private predicate reusableMatrixInstanceMayCompleteForEvent(
   MatrixJobInstance instance, Event event, JobStatus status
 ) {
@@ -1085,16 +1253,6 @@ private predicate needsStatusMayOccurForEvent(Job job, Event event, NeedsStatus 
   status = getAReachableNeedsStatus(job, event)
 }
 
-private string getStringLiteralValue(ExpressionNode node) {
-  node instanceof LiteralExpression and
-  node.getKind() = "StringLiteral" and
-  result =
-    node.(LiteralExpression)
-        .getValue()
-        .substring(1, node.(LiteralExpression).getValue().length() - 1)
-        .regexpReplaceAll("''", "'")
-}
-
 private string getStaticExpressionOutputStringValue(Expression output) {
   result = getStringLiteralValue(output.getRoot().getChild(0))
   or
@@ -1114,11 +1272,12 @@ private string getMatrixInstanceExpressionStringValue(
 ) {
   result = getStaticExpressionOutputStringValue(expression)
   or
-  exists(AccessExpression access, string key |
+  exists(AccessExpression access, string path, string accessPath |
     access = expression.getRoot().getChild(0) and
-    key = instance.getAMatrixKey() and
-    access.getAccessPath().toLowerCase() = ("matrix." + key).toLowerCase() and
-    result = instance.getMatrixValue(key)
+    path = access.getAccessPath() and
+    path.toLowerCase().matches("matrix.%") and
+    accessPath = path.suffix("matrix.".length()) and
+    result = instance.getMatrixValue(accessPath)
   )
 }
 
@@ -1264,17 +1423,6 @@ private string getAssignedStringValue(ExpressionNode node, Job job, string assig
   result = getAssignedOutputStringValue(node, job, assignment)
 }
 
-bindingset[left, operator, right]
-private predicate compareAssignedStrings(string left, string operator, string right, boolean outcome) {
-  operator = "==" and left.toLowerCase() = right.toLowerCase() and outcome = true
-  or
-  operator = "==" and left.toLowerCase() != right.toLowerCase() and outcome = false
-  or
-  operator = "!=" and left.toLowerCase() != right.toLowerCase() and outcome = true
-  or
-  operator = "!=" and left.toLowerCase() = right.toLowerCase() and outcome = false
-}
-
 bindingset[node, job, status]
 private string getSummaryStringValue(ExpressionNode node, Job job, NeedsStatus status) {
   result = getStringLiteralValue(node)
@@ -1388,7 +1536,7 @@ private predicate mayEvaluateForNeedsStatus(
     or
     node instanceof BinaryExpression and
     node.(BinaryExpression).getOperator() = ["==", "!="] and
-    compareAssignedStrings(getSummaryStringValue(node.(BinaryExpression).getLeftOperand(), job,
+    stringComparisonEvaluatesTo(getSummaryStringValue(node.(BinaryExpression).getLeftOperand(), job,
         status), node.(BinaryExpression).getOperator(),
       getSummaryStringValue(node.(BinaryExpression).getRightOperand(), job, status), outcome)
     or
@@ -1403,9 +1551,7 @@ private predicate mayEvaluateForNeedsStatus(
     or
     node instanceof AccessExpression and
     exists(string value | value = getSummaryStringValue(node, job, status) |
-      value = "" and outcome = false
-      or
-      value != "" and outcome = true
+      stringTruthinessEvaluatesTo(value, outcome)
     )
     or
     node instanceof AccessExpression and
@@ -1505,7 +1651,7 @@ private predicate mayEvaluateForAssignment(
     or
     node instanceof BinaryExpression and
     node.(BinaryExpression).getOperator() = ["==", "!="] and
-    compareAssignedStrings(getAssignedStringValue(node.(BinaryExpression).getLeftOperand(), job,
+    stringComparisonEvaluatesTo(getAssignedStringValue(node.(BinaryExpression).getLeftOperand(), job,
         assignment), node.(BinaryExpression).getOperator(),
       getAssignedStringValue(node.(BinaryExpression).getRightOperand(), job, assignment), outcome)
     or
@@ -1520,9 +1666,7 @@ private predicate mayEvaluateForAssignment(
     or
     node instanceof AccessExpression and
     exists(string value | value = getAssignedStringValue(node, job, assignment) |
-      value = "" and outcome = false
-      or
-      value != "" and outcome = true
+      stringTruthinessEvaluatesTo(value, outcome)
     )
     or
     node instanceof AccessExpression and

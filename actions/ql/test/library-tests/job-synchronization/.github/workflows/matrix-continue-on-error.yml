@@ -1,0 +1,20 @@
+on:
+  push:
+
+jobs:
+  # Combination 0 remains a failure, combination 1 is masked by the retry count, and combination
+  # 2 is masked by the OS. This proves both sides of the nested, typed `||` are instance-aware.
+  matrix-job-continue-nested:
+    strategy:
+      matrix:
+        platform:
+          - { os: ubuntu, experimental: true, retries: 1 }
+          - { os: ubuntu, experimental: false, retries: 2 }
+          - { os: windows, experimental: false, retries: 1 }
+    continue-on-error: "${{ matrix.platform.os == 'windows' || matrix.platform.retries > 1 }}"
+    runs-on: ubuntu-latest
+    steps:
+      # Only combination 0 keeps the step failure because negating its nested flag yields false.
+      - id: matrix-step-continue-nested
+        continue-on-error: "${{ !matrix.platform.experimental }}"
+        run: exit 1
