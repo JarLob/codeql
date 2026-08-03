@@ -1,4 +1,30 @@
 import codeql.actions.JobSynchronization
+import codeql.actions.DataFlow
+import codeql.actions.TaintTracking
+
+private module MatrixReusableFlowConfig implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node source) {
+    exists(ExternalJob caller |
+      caller.getId() = "matrix-call-reusable" and
+      source.asExpr() = [caller.getArgumentExpr("target"), caller.getSecretExpr("token")]
+    )
+  }
+
+  predicate isSink(DataFlow::Node sink) {
+    exists(ReusableWorkflow workflow |
+      workflow.getACaller().getId() = "matrix-call-reusable" and
+      (
+        sink.asExpr().(InputsExpression).getTarget() = workflow.getInput("target")
+        or
+        workflow.getASecretExpr() = sink.asExpr()
+      )
+    )
+  }
+
+  predicate observeDiffInformedIncrementalMode() { any() }
+}
+
+private module MatrixReusableFlow = TaintTracking::Global<MatrixReusableFlowConfig>;
 
 query predicate joinRequirements(string job, string requiredJob) {
   exists(NeedsJoinNode join |
@@ -296,6 +322,108 @@ query predicate reusableCallerCompletionStatuses(string caller, string status) {
     jobMayCompleteForEvent(external, event, completionStatus) and
     caller = external.getId() and
     status = completionStatus.getName()
+  )
+}
+
+query predicate matrixReusableWorkflowBoundaryEdges(
+  string caller, string instance, string boundary, string successor
+) {
+  exists(MatrixJobExecutionNode execution, WorkflowEntryNode entry |
+    execution.getJob().getId() = "matrix-call-reusable" and
+    entry = execution.getASuccessor() and
+    caller = execution.getJob().getId() and
+    instance = execution.getInstance().toString() and
+    boundary = "callee-entry" and
+    successor = entry.toString()
+  )
+  or
+  exists(WorkflowExitNode exit, MatrixJobCompletionNode completion |
+    completion = exit.getASuccessor() and
+    completion.getJob().getId() = "matrix-call-reusable" and
+    caller = completion.getJob().getId() and
+    instance = completion.getInstance().toString() and
+    boundary = "caller-completion" and
+    successor = completion.toString()
+  )
+}
+
+query predicate matrixReusableInstanceCompletionStatuses(string instance, string status) {
+  exists(WorkflowExitNode exit, MatrixJobCompletionNode completion |
+    completion = exit.getASuccessor() and
+    completion.getJob().getId() = "matrix-call-reusable" and
+    instance = completion.getInstance().toString() and
+    status = completion.getStatus().getName()
+  )
+}
+
+query predicate matrixReusableCalleeExecutions(
+  string instance, string calleeJob, string execution
+) {
+  exists(MatrixJobExecutionNode callerExecution, WorkflowEntryNode entry,
+    JobExecutionNode calleeExecution, Event event |
+    callerExecution.getJob().getId() = "matrix-call-reusable" and
+    entry = callerExecution.getASuccessor() and
+    event.getName() = "push" and
+    calleeExecution = entry.getAReachableNode(event) and
+    calleeExecution.getJob().getId() = "matrix-reusable-terminal" and
+    instance = callerExecution.getInstance().toString() and
+    calleeJob = calleeExecution.getJob().getId() and
+    execution = calleeExecution.toString()
+  )
+}
+
+query predicate matrixReusableFanInStatuses(string caller, string status) {
+  exists(MatrixJobCompletionNode completion, MatrixJobFanInNode fanIn, Event event |
+    fanIn = completion.getASuccessor() and
+    fanIn.getJob().getId() = "matrix-call-reusable" and
+    event.getName() = "push" and
+    jobMayCompleteForEvent(fanIn.getJob(), event, fanIn.getStatus()) and
+    caller = fanIn.getJob().getId() and
+    status = fanIn.getStatus().getName()
+  )
+}
+
+query predicate matrixReusableBoundaryFlows(
+  string instance, string kind, string value, DataFlow::Node source, DataFlow::Node sink
+) {
+  exists(MatrixJobInstance matrixInstance, ExternalJob caller |
+    matrixInstance.getJob() = caller and
+    caller.getId() = "matrix-call-reusable" and
+    instance = matrixInstance.toString() and
+    (
+      source.asExpr() = caller.getArgumentExpr("target") and
+      value = matrixInstance.getMatrixValue("target") and
+      sink.asExpr() instanceof InputsExpression and
+      kind = "input"
+      or
+      source.asExpr() = caller.getSecretExpr("token") and
+      value = "mapped" and
+      kind = "secret"
+    ) and
+    MatrixReusableFlow::flow(source, sink)
+  )
+}
+
+query predicate matrixReusableOutputValues(string instance, string output, string value) {
+  exists(MatrixJobInstance matrixInstance |
+    matrixInstance.getJob().getId() = "matrix-call-reusable" and
+    output = ["direct", "selected"] and
+    instance = matrixInstance.toString() and
+    value = matrixInstance.getReusableWorkflowOutputValue(output)
+  )
+}
+
+query predicate matrixReusableOutputDecisions(string job, string status, string successor) {
+  exists(JobDecisionNode decision, Event event |
+    decision.getJob().getId() =
+      [
+        "after-matrix-reusable", "after-matrix-reusable-selected-alpha",
+        "after-matrix-reusable-selected-beta", "after-matrix-reusable-selected-gamma"
+      ] and
+    event.getName() = "push" and
+    job = decision.getJob().getId() and
+    status = decision.getNeedsStatus().getName() and
+    successor = decision.getASuccessor(event).toString()
   )
 }
 

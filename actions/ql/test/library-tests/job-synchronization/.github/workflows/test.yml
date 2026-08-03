@@ -320,6 +320,48 @@ jobs:
   call-reusable:
     uses: ./.github/workflows/reusable.yml
 
+  # Each combination must invoke and complete the reusable workflow independently before fan-in.
+  matrix-call-reusable:
+    strategy:
+      matrix:
+        target: [alpha, beta]
+    uses: ./.github/workflows/matrix-reusable.yml
+    with:
+      target: "${{ matrix.target }}"
+    secrets:
+      token: "${{ github.token }}"
+
+  # The direct reusable output is static, so success fan-in always enables this job.
+  after-matrix-reusable:
+    needs: matrix-call-reusable
+    if: needs.matrix-call-reusable.outputs.direct == 'matrix-direct'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo matrix reusable output
+
+  # The selected output may come from either successful matrix invocation.
+  after-matrix-reusable-selected-alpha:
+    needs: matrix-call-reusable
+    if: needs.matrix-call-reusable.outputs.selected == 'alpha'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo alpha output
+
+  after-matrix-reusable-selected-beta:
+    needs: matrix-call-reusable
+    if: needs.matrix-call-reusable.outputs.selected == 'beta'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo beta output
+
+  # No invocation returns this value, so success fan-in must still skip this job.
+  after-matrix-reusable-selected-gamma:
+    needs: matrix-call-reusable
+    if: needs.matrix-call-reusable.outputs.selected == 'gamma'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo impossible output
+
   after-reusable:
     needs: call-reusable
     if: needs.call-reusable.outputs.decision == 'run'
