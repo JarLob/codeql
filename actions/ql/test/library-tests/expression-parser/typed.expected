@@ -10,7 +10,10 @@ unaryOperands
 callArguments
 | FunctionCall(contains(github.event.pull_request.labels.*.name, 'safe')) | contains | 0 | github.event.pull_request.labels.*.name |
 | FunctionCall(contains(github.event.pull_request.labels.*.name, 'safe')) | contains | 1 | 'safe' |
+| FunctionCall(format('{0}', matrix['payload.with.dot'])) | format | 0 | '{0}' |
+| FunctionCall(format('{0}', matrix['payload.with.dot'])) | format | 1 | matrix['payload.with.dot'] |
 | FunctionCall(fromJSON(inputs.matrix)) | fromJSON | 0 | inputs.matrix |
+| FunctionCall(toJSON(matrix)) | toJSON | 0 | matrix |
 accesses
 | AccessExpression(fromJSON(inputs.matrix)[0]) | fromJSON(inputs.matrix) | [0] |
 | AccessExpression(fromJSON(inputs.matrix)[0].enabled) | fromJSON(inputs.matrix)[0] | .enabled |
@@ -25,6 +28,12 @@ accesses
 | AccessExpression(github.repository) | github | .repository |
 | AccessExpression(inputs.force) | inputs | .force |
 | AccessExpression(inputs.matrix) | inputs | .matrix |
+| AccessExpression(inputs.matrix) | inputs | .matrix |
+| AccessExpression(inputs.matrix) | inputs | .matrix |
+| AccessExpression(matrix.object) | matrix | .object |
+| AccessExpression(matrix.object.nested) | matrix.object | .nested |
+| AccessExpression(matrix.object.nested[0]) | matrix.object.nested | [0] |
+| AccessExpression(matrix['payload.with.dot']) | matrix | ['payload.with.dot'] |
 properties
 | PropertyAccess(.actor) | actor |
 | PropertyAccess(.enabled) | enabled |
@@ -33,15 +42,24 @@ properties
 | PropertyAccess(.force) | force |
 | PropertyAccess(.labels) | labels |
 | PropertyAccess(.matrix) | matrix |
+| PropertyAccess(.matrix) | matrix |
+| PropertyAccess(.matrix) | matrix |
 | PropertyAccess(.name) | name |
+| PropertyAccess(.nested) | nested |
+| PropertyAccess(.object) | object |
 | PropertyAccess(.pull_request) | pull_request |
 | PropertyAccess(.ref) | ref |
 | PropertyAccess(.repository) | repository |
 indexes
 | IndexAccess([0]) | 0 |
+| IndexAccess([0]) | 0 |
+| IndexAccess(['payload.with.dot']) | 'payload.with.dot' |
 literals
 | BooleanLiteral(true) | true |
 | NullLiteral(null) | null |
 | NumberLiteral(0) | 0 |
+| NumberLiteral(0) | 0 |
+| StringLiteral('payload.with.dot') | 'payload.with.dot' |
 | StringLiteral('safe') | 'safe' |
 | StringLiteral('workflow_dispatch') | 'workflow_dispatch' |
+| StringLiteral('{0}') | '{0}' |

@@ -1233,18 +1233,34 @@ class StrategyImpl extends AstNodeImpl, TStrategyNode {
     )
   }
 
-  /** Gets a specific matrix expression (YamlMapping) by name. */
+  /** Gets an expression that can define the given matrix variable. */
   ExpressionImpl getMatrixVarExpr(string accessPath) {
     exists(MatrixAccessPathImpl p, ScalarValueImpl v |
       p.toString() = accessPath and
-      resolveMatrixAccessPath(n.lookup("matrix"), p).getNode(_) = v.getNode() and
+      (
+        resolveMatrixAccessPath(n.lookup("matrix"), p).getNode(_) = v.getNode()
+        or
+        resolveMatrixAccessPath(
+          this.getMatrix().lookup("include").(YamlSequence).getElementNode(_), p
+        ).getNode(_) = v.getNode()
+      ) and
       result.getParentNode() = v
+    )
+    or
+    exists(MatrixAccessPathImpl p |
+      p.toString() = accessPath and
+      (
+        result.getParentNode().getNode() = n.lookup("matrix")
+        or
+        result.getParentNode().getNode() =
+          n.lookup("matrix").(YamlMapping).lookup("include")
+      )
     )
   }
 
-  /** Gets a specific matric expression (YamlMapping) by name. */
+  /** Gets an expression used to define the matrix. */
   ExpressionImpl getAMatrixVarExpr() {
-    n.lookup("matrix").(YamlMapping).lookup(_) = result.getNode()
+    n.lookup("matrix").getAChildNode*() = result.getParentNode().getNode()
   }
 }
 
@@ -2993,7 +3009,6 @@ class MatrixAccessPathImpl extends TMatrixAccessPathNode {
 }
 
 private YamlMappingLikeNode resolveMatrixAccessPath(
-  // TODO: support `exclude` keys
   // https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs#expanding-or-adding-matrix-configurations
   YamlMappingLikeNode root, MatrixAccessPathImpl accessPath
 ) {

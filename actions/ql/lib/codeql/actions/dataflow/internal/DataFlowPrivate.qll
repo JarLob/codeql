@@ -269,10 +269,12 @@ predicate inputsCtxLocalStep(Node nodeFrom, Node nodeTo) {
  * e.g. ${{ matrix.foo }}
  */
 predicate matrixCtxLocalStep(Node nodeFrom, Node nodeTo) {
-  exists(AstNode astFrom, MatrixExpression astTo |
-    astFrom = nodeFrom.asExpr() and
-    astTo = nodeTo.asExpr() and
-    astTo.getTarget() = astFrom
+  exists(MatrixAccessExpression access |
+    access.getExpression() = nodeTo.asExpr() and nodeFrom.asExpr() = access.getTarget()
+  )
+  or
+  exists(MatrixContextExpression reference |
+    reference.getExpression() = nodeTo.asExpr() and nodeFrom.asExpr() = reference.getATarget()
   )
 }
 

@@ -1,5 +1,6 @@
 private import Ast
 private import ExpressionParserCore
+private import Yaml
 
 class ExpressionNodeImpl extends ItemNode {
   ExpressionNodeImpl() { this.isInSyntaxTree() and this.isVisible() }
@@ -194,4 +195,258 @@ class LiteralExpressionImpl extends ExpressionNodeImpl {
   }
 
   string getValue() { result = this.getText() }
+}
+
+bindingset[node]
+pragma[inline_late]
+private string getParsedStringLiteralValue(ExpressionNodeImpl node) {
+  node instanceof LiteralExpressionImpl and
+  node.getKind() = "StringLiteral" and
+  result =
+    node.(LiteralExpressionImpl)
+        .getValue()
+        .substring(1, node.(LiteralExpressionImpl).getValue().length() - 1)
+        .regexpReplaceAll("''", "'")
+}
+
+bindingset[accessor]
+pragma[inline_late]
+private string getParsedNamedAccessor(ExpressionNodeImpl accessor) {
+  accessor instanceof PropertyAccessExpressionImpl and
+  result = accessor.(PropertyAccessExpressionImpl).getName()
+  or
+  accessor instanceof IndexAccessExpressionImpl and
+  result = getParsedStringLiteralValue(accessor.(IndexAccessExpressionImpl).getIndex())
+}
+
+bindingset[accessor]
+pragma[inline_late]
+private int getParsedNumericAccessor(ExpressionNodeImpl accessor) {
+  accessor instanceof IndexAccessExpressionImpl and
+  accessor.(IndexAccessExpressionImpl).getIndex() instanceof LiteralExpressionImpl and
+  accessor.(IndexAccessExpressionImpl).getIndex().getKind() = "NumberLiteral" and
+  accessor.(IndexAccessExpressionImpl).getIndex().(LiteralExpressionImpl).getValue().regexpMatch("[0-9]+") and
+  result = accessor.(IndexAccessExpressionImpl).getIndex().(LiteralExpressionImpl).getValue().toInt()
+}
+
+bindingset[accessor]
+pragma[inline_late]
+private predicate isParsedAnyAccessor(ExpressionNodeImpl accessor) {
+  accessor instanceof WildcardAccessExpressionImpl
+  or
+  accessor instanceof IndexAccessExpressionImpl and
+  not exists(getParsedNamedAccessor(accessor)) and
+  not exists(getParsedNumericAccessor(accessor))
+}
+
+bindingset[root, accessor]
+pragma[inline_late]
+private YamlMappingLikeNode getParsedAccessedYamlNode(
+  YamlMappingLikeNode root, ExpressionNodeImpl accessor
+) {
+  result = root.getNode(getParsedNamedAccessor(accessor))
+  or
+  result = root.(YamlSequence).getElement(getParsedNumericAccessor(accessor))
+  or
+  isParsedAnyAccessor(accessor) and
+  (
+    root.(YamlMapping).maps(_, result)
+    or
+    result = root.(YamlSequence).getElement(_)
+  )
+}
+
+bindingset[root, accessor]
+pragma[inline_late]
+private YamlMappingLikeNode getParsedMatrixDimensionNode(
+  YamlMapping root, ExpressionNodeImpl accessor
+) {
+  exists(YamlScalar key |
+    root.maps(key, result) and
+    not key.getValue().toLowerCase() = ["include", "exclude"] and
+    (
+      key.getValue() = getParsedNamedAccessor(accessor)
+      or
+      isParsedAnyAccessor(accessor)
+    )
+  )
+}
+
+private YamlScalar getAParsedMatrixValueScalar(YamlMappingLikeNode value) {
+  result = value
+  or
+  exists(YamlMapping mapping, YamlMappingLikeNode child |
+    value = mapping and
+    mapping.maps(_, child) and
+    result = getAParsedMatrixValueScalar(child)
+  )
+  or
+  exists(YamlSequence sequence, YamlMappingLikeNode child |
+    value = sequence and
+    child = sequence.getElement(_) and
+    result = getAParsedMatrixValueScalar(child)
+  )
+}
+
+private predicate isParsedMatrixAccess(ExpressionNodeImpl node) {
+  exists(AccessExpressionImpl access, IdentifierExpressionImpl identifier |
+    node = access and
+    access.getBase() = identifier and
+    identifier.getName().toLowerCase() = "matrix"
+  )
+  or
+  exists(AccessExpressionImpl access |
+    node = access and
+    access.getBase() instanceof AccessExpressionImpl and
+    isParsedMatrixAccess(access.getBase())
+  )
+}
+
+private StrategyImpl getParsedMatrixStrategy(ExpressionNodeImpl reference) {
+  result = reference.getExpression().getEnclosingJob().getStrategy()
+  or
+  result = reference.getExpression().getEnclosingWorkflow().getStrategy()
+}
+
+private YamlNode getMatrixDefinition(StrategyImpl strategy) {
+  result = strategy.getNode().lookup("matrix")
+}
+
+private YamlScalar getARuntimeMatrixDefinitionScalar(StrategyImpl strategy) {
+  result = getMatrixDefinition(strategy)
+  or
+  exists(YamlMapping matrix, YamlScalar key, YamlMappingLikeNode value |
+    matrix = getMatrixDefinition(strategy) and
+    matrix.maps(key, value) and
+    not key.getValue().toLowerCase() = "exclude" and
+    result = getAParsedMatrixValueScalar(value)
+  )
+}
+
+private newtype TParsedMatrixRoot =
+  TParsedMatrixDimensions(StrategyImpl strategy, YamlMapping root) {
+    root = getMatrixDefinition(strategy)
+  } or
+  TParsedMatrixInclude(StrategyImpl strategy, YamlMapping root) {
+    root =
+      getMatrixDefinition(strategy)
+          .(YamlMapping)
+          .lookup("include")
+          .(YamlSequence)
+          .getElement(_)
+  }
+
+private class ParsedMatrixRoot extends TParsedMatrixRoot {
+  StrategyImpl getStrategy() {
+    this = TParsedMatrixDimensions(result, _) or this = TParsedMatrixInclude(result, _)
+  }
+
+  YamlMapping getNode() {
+    this = TParsedMatrixDimensions(_, result) or this = TParsedMatrixInclude(_, result)
+  }
+
+  predicate containsDimensions() { this = TParsedMatrixDimensions(_, _) }
+
+  string toString() { result = this.getNode().toString() }
+}
+
+private newtype TParsedMatrixResolution =
+  TParsedMatrixDimension(YamlMappingLikeNode value) or
+  TParsedMatrixValue(YamlMappingLikeNode value)
+
+private class ParsedMatrixResolution extends TParsedMatrixResolution {
+  YamlMappingLikeNode getValue() {
+    this = TParsedMatrixDimension(result) or this = TParsedMatrixValue(result)
+  }
+
+  predicate isDimension() { this = TParsedMatrixDimension(_) }
+
+  string toString() { result = this.getValue().toString() }
+}
+
+private ParsedMatrixResolution resolveParsedMatrixAccess(
+  ExpressionNodeImpl node, ParsedMatrixRoot root
+) {
+  exists(
+    AccessExpressionImpl access, IdentifierExpressionImpl identifier, YamlMappingLikeNode value
+  |
+    node = access and
+    access.getBase() = identifier and
+    identifier.getName().toLowerCase() = "matrix" and
+    (
+      root.containsDimensions() and
+      value = getParsedMatrixDimensionNode(root.getNode(), access.getAccessor()) and
+      result = TParsedMatrixDimension(value)
+      or
+      not root.containsDimensions() and
+      value = getParsedAccessedYamlNode(root.getNode(), access.getAccessor()) and
+      result = TParsedMatrixValue(value)
+    )
+  )
+  or
+  exists(
+    AccessExpressionImpl access, ParsedMatrixResolution base, YamlMappingLikeNode value
+  |
+    node = access and
+    access.getBase() instanceof AccessExpressionImpl and
+    base = resolveParsedMatrixAccess(access.getBase(), root) and
+    (
+      base.isDimension() and
+      value =
+        getParsedAccessedYamlNode(
+          base.getValue().(YamlSequence).getElement(_), access.getAccessor()
+        )
+      or
+      not base.isDimension() and
+      value = getParsedAccessedYamlNode(base.getValue(), access.getAccessor())
+    ) and
+    result = TParsedMatrixValue(value)
+  )
+}
+
+/** A parsed access rooted at the GitHub Actions `matrix` context. */
+class MatrixAccessExpressionImpl extends AccessExpressionImpl {
+  MatrixAccessExpressionImpl() {
+    isParsedMatrixAccess(this) and
+    not exists(AccessExpressionImpl parent | parent.getBase() = this)
+  }
+
+  AstNodeImpl getTarget() {
+    exists(StrategyImpl strategy, ParsedMatrixRoot root, ParsedMatrixResolution resolution,
+      YamlScalar scalar |
+      strategy = getParsedMatrixStrategy(this) and
+      root.getStrategy() = strategy and
+      resolution = resolveParsedMatrixAccess(this, root) and
+      scalar = getAParsedMatrixValueScalar(resolution.getValue()) and
+      result.(ExpressionImpl).getParentNode().getNode() = scalar
+    )
+    or
+    exists(StrategyImpl strategy |
+      strategy = getParsedMatrixStrategy(this) and
+      (
+        result.(ExpressionImpl).getParentNode().getNode() = getMatrixDefinition(strategy)
+        or
+        result.(ExpressionImpl).getParentNode().getNode() =
+          getMatrixDefinition(strategy).(YamlMapping).lookup("include")
+      )
+    )
+  }
+}
+
+/** A parsed reference to the whole GitHub Actions `matrix` context. */
+class MatrixContextExpressionImpl extends IdentifierExpressionImpl {
+  MatrixContextExpressionImpl() {
+    this.getName().toLowerCase() = "matrix" and
+    not exists(AccessExpressionImpl access | access.getBase() = this) and
+    not exists(PropertyAccessExpressionImpl property | property.getChild(0) = this) and
+    not exists(FunctionCallExpressionImpl call | call.getCallee() = this)
+  }
+
+  AstNodeImpl getATarget() {
+    exists(StrategyImpl strategy, YamlScalar scalar |
+      strategy = getParsedMatrixStrategy(this) and
+      scalar = getARuntimeMatrixDefinitionScalar(strategy) and
+      result.(ExpressionImpl).getParentNode().getNode() = scalar
+    )
+  }
 }

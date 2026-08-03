@@ -1,0 +1,44 @@
+name: Matrix expression syntax
+
+on: issue_comment
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        payload: ["${{ github.event.comment.body }}"]
+        payload.with.dot: ["${{ github.event.comment.body }}"]
+        index: [0]
+        object:
+          - nested:
+              - "${{ github.event.comment.body }}"
+    steps:
+      - run: echo "${{ matrix['payload'] }}"
+      - run: echo "${{ matrix['payload.with.dot'] }}"
+      - run: echo "${{ matrix.object.nested[0] }}"
+      - run: echo "${{ format('{0}', matrix.payload) }}"
+      - run: echo "${{ toJSON(matrix) }}"
+      - run: echo "${{ join(matrix.object.nested[*], ',') }}"
+      - run: echo "${{ matrix.object.nested[matrix.index] }}"
+  include:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - payload.with.dot: "${{ github.event.comment.body }}"
+            object:
+              nested: ["${{ github.event.comment.body }}"]
+    steps:
+      - run: echo "${{ matrix['payload.with.dot'] }}"
+      - run: echo "${{ matrix.object.nested[0] }}"
+  exclude:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        payload: ["safe"]
+        exclude:
+          - payload: "${{ github.event.comment.body }}"
+    steps:
+      # The exclude filter controls which jobs run, but is not a runtime matrix value.
+      - run: echo "${{ toJSON(matrix) }}"

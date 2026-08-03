@@ -92,3 +92,11 @@ jobs:
     runs-on: ${{ matrix.foo.bar }}
     steps:
     - run: cmd
+  test11:
+    strategy:
+      matrix:
+        include:
+          - os: self-hosted
+    runs-on: ${{ matrix.os }}
+    steps:
+    - run: cmd

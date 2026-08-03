@@ -93,6 +93,23 @@ edges
 | .github/workflows/issues.yaml:4:16:4:46 | github.event.issue.title | .github/workflows/issues.yaml:15:19:15:39 | env.global_env | provenance |  |
 | .github/workflows/issues.yaml:10:17:10:47 | github.event.issue.title | .github/workflows/issues.yaml:17:19:17:36 | env.job_env | provenance |  |
 | .github/workflows/issues.yaml:20:20:20:50 | github.event.issue.title | .github/workflows/issues.yaml:18:19:18:37 | env.step_env | provenance |  |
+| .github/workflows/matrix.yml:15:7:16:4 | Job outputs node [matrix] | .github/workflows/matrix.yml:34:20:34:70 | fromJSON(needs.create-matrix.outputs.matrix) | provenance |  |
+| .github/workflows/matrix.yml:15:16:15:64 | steps.set-matrix.outputs.all_changed_files | .github/workflows/matrix.yml:15:7:16:4 | Job outputs node [matrix] | provenance |  |
+| .github/workflows/matrix.yml:17:9:21:2 | Uses Step: set-matrix | .github/workflows/matrix.yml:15:16:15:64 | steps.set-matrix.outputs.all_changed_files | provenance |  |
+| .github/workflows/matrix.yml:34:20:34:70 | fromJSON(needs.create-matrix.outputs.matrix) | .github/workflows/matrix.yml:42:10:42:31 | matrix.language | provenance |  |
+| .github/workflows/matrix_expression_syntax.yml:10:19:10:50 | github.event.comment.body | .github/workflows/matrix_expression_syntax.yml:17:21:17:44 | matrix['payload'] | provenance |  |
+| .github/workflows/matrix_expression_syntax.yml:10:19:10:50 | github.event.comment.body | .github/workflows/matrix_expression_syntax.yml:20:21:20:56 | format('{0}', matrix.payload) | provenance |  |
+| .github/workflows/matrix_expression_syntax.yml:10:19:10:50 | github.event.comment.body | .github/workflows/matrix_expression_syntax.yml:21:21:21:41 | toJSON(matrix) | provenance |  |
+| .github/workflows/matrix_expression_syntax.yml:11:28:11:59 | github.event.comment.body | .github/workflows/matrix_expression_syntax.yml:18:21:18:53 | matrix['payload.with.dot'] | provenance |  |
+| .github/workflows/matrix_expression_syntax.yml:11:28:11:59 | github.event.comment.body | .github/workflows/matrix_expression_syntax.yml:21:21:21:41 | toJSON(matrix) | provenance |  |
+| .github/workflows/matrix_expression_syntax.yml:15:17:15:48 | github.event.comment.body | .github/workflows/matrix_expression_syntax.yml:19:21:19:50 | matrix.object.nested[0] | provenance |  |
+| .github/workflows/matrix_expression_syntax.yml:15:17:15:48 | github.event.comment.body | .github/workflows/matrix_expression_syntax.yml:21:21:21:41 | toJSON(matrix) | provenance |  |
+| .github/workflows/matrix_expression_syntax.yml:15:17:15:48 | github.event.comment.body | .github/workflows/matrix_expression_syntax.yml:22:21:22:61 | join(matrix.object.nested[*], ',') | provenance |  |
+| .github/workflows/matrix_expression_syntax.yml:15:17:15:48 | github.event.comment.body | .github/workflows/matrix_expression_syntax.yml:23:21:23:61 | matrix.object.nested[matrix.index] | provenance |  |
+| .github/workflows/matrix_expression_syntax.yml:29:31:29:62 | github.event.comment.body | .github/workflows/matrix_expression_syntax.yml:33:21:33:53 | matrix['payload.with.dot'] | provenance |  |
+| .github/workflows/matrix_expression_syntax.yml:31:24:31:55 | github.event.comment.body | .github/workflows/matrix_expression_syntax.yml:34:21:34:50 | matrix.object.nested[0] | provenance |  |
+| .github/workflows/matrix_include.yml:12:23:12:54 | github.event.comment.body | .github/workflows/matrix_include.yml:14:21:14:41 | matrix.payload | provenance |  |
+| .github/workflows/matrix_include.yml:20:19:20:60 | fromJSON(github.event.comment.body) | .github/workflows/matrix_include.yml:22:21:22:41 | matrix.payload | provenance |  |
 | .github/workflows/reusable-workflow-1.yml:6:7:6:11 | input taint | .github/workflows/reusable-workflow-1.yml:36:21:36:39 | inputs.taint | provenance |  |
 | .github/workflows/reusable-workflow-1.yml:44:19:44:56 | github.event.pull_request.title | .github/workflows/reusable-workflow-1.yml:53:26:53:39 | env.log | provenance |  |
 | .github/workflows/reusable-workflow-1.yml:45:24:45:61 | github.event.changes.title.from | .github/workflows/reusable-workflow-1.yml:66:34:66:52 | env.prev_log | provenance |  |
@@ -412,6 +429,29 @@ nodes
 | .github/workflows/level0.yml:44:20:44:49 | github.event.issue.body | semmle.label | github.event.issue.body |
 | .github/workflows/level0.yml:69:35:69:66 | github.event.comment.body | semmle.label | github.event.comment.body |
 | .github/workflows/level1.yml:37:38:37:81 | github.event.workflow_run.head_branch | semmle.label | github.event.workflow_run.head_branch |
+| .github/workflows/matrix.yml:15:7:16:4 | Job outputs node [matrix] | semmle.label | Job outputs node [matrix] |
+| .github/workflows/matrix.yml:15:16:15:64 | steps.set-matrix.outputs.all_changed_files | semmle.label | steps.set-matrix.outputs.all_changed_files |
+| .github/workflows/matrix.yml:17:9:21:2 | Uses Step: set-matrix | semmle.label | Uses Step: set-matrix |
+| .github/workflows/matrix.yml:34:20:34:70 | fromJSON(needs.create-matrix.outputs.matrix) | semmle.label | fromJSON(needs.create-matrix.outputs.matrix) |
+| .github/workflows/matrix.yml:42:10:42:31 | matrix.language | semmle.label | matrix.language |
+| .github/workflows/matrix_expression_syntax.yml:10:19:10:50 | github.event.comment.body | semmle.label | github.event.comment.body |
+| .github/workflows/matrix_expression_syntax.yml:11:28:11:59 | github.event.comment.body | semmle.label | github.event.comment.body |
+| .github/workflows/matrix_expression_syntax.yml:15:17:15:48 | github.event.comment.body | semmle.label | github.event.comment.body |
+| .github/workflows/matrix_expression_syntax.yml:17:21:17:44 | matrix['payload'] | semmle.label | matrix['payload'] |
+| .github/workflows/matrix_expression_syntax.yml:18:21:18:53 | matrix['payload.with.dot'] | semmle.label | matrix['payload.with.dot'] |
+| .github/workflows/matrix_expression_syntax.yml:19:21:19:50 | matrix.object.nested[0] | semmle.label | matrix.object.nested[0] |
+| .github/workflows/matrix_expression_syntax.yml:20:21:20:56 | format('{0}', matrix.payload) | semmle.label | format('{0}', matrix.payload) |
+| .github/workflows/matrix_expression_syntax.yml:21:21:21:41 | toJSON(matrix) | semmle.label | toJSON(matrix) |
+| .github/workflows/matrix_expression_syntax.yml:22:21:22:61 | join(matrix.object.nested[*], ',') | semmle.label | join(matrix.object.nested[*], ',') |
+| .github/workflows/matrix_expression_syntax.yml:23:21:23:61 | matrix.object.nested[matrix.index] | semmle.label | matrix.object.nested[matrix.index] |
+| .github/workflows/matrix_expression_syntax.yml:29:31:29:62 | github.event.comment.body | semmle.label | github.event.comment.body |
+| .github/workflows/matrix_expression_syntax.yml:31:24:31:55 | github.event.comment.body | semmle.label | github.event.comment.body |
+| .github/workflows/matrix_expression_syntax.yml:33:21:33:53 | matrix['payload.with.dot'] | semmle.label | matrix['payload.with.dot'] |
+| .github/workflows/matrix_expression_syntax.yml:34:21:34:50 | matrix.object.nested[0] | semmle.label | matrix.object.nested[0] |
+| .github/workflows/matrix_include.yml:12:23:12:54 | github.event.comment.body | semmle.label | github.event.comment.body |
+| .github/workflows/matrix_include.yml:14:21:14:41 | matrix.payload | semmle.label | matrix.payload |
+| .github/workflows/matrix_include.yml:20:19:20:60 | fromJSON(github.event.comment.body) | semmle.label | fromJSON(github.event.comment.body) |
+| .github/workflows/matrix_include.yml:22:21:22:41 | matrix.payload | semmle.label | matrix.payload |
 | .github/workflows/merge_group_code_injection.yml:10:21:10:47 | toJSON(github.event) | semmle.label | toJSON(github.event) |
 | .github/workflows/output_gated_code_injection.yml:18:21:18:58 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
 | .github/workflows/output_gated_code_injection.yml:25:21:25:58 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |

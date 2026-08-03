@@ -1,0 +1,15 @@
+on: issue_comment
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        sha: ["0123456789abcdef0123456789abcdef01234567"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: example/example
+          ref: ${{ matrix.sha }}
+      # NOT VULNERABLE: matrix.sha can only be the statically declared commit.
+      - run: npm install
