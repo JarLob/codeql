@@ -1,4 +1,5 @@
 import actions
+private import codeql.actions.ExpressionControlFlow as ExpressionCfg
 
 string any_category() {
   result =
@@ -413,21 +414,34 @@ private predicate expressionFalseCanReachConditionTrue(ExpressionNode node) {
   )
 }
 
+private predicate isParsedCheckAtom(ExpressionNode atom, string kind) {
+  kind = "label" and isLabelCheckAtom(atom)
+  or
+  kind = "actor" and isActorCheckAtom(atom)
+  or
+  kind = "association" and isAssociationCheckAtom(atom)
+  or
+  kind = "pull-request-repository" and isPullRequestRepositoryCheckAtom(atom)
+  or
+  kind = "workflow-run-repository" and isWorkflowRunRepositoryCheckAtom(atom)
+}
+
 predicate isParsedCheckOwner(If condition, string kind) {
   exists(ExpressionNode atom |
     atom.getExpression() = condition.getConditionExpr() and
-    (
-      kind = "label" and isLabelCheckAtom(atom)
-      or
-      kind = "actor" and isActorCheckAtom(atom)
-      or
-      kind = "association" and isAssociationCheckAtom(atom)
-      or
-      kind = "pull-request-repository" and isPullRequestRepositoryCheckAtom(atom)
-      or
-      kind = "workflow-run-repository" and isWorkflowRunRepositoryCheckAtom(atom)
-    ) and
+    isParsedCheckAtom(atom, kind) and
     expressionTrueCanReachConditionTrue(atom)
+  )
+}
+
+/** Holds if a recognized `kind` atom can be evaluated for `event`. */
+predicate parsedCheckAppliesToEvent(If condition, string kind, Event event) {
+  exists(ExpressionNode atom, ExpressionCfg::EvaluationNode evaluation |
+    atom.getExpression() = condition.getConditionExpr() and
+    isParsedCheckAtom(atom, kind) and
+    expressionTrueCanReachConditionTrue(atom) and
+    evaluation.getExpressionNode() = atom and
+    evaluation = ExpressionCfg::getEntryNode(condition.getConditionExpr()).getAReachableNode(event)
   )
 }
 

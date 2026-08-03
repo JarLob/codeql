@@ -223,7 +223,29 @@ private predicate unprotectedCallerChain(ExternalJob caller, Event event, string
 }
 
 /** A recognized attempt to authorize access to untrusted code. */
-abstract class AuthorizationAttemptCheck extends ControlCheck { }
+abstract class AuthorizationAttemptCheck extends ControlCheck {
+  private string getConditionKind() {
+    this instanceof LabelIfCheck and result = "label"
+    or
+    this instanceof ActorIfCheck and result = "actor"
+    or
+    this instanceof AssociationIfCheck and result = "association"
+    or
+    this instanceof PullRequestTargetRepositoryIfCheck and result = "pull-request-repository"
+    or
+    this instanceof WorkflowRunRepositoryIfCheck and result = "workflow-run-repository"
+  }
+
+  /**
+   * Holds if this attempt applies to `event`. A condition-based attempt applies only when its
+   * recognized atom can be evaluated for the event.
+   */
+  predicate appliesToEvent(Event event) {
+    not this instanceof If
+    or
+    Conditions::parsedCheckAppliesToEvent(this.(If), this.getConditionKind(), event)
+  }
+}
 
 abstract class AssociationCheck extends AuthorizationAttemptCheck {
   // Checks if the actor is a MEMBER/OWNER the repo

@@ -424,6 +424,7 @@ predicate knownImproperCheckoutAuthorization(
 ) {
   // Only classify checks on events for which authorization controls model an external actor.
   event.getName() = any_event() and
+  check.appliesToEvent(event) and
   check.dominates(checkout, event) and
   (
     not check.protects(checkout, event, "untrusted-checkout")

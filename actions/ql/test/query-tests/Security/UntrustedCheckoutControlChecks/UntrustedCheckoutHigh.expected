@@ -1,0 +1,1 @@
+| .github/workflows/workflow_run.yml:35:9:37:59 | Uses Step | Checkout of untrusted code in a privileged workflow with later potential execution (event trigger: $@). | .github/workflows/workflow_run.yml:2:3:2:14 | workflow_run | workflow_run |
