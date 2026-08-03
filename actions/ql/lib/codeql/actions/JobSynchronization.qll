@@ -225,78 +225,31 @@ private predicate needsStatusMayOccur(Job job, NeedsStatus status) {
   )
 }
 
-private string getMatrixDimensionAt(Job job, int index) {
-  result =
-    rank[index + 1](string name | name = job.getStrategy().getAMatrixDimensionName() |
-      name order by name
-    )
-}
-
-private int getStaticMatrixInstanceCountPrefix(Job job, int length) {
-  length = 0 and result = 1
-  or
-  exists(int previous, string dimension |
-    length > 0 and
-    dimension = getMatrixDimensionAt(job, length - 1) and
-    previous = getStaticMatrixInstanceCountPrefix(job, length - 1) and
-    result = previous * job.getStrategy().getMatrixDimensionValueCount(dimension)
-  )
-}
-
-private int getStaticMatrixInstanceCount(Job job) {
-  job.getStrategy().hasStaticCartesianMatrix() and
-  result =
-    getStaticMatrixInstanceCountPrefix(job, count(job.getStrategy().getAMatrixDimensionName()))
-}
-
-private string getAStaticMatrixAssignmentPrefix(Job job, int length) {
-  length = 0 and result = ""
-  or
-  exists(string prefix, string dimension, int valueIndex |
-    length > 0 and
-    dimension = getMatrixDimensionAt(job, length - 1) and
-    valueIndex in [0 .. job.getStrategy().getMatrixDimensionValueCount(dimension) - 1] and
-    prefix = getAStaticMatrixAssignmentPrefix(job, length - 1) and
-    (
-      prefix = "" and result = dimension + "=" + valueIndex.toString()
-      or
-      prefix != "" and result = prefix + "," + dimension + "=" + valueIndex.toString()
-    )
-  )
-}
-
-private int maxExactMatrixInstanceCount() { result = 16 }
-
-private string getAMatrixAssignment(Job job) {
-  getStaticMatrixInstanceCount(job) <= maxExactMatrixInstanceCount() and
-  result =
-    getAStaticMatrixAssignmentPrefix(job, count(job.getStrategy().getAMatrixDimensionName()))
-  or
-  job.getStrategy().hasMatrix() and
-  not getStaticMatrixInstanceCount(job) <= maxExactMatrixInstanceCount() and
-  result = "*"
-}
-
 private newtype TMatrixJobInstance =
-  TConcreteMatrixJobInstance(Job job, string assignment) { assignment = getAMatrixAssignment(job) }
+  TConcreteMatrixJobInstance(Job job, MatrixCombination combination) {
+    combination.getStrategy() = job.getStrategy()
+  } or
+  TWildcardMatrixJobInstance(Job job) {
+    job.getStrategy().hasMatrix() and not job.getStrategy().hasExactMatrixCombinations()
+  }
 
 /** A concrete bounded expansion, or conservative wildcard expansion, of a matrix job. */
 class MatrixJobInstance extends TMatrixJobInstance {
-  Job getJob() { this = TConcreteMatrixJobInstance(result, _) }
-
-  string getAssignment() { this = TConcreteMatrixJobInstance(_, result) }
-
-  int getDimensionIndex(string name) {
-    exists(string component |
-      component = this.getAssignment().splitAt(",") and
-      component.splitAt("=", 0) = name and
-      result = component.splitAt("=", 1).toInt()
-    )
+  Job getJob() {
+    this = TConcreteMatrixJobInstance(result, _) or this = TWildcardMatrixJobInstance(result)
   }
 
-  string getMatrixValue(string name) {
-    result = this.getJob().getStrategy().getMatrixDimensionValue(name, this.getDimensionIndex(name))
+  MatrixCombination getCombination() { this = TConcreteMatrixJobInstance(_, result) }
+
+  string getAssignment() {
+    result = this.getCombination().getAssignment()
+    or
+    this = TWildcardMatrixJobInstance(_) and result = "*"
   }
+
+  string getAMatrixKey() { result = this.getCombination().getAKey() }
+
+  string getMatrixValue(string name) { result = this.getCombination().getValue(name) }
 
   string toString() { result = this.getJob().getId() + "[" + this.getAssignment() + "]" }
 }
@@ -306,11 +259,11 @@ private predicate getInstanceContinueOnErrorValue(
 ) {
   getStaticContinueOnErrorValue(expression, outcome)
   or
-  exists(AccessExpression access, string dimension |
+  exists(AccessExpression access, string key |
     access = expression.getRoot().getChild(0) and
-    dimension = instance.getJob().getStrategy().getAMatrixDimensionName() and
-    access.getAccessPath().toLowerCase() = ("matrix." + dimension).toLowerCase() and
-    instance.getMatrixValue(dimension).toLowerCase() = outcome.toString()
+    key = instance.getAMatrixKey() and
+    access.getAccessPath().toLowerCase() = ("matrix." + key).toLowerCase() and
+    instance.getMatrixValue(key).toLowerCase() = outcome.toString()
   )
 }
 

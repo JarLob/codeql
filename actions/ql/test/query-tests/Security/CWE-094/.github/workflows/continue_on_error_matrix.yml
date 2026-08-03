@@ -65,3 +65,165 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "${{ github.event.pull_request.title }}"
+
+  # No alert expected: both include-only combinations continue failures, so failure() is false.
+  job-include-only-all-continued:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu
+            experimental: true
+          - os: windows
+            experimental: true
+    continue-on-error: "${{ matrix.experimental }}"
+    runs-on: "${{ matrix.os }}"
+    steps:
+      - run: exit 1
+
+  job-include-only-all-continued-failure-sink:
+    needs: job-include-only-all-continued
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"
+
+  # Alert expected: the false include-only combination can make the matrix fan-in fail.
+  job-include-only-mixed:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu
+            experimental: true
+          - os: windows
+            experimental: false
+    continue-on-error: "${{ matrix.experimental }}"
+    runs-on: "${{ matrix.os }}"
+    steps:
+      - run: exit 1
+
+  job-include-only-mixed-failure-sink:
+    needs: job-include-only-mixed
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"
+
+  # No alert expected: exclude removes the false combination, so every failure is continued.
+  job-exclude-all-continued:
+    strategy:
+      matrix:
+        experimental: [true, false]
+        exclude:
+          - experimental: false
+    continue-on-error: "${{ matrix.experimental }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 1
+
+  job-exclude-all-continued-failure-sink:
+    needs: job-exclude-all-continued
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"
+
+  # Alert expected: exclude removes the true combination, leaving a non-continued failure.
+  job-exclude-non-continued:
+    strategy:
+      matrix:
+        experimental: [true, false]
+        exclude:
+          - experimental: true
+    continue-on-error: "${{ matrix.experimental }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 1
+
+  job-exclude-non-continued-failure-sink:
+    needs: job-exclude-non-continued
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"
+
+  # No alert expected: the later include overrides experimental to true for the base combination.
+  step-ordered-include-all-continued:
+    strategy:
+      matrix:
+        os: [ubuntu]
+        include:
+          - experimental: false
+          - experimental: true
+    runs-on: "${{ matrix.os }}"
+    steps:
+      - continue-on-error: "${{ matrix.experimental }}"
+        run: exit 1
+
+  step-ordered-include-all-continued-failure-sink:
+    needs: step-ordered-include-all-continued
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"
+
+  # Alert expected: the later include overrides experimental to false, so the step may fail.
+  step-ordered-include-non-continued:
+    strategy:
+      matrix:
+        os: [ubuntu]
+        include:
+          - experimental: true
+          - experimental: false
+    runs-on: "${{ matrix.os }}"
+    steps:
+      - continue-on-error: "${{ matrix.experimental }}"
+        run: exit 1
+
+  step-ordered-include-non-continued-failure-sink:
+    needs: step-ordered-include-non-continued
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"
+
+  # No alert expected: the static object axis remains exact and experimental is always true.
+  job-static-object-axis-all-continued:
+    strategy:
+      matrix:
+        platform:
+          - name: Linux
+            os: ubuntu-latest
+          - name: Windows
+            os: windows-latest
+        experimental: [true]
+    continue-on-error: "${{ matrix.experimental }}"
+    runs-on: "${{ matrix.platform.os }}"
+    steps:
+      - run: exit 1
+
+  job-static-object-axis-all-continued-failure-sink:
+    needs: job-static-object-axis-all-continued
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"
+
+  # Alert expected: a nested expression makes the matrix dynamic, so wildcard fallback is conservative.
+  job-dynamic-object-axis:
+    strategy:
+      matrix:
+        platform:
+          - name: Linux
+            os: "${{ github.sha }}"
+        experimental: [true]
+    continue-on-error: "${{ matrix.experimental }}"
+    runs-on: "${{ matrix.platform.os }}"
+    steps:
+      - run: exit 1
+
+  job-dynamic-object-axis-failure-sink:
+    needs: job-dynamic-object-axis
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.pull_request.title }}"

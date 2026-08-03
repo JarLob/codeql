@@ -76,6 +76,160 @@ jobs:
     steps:
       - run: echo dynamic matrix fallback
 
+  matrix-exclude:
+    strategy:
+      matrix:
+        os: [ubuntu, windows]
+        version: [1, 2]
+        exclude:
+          - os: windows
+          - os: ubuntu
+            version: 2
+    runs-on: "${{ matrix.os }}"
+    steps:
+      - run: echo excluded combinations
+
+  matrix-exclude-all:
+    strategy:
+      matrix:
+        os: [ubuntu, windows]
+        exclude:
+          - os: ubuntu
+          - os: windows
+    runs-on: "${{ matrix.os }}"
+    steps:
+      - run: echo fully excluded matrix
+
+  matrix-include:
+    strategy:
+      matrix:
+        fruit: [apple, pear]
+        animal: [cat, dog]
+        exclude:
+          - fruit: pear
+            animal: dog
+        include:
+          - color: green
+          - color: pink
+            animal: cat
+          - fruit: banana
+          - fruit: pear
+            animal: dog
+            color: blue
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo included combinations
+
+  matrix-include-only:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu
+            experimental: false
+          - os: windows
+            experimental: true
+    continue-on-error: "${{ matrix.experimental }}"
+    runs-on: "${{ matrix.os }}"
+    steps:
+      - run: echo include-only combinations
+
+  matrix-empty:
+    strategy:
+      matrix:
+        os: []
+    runs-on: "${{ matrix.os }}"
+    steps:
+      - run: echo never runs
+
+  matrix-empty-include:
+    strategy:
+      matrix:
+        os: []
+        include:
+          - os: ubuntu
+    runs-on: "${{ matrix.os }}"
+    steps:
+      - run: echo include revives empty matrix
+
+  matrix-pre-cap-exclude:
+    strategy:
+      matrix:
+        row: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        exclude:
+          - row: 16
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo exact after exclusion
+
+  matrix-generated-cap:
+    strategy:
+      matrix:
+        major: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        minor: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        exclude:
+          - minor: 1
+          - minor: 2
+          - minor: 3
+          - minor: 4
+          - minor: 5
+          - minor: 6
+          - minor: 7
+          - minor: 8
+          - minor: 9
+          - minor: 10
+          - minor: 11
+          - minor: 12
+          - minor: 13
+          - minor: 14
+          - minor: 15
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo exact at generation cap
+
+  matrix-post-cap:
+    strategy:
+      matrix:
+        row: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        include:
+          - row: 16
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo post-transformation wildcard fallback
+
+  matrix-dynamic-include:
+    strategy:
+      matrix:
+        os: [ubuntu]
+        include:
+          - os: windows
+            experimental: "${{ vars.EXPERIMENTAL }}"
+    runs-on: "${{ matrix.os }}"
+    steps:
+      - run: echo dynamic include fallback
+
+  matrix-object-axis:
+    strategy:
+      matrix:
+        tool:
+          - name: zizmor
+            flags: [--zizmor, --pedantic]
+          - name: actionlint
+            flag: --actionlint
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo static object axis
+
+  matrix-dynamic-object-axis:
+    strategy:
+      matrix:
+        tool:
+          - name: zizmor
+            config:
+              flag: "${{ github.sha }}"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo dynamic object axis fallback
+
   matrix-continue-true:
     strategy:
       matrix:

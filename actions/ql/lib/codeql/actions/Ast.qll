@@ -282,6 +282,22 @@ class Permissions extends AstNode instanceof PermissionsImpl {
   string getAPermission() { result = super.getAPermission() }
 }
 
+/** One statically known effective combination of a matrix strategy. */
+class MatrixCombination instanceof MatrixCombinationImpl {
+  Strategy getStrategy() { result = super.getStrategy() }
+
+  /** Gets the stable assignment identifier for this combination. */
+  string getAssignment() { result = super.getAssignment() }
+
+  /** Gets a key defined for this combination. */
+  string getAKey() { result = super.getAKey() }
+
+  /** Gets the effective scalar value for `key`. */
+  string getValue(string key) { result = super.getValue(key) }
+
+  string toString() { result = super.toString() }
+}
+
 class Strategy extends AstNode instanceof StrategyImpl {
   predicate hasMatrix() { super.hasMatrix() }
 
@@ -296,6 +312,12 @@ class Strategy extends AstNode instanceof StrategyImpl {
   }
 
   predicate hasStaticCartesianMatrix() { super.hasStaticCartesianMatrix() }
+
+  /** Holds if this strategy's effective matrix combinations are modeled exactly. */
+  predicate hasExactMatrixCombinations() { super.hasExactMatrixCombinations() }
+
+  /** Gets an effective matrix combination for this strategy. */
+  MatrixCombination getAMatrixCombination() { result = super.getAMatrixCombination() }
 
   Expression getMatrixVarExpr(string varName) { result = super.getMatrixVarExpr(varName) }
 

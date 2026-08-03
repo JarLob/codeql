@@ -335,8 +335,37 @@ decisionEdges
 | matrix-dependent | complete matrix-dependent as skipped |
 | matrix-dependent | execute matrix-dependent |
 | matrix-dynamic | execute matrix-dynamic[*] |
+| matrix-dynamic-include | execute matrix-dynamic-include[*] |
+| matrix-dynamic-object-axis | execute matrix-dynamic-object-axis[*] |
+| matrix-empty-include | execute matrix-empty-include[include=0] |
+| matrix-exclude | execute matrix-exclude[os=0,version=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=0,minor=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=1,minor=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=2,minor=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=3,minor=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=4,minor=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=5,minor=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=6,minor=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=7,minor=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=8,minor=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=9,minor=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=10,minor=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=11,minor=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=12,minor=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=13,minor=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=14,minor=0] |
+| matrix-generated-cap | execute matrix-generated-cap[major=15,minor=0] |
+| matrix-include | execute matrix-include[animal=0,fruit=0] |
+| matrix-include | execute matrix-include[animal=0,fruit=1] |
+| matrix-include | execute matrix-include[animal=1,fruit=0] |
+| matrix-include | execute matrix-include[include=2] |
+| matrix-include | execute matrix-include[include=3] |
+| matrix-include-only | execute matrix-include-only[include=0] |
+| matrix-include-only | execute matrix-include-only[include=1] |
 | matrix-job-continue-expression | execute matrix-job-continue-expression[experimental=0] |
 | matrix-job-continue-expression | execute matrix-job-continue-expression[experimental=1] |
+| matrix-object-axis | execute matrix-object-axis[tool=0] |
+| matrix-object-axis | execute matrix-object-axis[tool=1] |
 | matrix-output-blocked | complete matrix-output-blocked as skipped |
 | matrix-output-blocked | execute matrix-output-blocked |
 | matrix-output-dynamic | complete matrix-output-dynamic as skipped |
@@ -344,6 +373,23 @@ decisionEdges
 | matrix-output-enabled | complete matrix-output-enabled as skipped |
 | matrix-output-enabled | execute matrix-output-enabled |
 | matrix-over-cap | execute matrix-over-cap[*] |
+| matrix-post-cap | execute matrix-post-cap[*] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=0] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=1] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=2] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=3] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=4] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=5] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=6] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=7] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=8] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=9] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=10] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=11] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=12] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=13] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=14] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=15] |
 | matrix-root | execute matrix-root[os=0,version=0] |
 | matrix-root | execute matrix-root[os=0,version=1] |
 | matrix-root | execute matrix-root[os=1,version=0] |
@@ -710,65 +756,145 @@ executionCompletions
 | unknown-named-result | failure |
 | unknown-named-result | success |
 executionCfgNodes
-| after-nested-reusable | .github/workflows/test.yml:201:5:207:2 | Job: after-nested-reusable |
-| after-reusable | .github/workflows/test.yml:170:5:176:2 | Job: after-reusable |
-| after-reusable-blocked | .github/workflows/test.yml:177:5:183:2 | Job: after-reusable-blocked |
-| after-reusable-direct | .github/workflows/test.yml:184:5:190:2 | Job: after-reusable-direct |
-| after-reusable-dynamic | .github/workflows/test.yml:191:5:197:2 | Job: after-reusable-dynamic |
-| always-dependent | .github/workflows/test.yml:236:5:242:2 | Job: always-dependent |
-| cancelled-dependent | .github/workflows/test.yml:257:5:263:2 | Job: cancelled-dependent |
-| combined-dependent | .github/workflows/test.yml:271:5:277:2 | Job: combined-dependent |
-| continue-dynamic | .github/workflows/test.yml:131:5:138:2 | Job: continue-dynamic |
-| continue-dynamic-result-dependent | .github/workflows/test.yml:160:5:166:2 | Job: continue-dynamic-result-dependent |
-| continue-false | .github/workflows/test.yml:123:5:130:2 | Job: continue-false |
-| continue-true | .github/workflows/test.yml:115:5:122:2 | Job: continue-true |
-| continue-true-failure-dependent | .github/workflows/test.yml:153:5:159:2 | Job: continue-true-failure-dependent |
-| continue-true-success-dependent | .github/workflows/test.yml:146:5:152:2 | Job: continue-true-success-dependent |
-| correlated-dependent | .github/workflows/test.yml:214:5:220:2 | Job: correlated-dependent |
-| correlated-gate | .github/workflows/test.yml:208:5:213:2 | Job: correlated-gate |
-| dependent | .github/workflows/test.yml:229:5:235:2 | Job: dependent |
-| failure-dependent | .github/workflows/test.yml:250:5:256:2 | Job: failure-dependent |
-| matrix-continue-dependent | .github/workflows/test.yml:89:5:94:2 | Job: matrix-continue-dependent |
+| after-nested-reusable | .github/workflows/test.yml:355:5:361:2 | Job: after-nested-reusable |
+| after-reusable | .github/workflows/test.yml:324:5:330:2 | Job: after-reusable |
+| after-reusable-blocked | .github/workflows/test.yml:331:5:337:2 | Job: after-reusable-blocked |
+| after-reusable-direct | .github/workflows/test.yml:338:5:344:2 | Job: after-reusable-direct |
+| after-reusable-dynamic | .github/workflows/test.yml:345:5:351:2 | Job: after-reusable-dynamic |
+| always-dependent | .github/workflows/test.yml:390:5:396:2 | Job: always-dependent |
+| cancelled-dependent | .github/workflows/test.yml:411:5:417:2 | Job: cancelled-dependent |
+| combined-dependent | .github/workflows/test.yml:425:5:431:2 | Job: combined-dependent |
+| continue-dynamic | .github/workflows/test.yml:285:5:292:2 | Job: continue-dynamic |
+| continue-dynamic-result-dependent | .github/workflows/test.yml:314:5:320:2 | Job: continue-dynamic-result-dependent |
+| continue-false | .github/workflows/test.yml:277:5:284:2 | Job: continue-false |
+| continue-true | .github/workflows/test.yml:269:5:276:2 | Job: continue-true |
+| continue-true-failure-dependent | .github/workflows/test.yml:307:5:313:2 | Job: continue-true-failure-dependent |
+| continue-true-success-dependent | .github/workflows/test.yml:300:5:306:2 | Job: continue-true-success-dependent |
+| correlated-dependent | .github/workflows/test.yml:368:5:374:2 | Job: correlated-dependent |
+| correlated-gate | .github/workflows/test.yml:362:5:367:2 | Job: correlated-gate |
+| dependent | .github/workflows/test.yml:383:5:389:2 | Job: dependent |
+| failure-dependent | .github/workflows/test.yml:404:5:410:2 | Job: failure-dependent |
+| matrix-continue-dependent | .github/workflows/test.yml:243:5:248:2 | Job: matrix-continue-dependent |
 | matrix-dependent | .github/workflows/test.yml:37:5:42:2 | Job: matrix-dependent |
 | matrix-output-blocked | .github/workflows/test.yml:50:5:56:2 | Job: matrix-output-blocked |
 | matrix-output-dynamic | .github/workflows/test.yml:57:5:63:2 | Job: matrix-output-dynamic |
 | matrix-output-enabled | .github/workflows/test.yml:43:5:49:2 | Job: matrix-output-enabled |
-| mixed-dependent | .github/workflows/test.yml:278:5:284:2 | Job: mixed-dependent |
-| named-results | .github/workflows/test.yml:292:5:302:2 | Job: named-results |
-| not-success-dependent | .github/workflows/test.yml:264:5:270:2 | Job: not-success-dependent |
-| output-always-dependent | .github/workflows/test.yml:317:5:327:2 | Job: output-always-dependent |
-| output-blocked-dependent | .github/workflows/test.yml:328:5:334:2 | Job: output-blocked-dependent |
-| output-boolean-dependent | .github/workflows/test.yml:368:5:374:2 | Job: output-boolean-dependent |
-| output-default-dependent | .github/workflows/test.yml:310:5:316:2 | Job: output-default-dependent |
-| output-dynamic-dependent | .github/workflows/test.yml:349:5:358:2 | Job: output-dynamic-dependent |
-| output-empty-dependent | .github/workflows/test.yml:359:5:367:2 | Job: output-empty-dependent |
-| output-failure-dependent | .github/workflows/test.yml:342:5:348:2 | Job: output-failure-dependent |
-| output-negated-dependent | .github/workflows/test.yml:335:5:341:2 | Job: output-negated-dependent |
-| output-skipped-dependent | .github/workflows/test.yml:375:5:381:2 | Job: output-skipped-dependent |
+| mixed-dependent | .github/workflows/test.yml:432:5:438:2 | Job: mixed-dependent |
+| named-results | .github/workflows/test.yml:446:5:456:2 | Job: named-results |
+| not-success-dependent | .github/workflows/test.yml:418:5:424:2 | Job: not-success-dependent |
+| output-always-dependent | .github/workflows/test.yml:471:5:481:2 | Job: output-always-dependent |
+| output-blocked-dependent | .github/workflows/test.yml:482:5:488:2 | Job: output-blocked-dependent |
+| output-boolean-dependent | .github/workflows/test.yml:522:5:528:2 | Job: output-boolean-dependent |
+| output-default-dependent | .github/workflows/test.yml:464:5:470:2 | Job: output-default-dependent |
+| output-dynamic-dependent | .github/workflows/test.yml:503:5:512:2 | Job: output-dynamic-dependent |
+| output-empty-dependent | .github/workflows/test.yml:513:5:521:2 | Job: output-empty-dependent |
+| output-failure-dependent | .github/workflows/test.yml:496:5:502:2 | Job: output-failure-dependent |
+| output-negated-dependent | .github/workflows/test.yml:489:5:495:2 | Job: output-negated-dependent |
+| output-skipped-dependent | .github/workflows/test.yml:529:5:535:2 | Job: output-skipped-dependent |
 | reusable-root | .github/workflows/reusable.yml:15:5:19:2 | Job: reusable-root |
 | reusable-skipped-terminal | .github/workflows/reusable.yml:20:5:25:2 | Job: reusable-skipped-terminal |
 | reusable-terminal | .github/workflows/reusable.yml:26:5:34:36 | Job: reusable-terminal |
 | root-a | .github/workflows/test.yml:6:5:18:2 | Job: root-a |
 | root-b | .github/workflows/test.yml:19:5:23:2 | Job: root-b |
-| skipped-output-source | .github/workflows/test.yml:221:5:228:2 | Job: skipped-output-source |
-| step-continue-only | .github/workflows/test.yml:139:5:145:2 | Job: step-continue-only |
-| success-dependent | .github/workflows/test.yml:243:5:249:2 | Job: success-dependent |
-| terminal | .github/workflows/test.yml:382:5:385:26 | Job: terminal |
-| transitive-combined | .github/workflows/test.yml:285:5:291:2 | Job: transitive-combined |
-| unknown-named-result | .github/workflows/test.yml:303:5:309:2 | Job: unknown-named-result |
+| skipped-output-source | .github/workflows/test.yml:375:5:382:2 | Job: skipped-output-source |
+| step-continue-only | .github/workflows/test.yml:293:5:299:2 | Job: step-continue-only |
+| success-dependent | .github/workflows/test.yml:397:5:403:2 | Job: success-dependent |
+| terminal | .github/workflows/test.yml:536:5:539:26 | Job: terminal |
+| transitive-combined | .github/workflows/test.yml:439:5:445:2 | Job: transitive-combined |
+| unknown-named-result | .github/workflows/test.yml:457:5:463:2 | Job: unknown-named-result |
 matrixExecutions
 | matrix-continue-true | matrix-continue-true[version=0] |
 | matrix-continue-true | matrix-continue-true[version=1] |
 | matrix-dynamic | matrix-dynamic[*] |
+| matrix-dynamic-include | matrix-dynamic-include[*] |
+| matrix-dynamic-object-axis | matrix-dynamic-object-axis[*] |
+| matrix-empty-include | matrix-empty-include[include=0] |
+| matrix-exclude | matrix-exclude[os=0,version=0] |
+| matrix-generated-cap | matrix-generated-cap[major=0,minor=0] |
+| matrix-generated-cap | matrix-generated-cap[major=1,minor=0] |
+| matrix-generated-cap | matrix-generated-cap[major=2,minor=0] |
+| matrix-generated-cap | matrix-generated-cap[major=3,minor=0] |
+| matrix-generated-cap | matrix-generated-cap[major=4,minor=0] |
+| matrix-generated-cap | matrix-generated-cap[major=5,minor=0] |
+| matrix-generated-cap | matrix-generated-cap[major=6,minor=0] |
+| matrix-generated-cap | matrix-generated-cap[major=7,minor=0] |
+| matrix-generated-cap | matrix-generated-cap[major=8,minor=0] |
+| matrix-generated-cap | matrix-generated-cap[major=9,minor=0] |
+| matrix-generated-cap | matrix-generated-cap[major=10,minor=0] |
+| matrix-generated-cap | matrix-generated-cap[major=11,minor=0] |
+| matrix-generated-cap | matrix-generated-cap[major=12,minor=0] |
+| matrix-generated-cap | matrix-generated-cap[major=13,minor=0] |
+| matrix-generated-cap | matrix-generated-cap[major=14,minor=0] |
+| matrix-generated-cap | matrix-generated-cap[major=15,minor=0] |
+| matrix-include | matrix-include[animal=0,fruit=0] |
+| matrix-include | matrix-include[animal=0,fruit=1] |
+| matrix-include | matrix-include[animal=1,fruit=0] |
+| matrix-include | matrix-include[include=2] |
+| matrix-include | matrix-include[include=3] |
+| matrix-include-only | matrix-include-only[include=0] |
+| matrix-include-only | matrix-include-only[include=1] |
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=0] |
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=1] |
+| matrix-object-axis | matrix-object-axis[tool=0] |
+| matrix-object-axis | matrix-object-axis[tool=1] |
 | matrix-over-cap | matrix-over-cap[*] |
+| matrix-post-cap | matrix-post-cap[*] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=0] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=1] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=2] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=3] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=4] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=5] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=6] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=7] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=8] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=9] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=10] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=11] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=12] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=13] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=14] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=15] |
 | matrix-root | matrix-root[os=0,version=0] |
 | matrix-root | matrix-root[os=0,version=1] |
 | matrix-root | matrix-root[os=1,version=0] |
 | matrix-root | matrix-root[os=1,version=1] |
 | matrix-step-continue-expression | matrix-step-continue-expression[experimental=0] |
 | matrix-step-continue-expression | matrix-step-continue-expression[experimental=1] |
+matrixCombinationValues
+| matrix-empty-include | matrix-empty-include[include=0] | os | ubuntu |
+| matrix-exclude | matrix-exclude[os=0,version=0] | os | ubuntu |
+| matrix-exclude | matrix-exclude[os=0,version=0] | version | 1 |
+| matrix-include | matrix-include[animal=0,fruit=0] | animal | cat |
+| matrix-include | matrix-include[animal=0,fruit=0] | color | pink |
+| matrix-include | matrix-include[animal=0,fruit=0] | fruit | apple |
+| matrix-include | matrix-include[animal=0,fruit=1] | animal | cat |
+| matrix-include | matrix-include[animal=0,fruit=1] | color | pink |
+| matrix-include | matrix-include[animal=0,fruit=1] | fruit | pear |
+| matrix-include | matrix-include[animal=1,fruit=0] | animal | dog |
+| matrix-include | matrix-include[animal=1,fruit=0] | color | green |
+| matrix-include | matrix-include[animal=1,fruit=0] | fruit | apple |
+| matrix-include | matrix-include[include=2] | fruit | banana |
+| matrix-include | matrix-include[include=3] | animal | dog |
+| matrix-include | matrix-include[include=3] | color | blue |
+| matrix-include | matrix-include[include=3] | fruit | pear |
+| matrix-include-only | matrix-include-only[include=0] | experimental | false |
+| matrix-include-only | matrix-include-only[include=0] | os | ubuntu |
+| matrix-include-only | matrix-include-only[include=1] | experimental | true |
+| matrix-include-only | matrix-include-only[include=1] | os | windows |
+matrixCombinationModels
+| matrix-dynamic-include | wildcard | 0 |
+| matrix-dynamic-object-axis | wildcard | 0 |
+| matrix-empty | exact | 0 |
+| matrix-empty-include | exact | 1 |
+| matrix-exclude | exact | 1 |
+| matrix-exclude-all | exact | 0 |
+| matrix-generated-cap | exact | 16 |
+| matrix-include | exact | 5 |
+| matrix-include-only | exact | 2 |
+| matrix-object-axis | exact | 2 |
+| matrix-post-cap | wildcard | 0 |
+| matrix-pre-cap-exclude | exact | 16 |
 matrixFanInRequirements
 | matrix-continue-dependent | matrix-continue-true | cancelled |
 | matrix-continue-dependent | matrix-continue-true | success |
@@ -852,11 +978,19 @@ contributingStepOutcomes
 | step-continue-only | step-continue-only | success | failure |
 | step-continue-only | step-continue-only | success | success |
 matrixContinueOnErrorTransformations
+| job | matrix-include-only[include=0] | failure | failure |
+| job | matrix-include-only[include=1] | failure | success |
 | job | matrix-job-continue-expression[experimental=0] | failure | success |
 | job | matrix-job-continue-expression[experimental=1] | failure | failure |
 | step | matrix-step-continue-expression[experimental=0] | failure | success |
 | step | matrix-step-continue-expression[experimental=1] | failure | failure |
 matrixContinueOnErrorCompletionOutcomes
+| matrix-include-only | matrix-include-only[include=0] | cancelled | cancelled |
+| matrix-include-only | matrix-include-only[include=0] | failure | failure |
+| matrix-include-only | matrix-include-only[include=0] | success | success |
+| matrix-include-only | matrix-include-only[include=1] | cancelled | cancelled |
+| matrix-include-only | matrix-include-only[include=1] | success | failure |
+| matrix-include-only | matrix-include-only[include=1] | success | success |
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=0] | cancelled | cancelled |
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=0] | success | failure |
 | matrix-job-continue-expression | matrix-job-continue-expression[experimental=0] | success | success |
@@ -910,8 +1044,20 @@ workflowBoundaries
 | entry | continue-true |
 | entry | matrix-continue-true |
 | entry | matrix-dynamic |
+| entry | matrix-dynamic-include |
+| entry | matrix-dynamic-object-axis |
+| entry | matrix-empty |
+| entry | matrix-empty-include |
+| entry | matrix-exclude |
+| entry | matrix-exclude-all |
+| entry | matrix-generated-cap |
+| entry | matrix-include |
+| entry | matrix-include-only |
 | entry | matrix-job-continue-expression |
+| entry | matrix-object-axis |
 | entry | matrix-over-cap |
+| entry | matrix-post-cap |
+| entry | matrix-pre-cap-exclude |
 | entry | matrix-root |
 | entry | matrix-step-continue-expression |
 | entry | reusable-root |

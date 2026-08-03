@@ -1233,6 +1233,12 @@ class StrategyImpl extends AstNodeImpl, TStrategyNode {
     )
   }
 
+  /** Holds if this strategy's effective matrix combinations are modeled exactly. */
+  predicate hasExactMatrixCombinations() { hasBoundedMatrixCombinations(this) }
+
+  /** Gets an effective matrix combination for this strategy. */
+  MatrixCombinationImpl getAMatrixCombination() { result.getStrategy() = this }
+
   /** Gets an expression that can define the given matrix variable. */
   ExpressionImpl getMatrixVarExpr(string accessPath) {
     exists(MatrixAccessPathImpl p, ScalarValueImpl v |
@@ -1262,6 +1268,312 @@ class StrategyImpl extends AstNodeImpl, TStrategyNode {
   ExpressionImpl getAMatrixVarExpr() {
     n.lookup("matrix").getAChildNode*() = result.getParentNode().getNode()
   }
+}
+
+private int maxGeneratedMatrixCombinationCount() { result = 256 }
+
+private int maxExactMatrixCombinationCount() { result = 16 }
+
+bindingset[value]
+pragma[inline_late]
+private predicate isStaticMatrixScalar(YamlValue value) {
+  value instanceof YamlScalar and
+  not exists(ExpressionImpl expression | expression.getParentNode().getNode() = value)
+}
+
+private YamlValue getAMatrixValueChild(YamlValue parent) {
+  parent instanceof YamlMapping and
+  (
+    result = parent.(YamlMapping).getKey(_)
+    or
+    result = parent.(YamlMapping).getValue(_)
+  )
+  or
+  parent instanceof YamlSequence and result = parent.(YamlSequence).getElement(_)
+}
+
+bindingset[value]
+pragma[inline_late]
+private predicate isStaticMatrixValue(YamlValue value) {
+  forall(YamlScalar scalar | scalar = getAMatrixValueChild*(value) |
+    isStaticMatrixScalar(scalar)
+  ) and
+  forall(YamlMapping mapping, YamlValue key |
+    mapping = getAMatrixValueChild*(value) and mapping.maps(key, _)
+  |
+    key instanceof YamlScalar
+  )
+}
+
+bindingset[matrix, element]
+pragma[inline_late]
+private predicate isStaticMatrixDimensionElement(YamlMapping matrix, YamlValue element) {
+  isStaticMatrixScalar(element)
+  or
+  not exists(matrix.lookup(["include", "exclude"])) and isStaticMatrixValue(element)
+}
+
+bindingset[entry]
+pragma[inline_late]
+private predicate isStaticMatrixControlEntry(YamlValue entry) {
+  entry instanceof YamlMapping and
+  forall(YamlValue key, YamlValue value | entry.(YamlMapping).maps(key, value) |
+    key instanceof YamlScalar and isStaticMatrixScalar(value)
+  )
+}
+
+bindingset[strategy]
+pragma[inline_late]
+private predicate hasStaticMatrixDefinition(StrategyImpl strategy) {
+  exists(YamlMapping matrix |
+    matrix = strategy.getMatrix() and
+    not exists(YamlValue key, YamlValue value |
+      matrix.maps(key, value) and
+      not exists(YamlScalar scalarKey, YamlSequence sequence |
+        scalarKey = key and
+        sequence = value and
+        (
+          scalarKey.getValue().toLowerCase() = ["include", "exclude"] and
+          not exists(YamlValue entry |
+            entry = sequence.getElement(_) and not isStaticMatrixControlEntry(entry)
+          )
+          or
+          not scalarKey.getValue().toLowerCase() = ["include", "exclude"] and
+          not exists(YamlValue element |
+            element = sequence.getElement(_) and
+            not isStaticMatrixDimensionElement(matrix, element)
+          )
+        )
+      )
+    )
+  )
+}
+
+private string getMatrixDimensionAt(StrategyImpl strategy, int index) {
+  result =
+    rank[index + 1](string name | name = strategy.getAMatrixDimensionName() |
+      name order by name
+    )
+}
+
+private int getBoundedMatrixProductPrefix(StrategyImpl strategy, int length) {
+  length = 0 and result = 1
+  or
+  exists(int previous, string dimension |
+    length > 0 and
+    dimension = getMatrixDimensionAt(strategy, length - 1) and
+    previous = getBoundedMatrixProductPrefix(strategy, length - 1) and
+    result = previous * strategy.getMatrixDimensionValueCount(dimension) and
+    result <= maxGeneratedMatrixCombinationCount()
+  )
+}
+
+private int getBoundedBaseMatrixCombinationCount(StrategyImpl strategy) {
+  not exists(strategy.getAMatrixDimensionName()) and result = 0
+  or
+  exists(strategy.getAMatrixDimensionName()) and
+  result =
+    getBoundedMatrixProductPrefix(strategy, count(strategy.getAMatrixDimensionName()))
+}
+
+private string getBaseMatrixAssignmentPrefix(StrategyImpl strategy, int length) {
+  length = 0 and result = ""
+  or
+  exists(string prefix, string dimension, int valueIndex |
+    length > 0 and
+    dimension = getMatrixDimensionAt(strategy, length - 1) and
+    valueIndex in [0 .. strategy.getMatrixDimensionValueCount(dimension) - 1] and
+    prefix = getBaseMatrixAssignmentPrefix(strategy, length - 1) and
+    (
+      prefix = "" and result = dimension + "=" + valueIndex.toString()
+      or
+      prefix != "" and result = prefix + "," + dimension + "=" + valueIndex.toString()
+    )
+  )
+}
+
+private string getABaseMatrixAssignment(StrategyImpl strategy) {
+  getBoundedBaseMatrixCombinationCount(strategy) > 0 and
+  result =
+    getBaseMatrixAssignmentPrefix(strategy, count(strategy.getAMatrixDimensionName()))
+}
+
+bindingset[assignment, name]
+pragma[inline_late]
+private int getBaseMatrixDimensionIndex(string assignment, string name) {
+  exists(string component |
+    component = assignment.splitAt(",") and
+    component.splitAt("=", 0) = name and
+    result = component.splitAt("=", 1).toInt()
+  )
+}
+
+bindingset[strategy, assignment, name]
+pragma[inline_late]
+private string getBaseMatrixDimensionValue(
+  StrategyImpl strategy, string assignment, string name
+) {
+  name = strategy.getAMatrixDimensionName() and
+  result = strategy.getMatrixDimensionValue(name, getBaseMatrixDimensionIndex(assignment, name))
+}
+
+bindingset[strategy, kind]
+pragma[inline_late]
+private YamlMapping getMatrixControlEntry(StrategyImpl strategy, string kind, int index) {
+  kind = ["include", "exclude"] and
+  result = strategy.getMatrix().lookup(kind).(YamlSequence).getElement(index)
+}
+
+bindingset[entry]
+pragma[inline_late]
+private string getMatrixEntryKey(YamlMapping entry) {
+  exists(YamlScalar key | entry.maps(key, _) and result = key.getValue())
+}
+
+bindingset[entry, key]
+pragma[inline_late]
+private string getMatrixEntryValue(YamlMapping entry, string key) {
+  result = entry.lookup(key).(YamlScalar).getValue()
+}
+
+bindingset[strategy, assignment, entry]
+pragma[inline_late]
+private predicate matrixAssignmentMatchesExclude(
+  StrategyImpl strategy, string assignment, YamlMapping entry
+) {
+  forall(string key | key = getMatrixEntryKey(entry) |
+    key = strategy.getAMatrixDimensionName() and
+    getBaseMatrixDimensionValue(strategy, assignment, key) = getMatrixEntryValue(entry, key)
+  )
+}
+
+private string getAFilteredBaseMatrixAssignment(StrategyImpl strategy) {
+  result = getABaseMatrixAssignment(strategy) and
+  not exists(int index, YamlMapping entry |
+    entry = getMatrixControlEntry(strategy, "exclude", index) and
+    matrixAssignmentMatchesExclude(strategy, result, entry)
+  )
+}
+
+bindingset[strategy, assignment, entry]
+pragma[inline_late]
+private predicate matrixIncludeMatchesBase(
+  StrategyImpl strategy, string assignment, YamlMapping entry
+) {
+  forall(string key |
+    key = getMatrixEntryKey(entry) and key = strategy.getAMatrixDimensionName()
+  |
+    getBaseMatrixDimensionValue(strategy, assignment, key) = getMatrixEntryValue(entry, key)
+  )
+}
+
+private predicate isStandaloneMatrixInclude(StrategyImpl strategy, int includeIndex) {
+  exists(getMatrixControlEntry(strategy, "include", includeIndex)) and
+  not exists(string assignment, YamlMapping entry |
+    assignment = getAFilteredBaseMatrixAssignment(strategy) and
+    entry = getMatrixControlEntry(strategy, "include", includeIndex) and
+    matrixIncludeMatchesBase(strategy, assignment, entry)
+  )
+}
+
+private string getACandidateMatrixCombinationId(StrategyImpl strategy) {
+  result = "base:" + getAFilteredBaseMatrixAssignment(strategy)
+  or
+  exists(int includeIndex |
+    isStandaloneMatrixInclude(strategy, includeIndex) and
+    result = "include:" + includeIndex.toString()
+  )
+}
+
+bindingset[strategy]
+pragma[inline_late]
+private predicate hasBoundedMatrixCombinations(StrategyImpl strategy) {
+  hasStaticMatrixDefinition(strategy) and
+  exists(getBoundedBaseMatrixCombinationCount(strategy)) and
+  count(getACandidateMatrixCombinationId(strategy)) <= maxExactMatrixCombinationCount()
+}
+
+private newtype TMatrixCombination =
+  TBaseMatrixCombination(StrategyImpl strategy, string assignment) {
+    hasBoundedMatrixCombinations(strategy) and
+    assignment = getAFilteredBaseMatrixAssignment(strategy)
+  } or
+  TIncludedMatrixCombination(StrategyImpl strategy, int includeIndex) {
+    hasBoundedMatrixCombinations(strategy) and
+    isStandaloneMatrixInclude(strategy, includeIndex)
+  }
+
+/** One statically known effective combination of a matrix strategy. */
+class MatrixCombinationImpl extends TMatrixCombination {
+  StrategyImpl getStrategy() {
+    this = TBaseMatrixCombination(result, _) or
+    this = TIncludedMatrixCombination(result, _)
+  }
+
+  string getAssignment() {
+    this = TBaseMatrixCombination(_, result)
+    or
+    exists(int index |
+      this = TIncludedMatrixCombination(_, index) and result = "include=" + index.toString()
+    )
+  }
+
+  string getAKey() {
+    exists(string assignment |
+      this = TBaseMatrixCombination(_, assignment) and
+      (
+        result = this.getStrategy().getAMatrixDimensionName()
+        or
+        exists(int includeIndex, YamlMapping entry |
+          entry = getMatrixControlEntry(this.getStrategy(), "include", includeIndex) and
+          matrixIncludeMatchesBase(this.getStrategy(), assignment, entry) and
+          result = getMatrixEntryKey(entry)
+        )
+      )
+    )
+    or
+    exists(int includeIndex, YamlMapping entry |
+      this = TIncludedMatrixCombination(_, includeIndex) and
+      entry = getMatrixControlEntry(this.getStrategy(), "include", includeIndex) and
+      result = getMatrixEntryKey(entry)
+    )
+  }
+
+  string getValue(string key) {
+    exists(string assignment, int includeIndex, YamlMapping entry |
+      this = TBaseMatrixCombination(_, assignment) and
+      entry = getMatrixControlEntry(this.getStrategy(), "include", includeIndex) and
+      matrixIncludeMatchesBase(this.getStrategy(), assignment, entry) and
+      key = getMatrixEntryKey(entry) and
+      not exists(int laterIndex, YamlMapping laterEntry |
+        laterIndex > includeIndex and
+        laterEntry = getMatrixControlEntry(this.getStrategy(), "include", laterIndex) and
+        matrixIncludeMatchesBase(this.getStrategy(), assignment, laterEntry) and
+        key = getMatrixEntryKey(laterEntry)
+      ) and
+      result = getMatrixEntryValue(entry, key)
+    )
+    or
+    exists(string assignment |
+      this = TBaseMatrixCombination(_, assignment) and
+      key = this.getStrategy().getAMatrixDimensionName() and
+      not exists(int includeIndex, YamlMapping entry |
+        entry = getMatrixControlEntry(this.getStrategy(), "include", includeIndex) and
+        matrixIncludeMatchesBase(this.getStrategy(), assignment, entry) and
+        key = getMatrixEntryKey(entry)
+      ) and
+      result = getBaseMatrixDimensionValue(this.getStrategy(), assignment, key)
+    )
+    or
+    exists(int includeIndex, YamlMapping entry |
+      this = TIncludedMatrixCombination(_, includeIndex) and
+      entry = getMatrixControlEntry(this.getStrategy(), "include", includeIndex) and
+      key = getMatrixEntryKey(entry) and
+      result = getMatrixEntryValue(entry, key)
+    )
+  }
+
+  string toString() { result = this.getAssignment() }
 }
 
 class NeedsImpl extends AstNodeImpl, TNeedsNode {
