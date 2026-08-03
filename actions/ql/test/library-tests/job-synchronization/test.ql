@@ -81,6 +81,40 @@ query predicate matrixExecutions(string job, string instance) {
   )
 }
 
+query predicate matrixCombinationValues(
+  string job, string instance, string key, string value
+) {
+  exists(MatrixJobInstance matrixInstance |
+    matrixInstance.getJob().getId() =
+      [
+        "matrix-exclude", "matrix-include", "matrix-include-only", "matrix-empty-include"
+      ] and
+    job = matrixInstance.getJob().getId() and
+    instance = matrixInstance.toString() and
+    key = matrixInstance.getAMatrixKey() and
+    value = matrixInstance.getMatrixValue(key)
+  )
+}
+
+query predicate matrixCombinationModels(string job, string precision, int combinationCount) {
+  exists(Job matrixJob |
+    matrixJob.getId() =
+      [
+        "matrix-dynamic-include", "matrix-dynamic-object-axis", "matrix-empty",
+        "matrix-empty-include", "matrix-exclude", "matrix-exclude-all", "matrix-generated-cap",
+        "matrix-include", "matrix-include-only", "matrix-object-axis", "matrix-post-cap",
+        "matrix-pre-cap-exclude"
+      ] and
+    job = matrixJob.getId() and
+    combinationCount = count(matrixJob.getStrategy().getAMatrixCombination()) and
+    (
+      matrixJob.getStrategy().hasExactMatrixCombinations() and precision = "exact"
+      or
+      not matrixJob.getStrategy().hasExactMatrixCombinations() and precision = "wildcard"
+    )
+  )
+}
+
 query predicate matrixFanInRequirements(string job, string requiredJob, string status) {
   exists(NeedsJoinNode join, MatrixJobFanInNode fanIn |
     fanIn = join.getARequiredMatrixFanIn() and
@@ -174,7 +208,8 @@ query predicate matrixContinueOnErrorTransformations(
   string scope, string instance, string outcome, string conclusion
 ) {
   exists(MatrixJobInstance matrixInstance, Event event, FailureStatus failure |
-    matrixInstance.getJob().getId() = "matrix-job-continue-expression" and
+    matrixInstance.getJob().getId() =
+      ["matrix-job-continue-expression", "matrix-include-only"] and
     event.getName() = "push" and
     scope = "job" and
     instance = matrixInstance.toString() and
@@ -201,7 +236,10 @@ query predicate matrixContinueOnErrorCompletionOutcomes(
 ) {
   exists(MatrixJobCompletionNode completion, Event event |
     completion.getJob().getId() =
-      ["matrix-job-continue-expression", "matrix-step-continue-expression"] and
+      [
+        "matrix-job-continue-expression", "matrix-step-continue-expression",
+        "matrix-include-only"
+      ] and
     event.getName() = "push" and
     job = completion.getJob().getId() and
     instance = completion.getInstance().toString() and
