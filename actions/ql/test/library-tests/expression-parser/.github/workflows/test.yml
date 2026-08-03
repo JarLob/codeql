@@ -22,3 +22,16 @@ jobs:
         run: echo guarded
       - if: "fromJSON(inputs.matrix)[0].enabled != null"
         run: echo indexed
+
+  matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        payload.with.dot: ["${{ inputs.matrix }}"]
+        object:
+          - nested: ["${{ inputs.matrix }}"]
+    steps:
+      - run: |
+          echo "${{ format('{0}', matrix['payload.with.dot']) }}"
+          echo "${{ matrix.object.nested[0] }}"
+          echo "${{ toJSON(matrix) }}"

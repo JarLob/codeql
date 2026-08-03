@@ -1,0 +1,22 @@
+name: Matrix include flow
+
+on: issue_comment
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        payload: ["safe"]
+        include:
+          - payload: ${{ github.event.comment.body }}
+    steps:
+      - run: echo "${{ matrix.payload }}"
+  dynamic-include:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        payload: ["safe"]
+        include: ${{ fromJSON(github.event.comment.body) }}
+    steps:
+      - run: echo "${{ matrix.payload }}"

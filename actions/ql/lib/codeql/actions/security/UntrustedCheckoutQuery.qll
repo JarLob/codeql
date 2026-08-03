@@ -611,14 +611,6 @@ predicate highSeverityUntrustedCheckoutTOCTOU(PRHeadCheckoutStep checkout, Event
   )
 }
 
-private predicate hasOnlyStaticMatrixValues(Expression expr) {
-  expr instanceof MatrixExpression and
-  exists(expr.(MatrixExpression).getADeclaredValue()) and
-  not exists(string value |
-    value = expr.(MatrixExpression).getADeclaredValue() and value.matches("%${{%")
-  )
-}
-
 /** Checkout of a Pull Request HEAD ref using actions/checkout action */
 class ActionsMutableRefCheckout extends MutableRefCheckoutStep instanceof UsesStep {
   ActionsMutableRefCheckout() {
@@ -641,7 +633,7 @@ class ActionsMutableRefCheckout extends MutableRefCheckoutStep instanceof UsesSt
         or
         expr.(SimpleReferenceExpression).getFieldName() = value and
         not expr instanceof GitHubExpression and
-        not hasOnlyStaticMatrixValues(expr)
+        not expr instanceof MatrixExpression
         or
         expr.(NeedsExpression).getNeededJobId() = value
         or
@@ -676,7 +668,8 @@ class ActionsSHACheckout extends SHACheckoutStep instanceof UsesStep {
         expr.(StepsExpression).getStepId() = value
         or
         expr.(SimpleReferenceExpression).getFieldName() = value and
-        not expr instanceof GitHubExpression
+        not expr instanceof GitHubExpression and
+        not expr instanceof MatrixExpression
         or
         expr.(NeedsExpression).getNeededJobId() = value
         or

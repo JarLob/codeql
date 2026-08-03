@@ -41,3 +41,17 @@ query predicate rootLocationPrecision(string text, string precision) {
     )
   )
 }
+
+query predicate matrixExpressions(string kind, string expression, string target) {
+  exists(MatrixAccessExpression access |
+    kind = "access" and
+    expression = access.getExpression().getExpression() and
+    target = access.getTarget().toString()
+  )
+  or
+  exists(MatrixContextExpression reference |
+    kind = "context" and
+    expression = reference.getExpression().getExpression() and
+    target = reference.getATarget().toString()
+  )
+}

@@ -154,6 +154,18 @@ class LiteralExpression extends ExpressionNode instanceof LiteralExpressionImpl 
   string getValue() { result = super.getValue() }
 }
 
+/** A parsed access rooted at the GitHub Actions `matrix` context. */
+class MatrixAccessExpression extends AccessExpression instanceof MatrixAccessExpressionImpl {
+  /** Gets an expression that can define the accessed matrix value. */
+  AstNode getTarget() { result = super.getTarget() }
+}
+
+/** A parsed reference to the whole GitHub Actions `matrix` context. */
+class MatrixContextExpression extends IdentifierExpression instanceof MatrixContextExpressionImpl {
+  /** Gets an expression used to define the matrix. */
+  AstNode getATarget() { result = super.getATarget() }
+}
+
 /** An `env` in workflow, job or step. */
 class Env extends AstNode instanceof EnvImpl {
   /** Gets an environment variable value given its name. */
@@ -633,7 +645,4 @@ class InputsExpression extends SimpleReferenceExpression instanceof InputsExpres
 
 class EnvExpression extends SimpleReferenceExpression instanceof EnvExpressionImpl { }
 
-class MatrixExpression extends SimpleReferenceExpression instanceof MatrixExpressionImpl {
-  /** Gets a scalar value declared for this matrix expression. */
-  string getADeclaredValue() { result = super.getLiteralValues() }
-}
+class MatrixExpression extends SimpleReferenceExpression instanceof MatrixExpressionImpl { }

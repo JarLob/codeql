@@ -1,0 +1,14 @@
+on: issue_comment
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJSON(github.event.comment.body) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: example/example
+          ref: ${{ format('{0}', matrix['ref']) }}
+      # VULNERABLE: the matrix is controlled by the event payload.
+      - run: npm install

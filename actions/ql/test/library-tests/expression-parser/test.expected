@@ -86,3 +86,7 @@ rootLocationPrecision
 | github.actor | exact |
 | github.ref | containing scalar |
 | github.repository | containing scalar |
+matrixExpressions
+| access | format('{0}', matrix['payload.with.dot']) | inputs.matrix |
+| access | matrix.object.nested[0] | inputs.matrix |
+| context | toJSON(matrix) | inputs.matrix |
