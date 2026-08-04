@@ -4,7 +4,7 @@ on:
     types: [completed]
 
 jobs:
-  guarded:
+  guarded: # Expected: no alert; checkout v7 recognizes the direct workflow-run commit ID.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -12,7 +12,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_commit.id }}
       - run: npm install
 
-  opted-out:
+  opted-out: # Expected: critical alert; allow-unsafe-pr-checkout disables the runtime guard.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
@@ -21,10 +21,80 @@ jobs:
           allow-unsafe-pr-checkout: true
       - run: npm install
 
-  undetected-head-branch:
+  undetected-head-branch: # Expected: critical alert; the mutable head branch is not guarded.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
+      - run: npm install
+
+  guarded-env-alias: # Expected: no alert; the environment alias resolves to the head SHA.
+    runs-on: ubuntu-latest
+    env:
+      REF: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.REF }}
+      - run: npm install
+
+  guarded-chained-env-alias: # Expected: no alert; chained environment aliases resolve to the head SHA.
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_REF: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        env:
+          REF: ${{ env.SOURCE_REF }}
+        with:
+          ref: ${{ env.REF }}
+      - run: npm install
+
+  undetected-env-head-branch: # Expected: critical alert; the alias resolves to a mutable branch.
+    runs-on: ubuntu-latest
+    env:
+      REF: ${{ github.event.workflow_run.head_branch }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.REF }}
+      - run: npm install
+
+  undetected-shadowed-env: # Expected: critical alert; the step overrides the safe job alias.
+    runs-on: ubuntu-latest
+    env:
+      SHADOWED_REF: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v7
+        env:
+          SHADOWED_REF: ${{ github.event.workflow_run.head_branch }}
+        with:
+          ref: ${{ env.SHADOWED_REF }}
+      - run: npm install
+
+  resolve-refs: # Expected: no alert; this job only publishes values for dependent jobs.
+    runs-on: ubuntu-latest
+    outputs:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      BRANCH: ${{ github.event.workflow_run.head_branch }}
+    steps:
+      - run: echo resolved
+
+  guarded-needs-output: # Expected: no alert; the declared job output resolves to the head SHA.
+    needs: resolve-refs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-refs.outputs.SHA }}
+      - run: npm install
+
+  undetected-needs-head-branch: # Expected: critical alert; the job output resolves to a mutable branch.
+    needs: resolve-refs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve-refs.outputs.BRANCH }}
       - run: npm install
