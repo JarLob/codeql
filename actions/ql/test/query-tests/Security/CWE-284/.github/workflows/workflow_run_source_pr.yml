@@ -1,7 +1,0 @@
-name: Runner PR source # Expected: externally triggerable fork PR source event.
-on: pull_request
-jobs:
-  source:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo pr
