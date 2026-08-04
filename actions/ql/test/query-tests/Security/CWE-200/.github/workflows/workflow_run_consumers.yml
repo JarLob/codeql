@@ -1,0 +1,16 @@
+name: Registry issue consumer # Expected: secret exfiltration through the controlled image.
+on:
+  workflow_run:
+    workflows: [Registry issue source]
+    branches: [main]
+    types: [completed]
+jobs:
+  consume:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.event.workflow_run.display_title }}
+      credentials:
+        username: publisher
+        password: ${{ secrets.REGISTRY_TOKEN }}
+    steps:
+      - run: echo issue

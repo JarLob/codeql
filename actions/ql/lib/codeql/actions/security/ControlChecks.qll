@@ -245,6 +245,14 @@ abstract class AuthorizationAttemptCheck extends ControlCheck {
     or
     Conditions::parsedCheckAppliesToEvent(this.(If), this.getConditionKind(), event)
   }
+
+  /** Holds if this attempt applies to a concrete workflow-run source event. */
+  predicate appliesToWorkflowRunSource(Event event, Event sourceEvent) {
+    not this instanceof If
+    or
+    Conditions::parsedCheckAppliesToWorkflowRunSource(this.(If), this.getConditionKind(), event,
+      sourceEvent)
+  }
 }
 
 abstract class AssociationCheck extends AuthorizationAttemptCheck {

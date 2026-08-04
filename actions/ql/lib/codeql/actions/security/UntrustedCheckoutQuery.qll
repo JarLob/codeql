@@ -94,6 +94,61 @@ private predicate runtimeGuardRecognizesCheckout(UsesStep checkout, Event event)
   )
 }
 
+bindingset[expression, path]
+pragma[inline_late]
+private predicate isExactAccessExpression(Expression expression, string path) {
+  exists(AccessExpression access |
+    access.getExpression() = expression and
+    access.getStartOffset() = 0 and
+    access.getEndOffset() = expression.getExpression().length() and
+    access.getAccessPath().toLowerCase() = path
+  )
+}
+
+private predicate protectedWorkflowRunHeadExpression(Expression expression) {
+  expression.getATriggerEvent().getName() = "workflow_run" and
+  expression.getATriggerEvent().hasProperty("branches") and
+  isExactAccessExpression(expression,
+    [
+      "github.event.workflow_run.head_branch", "github.event.workflow_run.head_sha",
+      "github.event.workflow_run.head_commit.id"
+    ])
+}
+
+private predicate protectedWorkflowRunRepositoryExpression(Expression expression) {
+  isExactAccessExpression(expression,
+    ["github.repository", "github.event.workflow_run.head_repository.full_name"])
+}
+
+private predicate protectedWorkflowRunHeadCheckout(UsesStep checkout) {
+  checkout.getATriggerEvent().getName() = "workflow_run" and
+  checkout.getATriggerEvent().hasProperty("branches") and
+  exists(checkout.getArgumentExpr("ref")) and
+  not exists(Expression reference |
+    reference = checkout.getArgumentExpr("ref") and
+    not protectedWorkflowRunHeadExpression(reference)
+  ) and
+  (
+    not exists(checkout.getArgument("repository"))
+    or
+    exists(checkout.getArgumentExpr("repository")) and
+    not exists(Expression repository |
+      repository = checkout.getArgumentExpr("repository") and
+      not protectedWorkflowRunRepositoryExpression(repository)
+    )
+  )
+}
+
+bindingset[run, command]
+pragma[inline_late]
+private predicate protectedWorkflowRunHeadCommand(Run run, string command) {
+  run.getATriggerEvent().getName() = "workflow_run" and
+  run.getATriggerEvent().hasProperty("branches") and
+  normalizeExpr(command)
+      .regexpMatch(".*\\bgithub\\.event\\.workflow_run\\.(head_branch|head_sha|head_commit\\.id)\\b.*") and
+  not normalizeExpr(command).matches("%github.event.workflow_run.pull_requests%")
+}
+
 /**
  * Holds if `checkout` refuses to check out fork pull request code for `event` at runtime.
  */
@@ -137,6 +192,7 @@ private module ActionsMutableRefCheckoutConfig implements DataFlow::ConfigSig {
       // `ref` argument contains the PR id/number or head ref
       exists(Expression e |
         source.asExpr() = e and
+        not protectedWorkflowRunHeadExpression(e) and
         (
           containsHeadRef(e.getExpression()) or
           containsPullRequestNumber(e.getExpression())
@@ -193,6 +249,7 @@ private module ActionsSHACheckoutConfig implements DataFlow::ConfigSig {
       // `ref` argument contains the PR head/merge commit sha
       exists(Expression e |
         source.asExpr() = e and
+        not protectedWorkflowRunHeadExpression(e) and
         containsHeadSHA(e.getExpression())
       )
       or
@@ -265,6 +322,7 @@ predicate containsHeadSHA(string s) {
             "\\bgithub\\.event\\.pull_request\\.merge_commit_sha\\b",
             "\\bgithub\\.event\\.workflow_run\\.head_commit\\.id\\b",
             "\\bgithub\\.event\\.workflow_run\\.head_sha\\b",
+            "\\bgithub\\.event\\.workflow_run\\.pull_requests\\[\\d+\\]\\.head\\.sha\\b",
             "\\bgithub\\.event\\.check_suite\\.after\\b",
             "\\bgithub\\.event\\.check_suite\\.head_commit\\.id\\b",
             "\\bgithub\\.event\\.check_suite\\.head_sha\\b",
@@ -290,6 +348,7 @@ predicate containsHeadRef(string s) {
         .regexpFind([
             "\\bgithub\\.event\\.pull_request\\.head\\.ref\\b", "\\bgithub\\.head_ref\\b",
             "\\bgithub\\.event\\.workflow_run\\.head_branch\\b",
+            "\\bgithub\\.event\\.workflow_run\\.pull_requests\\[\\d+\\]\\.head\\.ref\\b",
             "\\bgithub\\.event\\.check_suite\\.pull_requests\\[\\d+\\]\\.head\\.ref\\b",
             "\\bgithub\\.event\\.check_run\\.check_suite\\.pull_requests\\[\\d+\\]\\.head\\.ref\\b",
             "\\bgithub\\.event\\.check_run\\.pull_requests\\[\\d+\\]\\.head\\.ref\\b",
@@ -312,6 +371,7 @@ class SimplePRHeadCheckoutStep extends Step {
     exists(Uses uses |
       this = uses and
       uses.getCallee() = "actions/checkout" and
+      not protectedWorkflowRunHeadCheckout(uses) and
       exists(uses.getArgument("ref")) and
       not uses.getArgument("ref").matches("%base%") and
       uses.getATriggerEvent().getName() = checkoutTriggers() and
@@ -468,7 +528,21 @@ predicate knownImproperCheckoutAuthorization(
 ) {
   // Only classify checks on events for which authorization controls model an external actor.
   event.getName() = any_event() and
-  check.appliesToEvent(event) and
+  (
+    event.getName() != "workflow_run" and check.appliesToEvent(event)
+    or
+    event.getName() = "workflow_run" and
+    (
+      event.hasUnresolvedWorkflowRunSource() and check.appliesToEvent(event)
+      or
+      exists(Event sourceEvent |
+        sourceEvent.isExternallyTriggerable() and
+        event.acceptsWorkflowRunSourceEvent(sourceEvent) and
+        check.appliesToWorkflowRunSource(event, sourceEvent) and
+        workflowRunSourceMayCoExecute(check, checkout, event, sourceEvent)
+      )
+    )
+  ) and
   check.dominates(checkout, event) and
   (
     not check.protects(checkout, event, "untrusted-checkout")
@@ -577,15 +651,16 @@ private predicate criticalSeverityCheckout(
 ) {
   // The checked-out code may lead to arbitrary code execution.
   checkoutMayLeadToCodeExecution(checkout, poisonable, event) and
-  // The checkout and execution both occur in a privileged context.
-  inPrivilegedContext(checkout, event) and
-  inPrivilegedContext(poisonable, event)
+  // The checkout and execution can occur for the same external source event in privileged jobs.
+  checkout.getEnclosingJob().isPrivilegedForEvent(event) and
+  poisonable.getEnclosingJob().isPrivilegedForEvent(event) and
+  workflowRunAwareMayCoExecute(checkout, poisonable, event)
 }
 
 private predicate highSeverityCheckout(PRHeadCheckoutStep checkout, Event event) {
   IntegratedCfg::mayExecuteForEvent(checkout, event) and
   // The checkout occurs in a privileged context.
-  inPrivilegedContext(checkout, event) and
+  workflowRunAwarePrivilegedContext(checkout, event) and
   // There is no evidence that the checked-out code is executed.
   not exists(PoisonableStep poisonable |
     checkoutMayLeadToCodeExecution(checkout, poisonable, event)
@@ -611,10 +686,13 @@ predicate highSeverityUntrustedCheckout(PRHeadCheckoutStep checkout, Event event
 /** Holds if `checkout` forms a medium ordinary untrusted-checkout finding. */
 predicate mediumSeverityUntrustedCheckout(PRHeadCheckoutStep checkout) {
   // The checkout occurs in a non-privileged context.
-  inNonPrivilegedContext(checkout) and
+  workflowRunAwareNonPrivilegedContext(checkout) and
   mayExecuteUnsafeCheckout(checkout) and
   (
-    exists(Event event | classifiedAsUntrustedCheckout(checkout, event))
+    exists(Event event |
+      classifiedAsUntrustedCheckout(checkout, event) and
+      workflowRunAwareExternallyTriggerableContext(checkout, event)
+    )
     or
     // Reusable workflows without a modeled caller may not expose a concrete trigger event. Keep
     // the medium query conservative in that case, as it was before classification was shared.
@@ -660,6 +738,7 @@ predicate highSeverityUntrustedCheckoutTOCTOU(PRHeadCheckoutStep checkout, Event
 class ActionsMutableRefCheckout extends MutableRefCheckoutStep instanceof UsesStep {
   ActionsMutableRefCheckout() {
     this.getCallee() = "actions/checkout" and
+    not protectedWorkflowRunHeadCheckout(this) and
     (
       exists(
         ActionsMutableRefCheckoutFlow::PathNode source, ActionsMutableRefCheckoutFlow::PathNode sink
@@ -700,6 +779,7 @@ class ActionsMutableRefCheckout extends MutableRefCheckoutStep instanceof UsesSt
 class ActionsSHACheckout extends SHACheckoutStep instanceof UsesStep {
   ActionsSHACheckout() {
     this.getCallee() = "actions/checkout" and
+    not protectedWorkflowRunHeadCheckout(this) and
     (
       exists(ActionsSHACheckoutFlow::PathNode source, ActionsSHACheckoutFlow::PathNode sink |
         ActionsSHACheckoutFlow::flowPath(source, sink) and
@@ -738,7 +818,8 @@ class GitMutableRefCheckout extends MutableRefCheckoutStep instanceof Run {
     exists(string cmd | this.getScript().getACommand() = cmd |
       cmd.regexpMatch("git\\s+(fetch|pull).*") and
       (
-        (containsHeadRef(cmd) or containsPullRequestNumber(cmd))
+        (containsHeadRef(cmd) or containsPullRequestNumber(cmd)) and
+        not protectedWorkflowRunHeadCommand(this, cmd)
         or
         exists(string varname, string expr |
           expr = this.getInScopeEnvVarExpr(varname).getExpression() and
@@ -746,6 +827,7 @@ class GitMutableRefCheckout extends MutableRefCheckoutStep instanceof Run {
             containsHeadRef(expr) or
             containsPullRequestNumber(expr)
           ) and
+          not protectedWorkflowRunHeadExpression(this.getInScopeEnvVarExpr(varname)) and
           exists(cmd.regexpFind(varname, _, _))
         )
       )
@@ -761,11 +843,12 @@ class GitSHACheckout extends SHACheckoutStep instanceof Run {
     exists(string cmd | this.getScript().getACommand() = cmd |
       cmd.regexpMatch("git\\s+(fetch|pull).*") and
       (
-        containsHeadSHA(cmd)
+        containsHeadSHA(cmd) and not protectedWorkflowRunHeadCommand(this, cmd)
         or
         exists(string varname, string expr |
           expr = this.getInScopeEnvVarExpr(varname).getExpression() and
           containsHeadSHA(expr) and
+          not protectedWorkflowRunHeadExpression(this.getInScopeEnvVarExpr(varname)) and
           exists(cmd.regexpFind(varname, _, _))
         )
       )
@@ -781,13 +864,15 @@ class GhMutableRefCheckout extends MutableRefCheckoutStep instanceof Run {
     exists(string cmd | this.getScript().getACommand() = cmd |
       cmd.regexpMatch(".*(gh|hub)\\s+pr\\s+checkout.*") and
       (
-        (containsHeadRef(cmd) or containsPullRequestNumber(cmd))
+        (containsHeadRef(cmd) or containsPullRequestNumber(cmd)) and
+        not protectedWorkflowRunHeadCommand(this, cmd)
         or
         exists(string varname |
           (
             containsHeadRef(this.getInScopeEnvVarExpr(varname).getExpression()) or
             containsPullRequestNumber(this.getInScopeEnvVarExpr(varname).getExpression())
           ) and
+          not protectedWorkflowRunHeadExpression(this.getInScopeEnvVarExpr(varname)) and
           exists(cmd.regexpFind(varname, _, _))
         )
       )
@@ -803,10 +888,11 @@ class GhSHACheckout extends SHACheckoutStep instanceof Run {
     exists(string cmd | this.getScript().getACommand() = cmd |
       cmd.regexpMatch("gh\\s+pr\\s+checkout.*") and
       (
-        containsHeadSHA(cmd)
+        containsHeadSHA(cmd) and not protectedWorkflowRunHeadCommand(this, cmd)
         or
         exists(string varname |
           containsHeadSHA(this.getInScopeEnvVarExpr(varname).getExpression()) and
+          not protectedWorkflowRunHeadExpression(this.getInScopeEnvVarExpr(varname)) and
           exists(cmd.regexpFind(varname, _, _))
         )
       )

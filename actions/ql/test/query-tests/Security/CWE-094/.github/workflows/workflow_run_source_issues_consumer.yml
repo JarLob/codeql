@@ -1,0 +1,15 @@
+name: Workflow-run issue consumer
+on:
+  workflow_run:
+    workflows: [Workflow-run issue source]
+    branches: [main]
+    types: [completed]
+permissions:
+  contents: write
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ${{ github.event.workflow_run.display_title }} # Expected: code injection alert.
+      - run: echo ${{ github.event.workflow_run['head_branch'] }} # Expected: no alert; protected head value.
+      - run: echo '${{ toJSON(github.event.workflow_run.head_commit.author.name) }}' # Expected: no alert; protected JSON value.

@@ -1,0 +1,11 @@
+name: Runner push consumer # Expected: no alert; the source is a trusted push.
+on:
+  workflow_run:
+    workflows: [Runner push source]
+    branches: [main]
+    types: [completed]
+jobs:
+  push:
+    runs-on: self-hosted
+    steps:
+      - run: echo push

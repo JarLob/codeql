@@ -1,0 +1,10 @@
+name: Workflow-run mixed source
+on:
+  issues:
+  push:
+    branches: [main]
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

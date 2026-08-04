@@ -1,0 +1,9 @@
+name: Registry push source # Expected: trusted source event.
+on:
+  push:
+    branches: [main]
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

@@ -59,7 +59,7 @@ from OutputClobberingFlow::PathNode source, OutputClobberingFlow::PathNode sink,
 where
   OutputClobberingFlow::flowPath(source, sink) and
   source.getNode().(RemoteFlowSource).getEventName() = event.getName() and
-  inPrivilegedContext(sink.getNode().asExpr(), event) and
+  workflowRunAwarePrivilegedContext(sink.getNode().asExpr(), event) and
   sinkMayExecuteForEvent(sink.getNode(), event) and
   // exclude paths to file read sinks from non-artifact sources
   (

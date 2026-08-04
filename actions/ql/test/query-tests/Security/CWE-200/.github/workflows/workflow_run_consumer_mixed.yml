@@ -1,0 +1,17 @@
+name: Registry mixed consumer # Expected: no alert; the condition excludes the external issues source.
+on:
+  workflow_run:
+    workflows: [Registry mixed source]
+    branches: [main]
+    types: [completed]
+jobs:
+  consume:
+    if: github.event.workflow_run.event != 'issues'
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.event.workflow_run.display_title }}
+      credentials:
+        username: publisher
+        password: ${{ secrets.REGISTRY_TOKEN }}
+    steps:
+      - run: echo mixed

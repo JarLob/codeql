@@ -1,0 +1,10 @@
+name: Registry mixed source # Expected: has external issues and trusted push source events.
+on:
+  issues:
+  push:
+    branches: [main]
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

@@ -1,5 +1,6 @@
 import actions
 private import codeql.actions.ExpressionControlFlow as ExpressionCfg
+private import codeql.actions.ExpressionEvaluation as Evaluation
 
 string any_category() {
   result =
@@ -442,6 +443,18 @@ predicate parsedCheckAppliesToEvent(If condition, string kind, Event event) {
     expressionTrueCanReachConditionTrue(atom) and
     evaluation.getExpressionNode() = atom and
     evaluation = ExpressionCfg::getEntryNode(condition.getConditionExpr()).getAReachableNode(event)
+  )
+}
+
+/** Holds if a recognized `kind` atom can be evaluated for this workflow-run source event. */
+predicate parsedCheckAppliesToWorkflowRunSource(
+  If condition, string kind, Event event, Event sourceEvent
+) {
+  exists(ExpressionNode atom |
+    atom.getExpression() = condition.getConditionExpr() and
+    isParsedCheckAtom(atom, kind) and
+    expressionTrueCanReachConditionTrue(atom) and
+    Evaluation::mayEvaluateConditionNode(condition, atom, event, sourceEvent)
   )
 }
 

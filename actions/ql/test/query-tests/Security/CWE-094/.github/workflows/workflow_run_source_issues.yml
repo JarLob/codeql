@@ -1,0 +1,7 @@
+name: Workflow-run issue source
+on: issues
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

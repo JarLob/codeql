@@ -1,0 +1,16 @@
+name: Workflow-run issue container consumer
+on:
+  workflow_run:
+    workflows: [Workflow-run issue source]
+    branches: [main]
+    types: [completed]
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.event.workflow_run.display_title }}
+      credentials:
+        username: publisher
+        password: ${{ secrets.REGISTRY_TOKEN }}
+    steps:
+      - run: echo container

@@ -1,0 +1,7 @@
+name: Issues source
+on: issues
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

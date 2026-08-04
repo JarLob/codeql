@@ -1,0 +1,11 @@
+name: Runner PR branches consumer # Expected: no alert; positive branches block fork PR runs.
+on:
+  workflow_run:
+    workflows: [Runner PR source]
+    branches: ['**']
+    types: [completed]
+jobs:
+  pr-branches:
+    runs-on: self-hosted
+    steps:
+      - run: echo pr
