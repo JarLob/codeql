@@ -1,8 +1,8 @@
-name: Self-hosted runner (AMD mi250 CI caller)
+name: Fork PR ignored branches # Expected: code injection alert; negative filters allow fork PR runs.
 
 on:
   workflow_run:
-    workflows: ["Test"]
+    workflows: ["Pull-Request Checks"]
     branches-ignore: ["foo"]
     types: [completed]
 

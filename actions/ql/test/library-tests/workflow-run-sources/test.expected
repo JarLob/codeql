@@ -59,8 +59,14 @@ localSources
 | Multiple-source downstream | Multi source alpha | issues |
 | Multiple-source downstream | Multi source beta | schedule |
 | PR branches downstream | PR source | pull_request |
+| PR branches downstream | PR source | pull_request_review |
+| PR branches downstream | PR source | pull_request_review_comment |
 | PR branches-ignore downstream | PR source | pull_request |
+| PR branches-ignore downstream | PR source | pull_request_review |
+| PR branches-ignore downstream | PR source | pull_request_review_comment |
 | PR unfiltered downstream | PR source | pull_request |
+| PR unfiltered downstream | PR source | pull_request_review |
+| PR unfiltered downstream | PR source | pull_request_review_comment |
 | Push downstream | Push source | push |
 | Recursive downstream | PR unfiltered downstream | workflow_run |
 | Workflow glob downstream | Glob source | issues |
@@ -74,11 +80,21 @@ externallyTriggerable
 | Issues downstream |
 | Mixed downstream |
 | Multiple-source downstream |
+| PR branches downstream |
 | PR branches-ignore downstream |
 | PR unfiltered downstream |
 | Recursive downstream |
 | Workflow glob downstream |
 | Workflow ordered reinclude downstream |
+externallyAcceptedPrSources
+| PR branches downstream | pull_request_review |
+| PR branches downstream | pull_request_review_comment |
+| PR branches-ignore downstream | pull_request |
+| PR branches-ignore downstream | pull_request_review |
+| PR branches-ignore downstream | pull_request_review_comment |
+| PR unfiltered downstream | pull_request |
+| PR unfiltered downstream | pull_request_review |
+| PR unfiltered downstream | pull_request_review_comment |
 unresolvedSource
 | Invalid workflow glob downstream |
 sourceConditionFeasible
@@ -95,6 +111,7 @@ externalSourceExecution
 | Mixed downstream | issues-only |
 | Mixed downstream | not-pr |
 | Multiple-source downstream | test |
+| PR branches downstream | test |
 | PR branches-ignore downstream | test |
 | PR unfiltered downstream | test |
 | Recursive downstream | test |
