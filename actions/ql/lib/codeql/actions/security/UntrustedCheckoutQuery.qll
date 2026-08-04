@@ -565,7 +565,9 @@ private predicate isClassifiableCheckout(PRHeadCheckoutStep checkout, Event even
 /** Holds if `checkout` is classified as an improper-access-control case for `event`. */
 predicate classifiedAsImproperAccessControl(PRHeadCheckoutStep checkout, Event event) {
   isClassifiableCheckout(checkout, event) and
-  exists(AuthorizationAttemptCheck check | knownImproperCheckoutAuthorization(checkout, event, check))
+  exists(AuthorizationAttemptCheck check |
+    knownImproperCheckoutAuthorization(checkout, event, check)
+  )
 }
 
 /** Holds if `checkout` is authorized but insufficiently bound to the approved revision. */
