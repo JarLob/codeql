@@ -1,7 +1,0 @@
-name: Runner issue source # Expected: externally triggerable source event.
-on: issues
-jobs:
-  source:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo issue
