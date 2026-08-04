@@ -363,6 +363,11 @@ class Event extends AstNode instanceof EventImpl {
     super.acceptsWorkflowRunSourceEvent(sourceEvent)
   }
 
+  /** Holds if an external actor can trigger an accepted run for `sourceEvent`. */
+  predicate acceptsExternalWorkflowRunSourceEvent(Event sourceEvent) {
+    super.acceptsExternalWorkflowRunSourceEvent(sourceEvent)
+  }
+
   predicate isExternallyTriggerable() { super.isExternallyTriggerable() }
 
   predicate isPrivileged() { super.isPrivileged() }

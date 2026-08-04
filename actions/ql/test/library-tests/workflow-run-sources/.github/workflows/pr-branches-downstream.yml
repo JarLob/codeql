@@ -1,4 +1,4 @@
-name: PR branches downstream # Expected: positive branches filter blocks fork PR runs.
+name: PR branches downstream # Expected: reviews remain external; direct fork PR runs are blocked.
 on:
   workflow_run:
     workflows: [PR source]

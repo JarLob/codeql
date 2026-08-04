@@ -1,6 +1,7 @@
-name: Comment source
+name: Comment source # Expected: comment and review runs exercise source-specific controls.
 on:
   issue_comment:
+  pull_request_review:
   push:
     branches: [main]
 jobs:

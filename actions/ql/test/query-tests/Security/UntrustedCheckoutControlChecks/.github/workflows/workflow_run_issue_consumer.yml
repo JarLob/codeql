@@ -18,11 +18,11 @@ jobs:
           ref: ${{ github.event.workflow_run.pull_requests[0].head.ref }}
       - run: npm test
 
-  event-specific-label:
+  event-specific-label: # Expected: critical alert; the push label arm cannot authorize review runs.
     if: >-
       (github.event.workflow_run.event == 'push' &&
        github.event.label.name == 'approved') ||
-      github.event.workflow_run.event == 'issue_comment'
+      github.event.workflow_run.event == 'pull_request_review'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
