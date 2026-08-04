@@ -1,0 +1,9 @@
+name: Multi source beta # Expected: one of two workflows selected by the same glob.
+on:
+  schedule:
+    - cron: '0 0 * * *'
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

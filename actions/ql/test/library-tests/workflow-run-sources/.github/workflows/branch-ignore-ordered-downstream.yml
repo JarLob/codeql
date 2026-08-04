@@ -1,0 +1,11 @@
+name: Branch ignore ordered downstream # Expected: later negative pattern removes main from the ignore set.
+on:
+  workflow_run:
+    workflows: [Issues source]
+    branches-ignore: ['*', '!main']
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

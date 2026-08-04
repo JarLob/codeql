@@ -1,0 +1,10 @@
+name: Workflow glob downstream # Expected: case-insensitive glob resolves Glob source.
+on:
+  workflow_run:
+    workflows: ['gLoB *']
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

@@ -24,12 +24,12 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
 
-  event-specific-label: # Expected: untrusted checkout; the label arm is unreachable for workflow_run.
+  event-specific-label: # Expected: untrusted checkout; the push label arm cannot authorize issues runs.
     if: >-
-      (github.event_name == 'pull_request' &&
+      (github.event.workflow_run.event == 'push' &&
        github.event.label.name == 'build::review') ||
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.event != 'pull_request')
+      (github.event.workflow_run.event ==
+       'issues')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

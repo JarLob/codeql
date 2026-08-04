@@ -1,0 +1,8 @@
+name: Multi source alpha # Expected: one of two workflows selected by the same glob.
+on:
+  issues:
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

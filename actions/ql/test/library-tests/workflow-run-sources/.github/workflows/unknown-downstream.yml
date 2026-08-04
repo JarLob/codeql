@@ -1,4 +1,4 @@
-name: Unknown downstream # Expected: unresolved source remains conservatively external.
+name: Unknown downstream # Expected: valid filter with no local match cannot trigger.
 on:
   workflow_run:
     workflows: [Missing source]

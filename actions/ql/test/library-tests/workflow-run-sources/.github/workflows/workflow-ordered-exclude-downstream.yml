@@ -1,0 +1,10 @@
+name: Workflow ordered exclude downstream # Expected: later negative pattern excludes Glob source.
+on:
+  workflow_run:
+    workflows: ['Glob *', '!Glob source']
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream
