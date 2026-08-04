@@ -1,0 +1,11 @@
+name: PR branches-ignore downstream # Expected: externally triggerable by a fork PR run.
+on:
+  workflow_run:
+    workflows: [PR source]
+    branches-ignore: [release]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

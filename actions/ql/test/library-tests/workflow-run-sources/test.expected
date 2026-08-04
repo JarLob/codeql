@@ -1,0 +1,28 @@
+localSources
+| Issues downstream | Issues source | issues |
+| Mixed downstream | Mixed source | issues |
+| Mixed downstream | Mixed source | push |
+| PR branches downstream | PR source | pull_request |
+| PR branches-ignore downstream | PR source | pull_request |
+| PR unfiltered downstream | PR source | pull_request |
+| Push downstream | Push source | push |
+| Recursive downstream | PR unfiltered downstream | workflow_run |
+externallyTriggerable
+| Issues downstream |
+| Mixed downstream |
+| PR branches-ignore downstream |
+| PR unfiltered downstream |
+| Recursive downstream |
+| Unknown downstream |
+sourceConditionFeasible
+| Mixed downstream | issues-only | issues |
+| Mixed downstream | not-pr | issues |
+| Mixed downstream | not-pr | push |
+externalSourceExecution
+| Issues downstream | test |
+| Mixed downstream | issues-only |
+| Mixed downstream | not-pr |
+| PR branches-ignore downstream | test |
+| PR unfiltered downstream | test |
+| Recursive downstream | test |
+| Unknown downstream | test |

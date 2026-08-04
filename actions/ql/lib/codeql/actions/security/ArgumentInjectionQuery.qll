@@ -77,7 +77,7 @@ predicate sinkMayExecuteForEvent(DataFlow::Node sink, Event event) {
  * This is used to highlight the event in the query results when an alert is raised.
  */
 Event getRelevantEventInPrivilegedContext(DataFlow::Node node) {
-  inPrivilegedContext(node.asExpr(), result) and
+  workflowRunAwarePrivilegedContext(node.asExpr(), result) and
   not exists(ControlCheck check | check.protects(node.asExpr(), result, "argument-injection"))
 }
 
@@ -90,12 +90,14 @@ predicate sinkMayExecuteOnlyInNonPrivilegedContext(DataFlow::Node sink) {
       not exists(job.getATriggerEvent())
       or
       exists(Event event |
-        job.getATriggerEvent() = event and sinkMayExecuteForEvent(sink, event)
+        job.getATriggerEvent() = event and
+        sinkMayExecuteForEvent(sink, event) and
+        workflowRunAwareExternallyTriggerableContext(sink.asExpr(), event)
       ) and
       not exists(Event event |
         job.getATriggerEvent() = event and
         sinkMayExecuteForEvent(sink, event) and
-        job.isPrivilegedExternallyTriggerable(event)
+        workflowRunAwarePrivilegedContext(sink.asExpr(), event)
       )
     )
   )

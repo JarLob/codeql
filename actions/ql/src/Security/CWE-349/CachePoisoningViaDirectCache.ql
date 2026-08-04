@@ -40,8 +40,8 @@ where
   ) and
   not runtimeGuardPreventsCheckout(source, event) and
   job.getATriggerEvent() = event and
-  // job can be triggered by an external user
-  event.isExternallyTriggerable() and
+  // source and cache write can execute for the same externally controlled source event
+  workflowRunAwareMayCoExecute(source, step, event) and
   hasDefaultBranchCacheWriteAccess(job, event) and
   // the job writes to the cache
   // (No need to follow the checkout/download step since the cache is normally write after the job completes)

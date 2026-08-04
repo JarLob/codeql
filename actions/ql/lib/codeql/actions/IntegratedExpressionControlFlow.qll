@@ -396,6 +396,8 @@ predicate mayReachForEvent(AstNode source, AstNode target, Event event) {
 }
 
 /** Holds if `left` and `right` may both execute in one run for `event`. */
+bindingset[left, right, event]
+pragma[inline_late]
 predicate mayCoExecuteForEvent(AstNode left, AstNode right, Event event) {
   left = right and mayExecuteForEvent(left, event)
   or

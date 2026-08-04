@@ -1,0 +1,11 @@
+name: Runner issue consumer # Expected: self-hosted runner alert through the issues source.
+on:
+  workflow_run:
+    workflows: [Runner issue source]
+    branches: [main]
+    types: [completed]
+jobs:
+  issue:
+    runs-on: self-hosted
+    steps:
+      - run: echo issue

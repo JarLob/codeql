@@ -92,6 +92,65 @@ private predicate unparsedExpressionContainsEventContext(Expression expression, 
   )
 }
 
+bindingset[node]
+pragma[inline_late]
+private predicate isProtectedWorkflowRunHeadAccess(ExpressionNode node) {
+  exists(AccessExpression access, string path |
+    node = access and
+    path = access.getAccessPath().toLowerCase() and
+    (
+      path =
+        [
+          "github.event.workflow_run.head_branch", "github.event.workflow_run.head_sha",
+          "github.event.workflow_run.head_commit", "github.event.workflow_run.head_repository"
+        ]
+      or
+      path.matches("github.event.workflow_run.head_commit.%")
+      or
+      path.matches("github.event.workflow_run.head_repository.%")
+    )
+  )
+}
+
+bindingset[node]
+pragma[inline_late]
+private predicate spansWholeExpression(ExpressionNode node) {
+  node.getStartOffset() = 0 and
+  node.getEndOffset() = node.getExpression().getExpression().length()
+}
+
+bindingset[expression]
+pragma[inline_late]
+private predicate hasProtectedWorkflowRunHeadShape(Expression expression) {
+  exists(AccessExpression access |
+    access.getExpression() = expression and
+    spansWholeExpression(access) and
+    isProtectedWorkflowRunHeadAccess(access)
+  )
+  or
+  exists(FunctionCallExpression call |
+    call.getExpression() = expression and
+    spansWholeExpression(call) and
+    call.getCallee().getName().toLowerCase() = ["fromjson", "tojson"] and
+    isProtectedWorkflowRunHeadAccess(call.getArgument(0)) and
+    not exists(call.getArgument(1))
+  )
+}
+
+/**
+ * Holds if GitHub's positive `workflow_run.branches` filter guarantees that this value comes from
+ * the base repository rather than a fork. Other workflow-run fields, such as `display_title` and
+ * `pull_requests`, may still carry externally controlled data through base-repository events.
+ */
+private predicate isProtectedWorkflowRunHeadValue(Expression expression) {
+  exists(Event event |
+    expression.getATriggerEvent() = event and
+    event.getName() = "workflow_run" and
+    event.hasProperty("branches") and
+    hasProtectedWorkflowRunHeadShape(expression)
+  )
+}
+
 class GitHubEventCtxSource extends RemoteFlowSource {
   string flag;
   string context;
@@ -100,6 +159,7 @@ class GitHubEventCtxSource extends RemoteFlowSource {
   GitHubEventCtxSource() {
     exists(Expression e |
       this.asExpr() = e and
+      not isProtectedWorkflowRunHeadValue(e) and
       context = e.getExpression() and
       (
         event = e.getATriggerEvent().getName() and
@@ -271,6 +331,7 @@ class GitHubEventJsonSource extends RemoteFlowSource {
   GitHubEventJsonSource() {
     exists(Expression e |
       this.asExpr() = e and
+      not isProtectedWorkflowRunHeadValue(e) and
       (
         event = e.getEnclosingWorkflow().getATriggerEvent().getName() and
         (parsedJsonSourceForEvent(e, event) or unparsedJsonSourceForEvent(e, event))

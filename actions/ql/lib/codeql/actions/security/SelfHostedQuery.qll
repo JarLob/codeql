@@ -21,12 +21,14 @@ predicate is3rdPartyHostedRunner(string runner) {
  * It is a best-effort approach to identify self-hosted runners.
  */
 predicate staticallyIdentifiedSelfHostedRunner(Job job) {
-  exists(string label |
-    job.getATriggerEvent().getName() =
+  exists(string label, Event event |
+    job.getATriggerEvent() = event and
+    event.getName() =
       [
         "issue_comment", "pull_request", "pull_request_review", "pull_request_review_comment",
         "pull_request_target", "workflow_run"
       ] and
+    workflowRunAwareExternallyTriggerableContext(job, event) and
     label = job.getARunsOnLabel() and
     not isGithubHostedRunner(label) and
     not is3rdPartyHostedRunner(label)
@@ -38,8 +40,10 @@ predicate staticallyIdentifiedSelfHostedRunner(Job job) {
  * It is a best-effort approach to identify self-hosted runners.
  */
 predicate dynamicallyIdentifiedSelfHostedRunner(Job job) {
-  exists(string runner_info |
+  exists(string runner_info, Event event |
     repositoryDataModel("public", _) and
+    job.getATriggerEvent() = event and
+    workflowRunAwareExternallyTriggerableContext(job, event) and
     workflowDataModel(job.getEnclosingWorkflow().getLocation().getFile().getRelativePath(), _,
       job.getId(), _, _, runner_info) and
     runner_info.indexOf("self-hosted:true") > 0

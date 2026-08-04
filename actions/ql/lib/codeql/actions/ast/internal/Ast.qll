@@ -813,6 +813,20 @@ class WorkflowImpl extends AstNodeImpl, TWorkflowNode {
   /** Gets the name of the workflow. */
   string getName() { result = n.lookup("name").(YamlString).getValue() }
 
+  /** Gets the repository root containing this workflow. */
+  private string getRepositoryRoot() {
+    exists(string path |
+      path = this.getLocation().getFile().getRelativePath() and
+      path.indexOf(".github/workflows/") >= 0 and
+      result = path.prefix(path.indexOf(".github/workflows/"))
+    )
+  }
+
+  /** Holds if this workflow and `other` belong to the same repository. */
+  predicate isInSameRepositoryAs(WorkflowImpl other) {
+    this.getRepositoryRoot() = other.getRepositoryRoot()
+  }
+
   /** Gets the job within this workflow with the given job ID. */
   JobImpl getJob(string jobId) { result.getEnclosingWorkflow() = this and result.getId() = jobId }
 
@@ -1762,6 +1776,144 @@ class EventImpl extends AstNodeImpl, TEventNode {
   /** Holds if the event has a property with the given name */
   predicate hasProperty(string prop) { exists(this.getAPropertyValue(prop)) }
 
+  /** Gets a local workflow named by this `workflow_run` event. */
+  bindingset[workflowName]
+  pragma[inline_late]
+  private WorkflowImpl getUniqueLocalWorkflowRunSource(string workflowName) {
+    result =
+      unique(WorkflowImpl workflow |
+        workflow.isInSameRepositoryAs(this.getEnclosingWorkflow()) and
+        workflow.getName().toLowerCase() = workflowName.toLowerCase()
+      )
+  }
+
+  /** Gets a local workflow named by this `workflow_run` event. */
+  WorkflowImpl getALocalWorkflowRunSource() {
+    this.getName() = "workflow_run" and
+    result = this.getUniqueLocalWorkflowRunSource(this.getAPropertyValue("workflows"))
+  }
+
+  /** Gets a trigger event of a local workflow named by this `workflow_run` event. */
+  EventImpl getALocalWorkflowRunSourceEvent() {
+    this.getALocalWorkflowRunSource().getOn().getAnEvent() = result and
+    not result.getName() = "workflow_call"
+  }
+
+  /** Holds if at least one workflow named by this `workflow_run` event is not locally resolvable. */
+  predicate hasUnresolvedWorkflowRunSource() {
+    this.getName() = "workflow_run" and
+    (
+      not exists(this.getAPropertyValue("workflows"))
+      or
+      exists(string workflowName |
+        workflowName = this.getAPropertyValue("workflows") and
+        (
+          not exists(this.getUniqueLocalWorkflowRunSource(workflowName))
+          or
+          this.getUniqueLocalWorkflowRunSource(workflowName) = this.getEnclosingWorkflow()
+        )
+      )
+    )
+  }
+
+  /** Holds if `sourceEvent` runs with a pull request head repository. */
+  private predicate sourceEventMayUsePullRequestHeadRepository(EventImpl sourceEvent) {
+    sourceEvent.getName() =
+      ["pull_request", "pull_request_target", "pull_request_review", "pull_request_review_comment"]
+  }
+
+  /** Holds if `sourceEvent` is known to run on the repository's default branch. */
+  private predicate sourceEventRunsOnDefaultBranch(EventImpl sourceEvent) {
+    sourceEvent.getName() =
+      [
+        "branch_protection_rule", "check_run", "check_suite", "delete", "discussion",
+        "discussion_comment", "fork", "gollum", "issue_comment", "issues", "label", "milestone",
+        "page_build", "project", "project_card", "project_column", "public", "pull_request_comment",
+        "repository_dispatch", "schedule", "status", "watch", "workflow_run"
+      ]
+  }
+
+  /** Holds if `pattern` may match `branch` using the common Actions glob forms. */
+  bindingset[pattern, branch]
+  pragma[inline_late]
+  private predicate branchPatternMayMatch(string pattern, string branch) {
+    not pattern.indexOf("!") = 0 and
+    (
+      // Conservatively retain patterns using glob constructs outside the simple wildcard subset.
+      pattern.regexpMatch(".*[\\[\\]+(){}].*")
+      or
+      branch.matches(pattern.replaceAll("**", "%").replaceAll("*", "%").replaceAll("?", "_"))
+    )
+  }
+
+  /** Holds if the supported wildcard subset proves that `pattern` matches `branch`. */
+  bindingset[pattern, branch]
+  pragma[inline_late]
+  private predicate branchPatternDefinitelyMatches(string pattern, string branch) {
+    not pattern.indexOf("!") = 0 and
+    not pattern.regexpMatch(".*[\\[\\]+(){}].*") and
+    branch.matches(pattern.replaceAll("**", "%").replaceAll("*", "%").replaceAll("?", "_"))
+  }
+
+  /** Holds if this event's positive branch filter may include the repository default branch. */
+  private predicate branchesMayIncludeDefaultBranch() {
+    exists(string pattern, string defaultBranch |
+      pattern = this.getAPropertyValue("branches") and
+      repositoryDataModel(_, defaultBranch) and
+      this.branchPatternMayMatch(pattern, defaultBranch)
+    )
+    or
+    not exists(string defaultBranch | repositoryDataModel(_, defaultBranch)) and
+    exists(string pattern |
+      pattern = this.getAPropertyValue("branches") and not pattern.indexOf("!") = 0
+    )
+  }
+
+  /** Holds if this event's negative branch filter is known to exclude the default branch. */
+  private predicate branchesIgnoreDefaultBranch() {
+    exists(string pattern, string defaultBranch |
+      pattern = this.getAPropertyValue("branches-ignore") and
+      repositoryDataModel(_, defaultBranch) and
+      this.branchPatternDefinitelyMatches(pattern, defaultBranch)
+    )
+  }
+
+  /** Holds if `sourceEvent` can pass this `workflow_run` event's branch filters. */
+  private predicate sourceEventPassesWorkflowRunBranchFilters(EventImpl sourceEvent) {
+    not this.hasProperty("branches") and
+    (
+      not this.sourceEventRunsOnDefaultBranch(sourceEvent)
+      or
+      not this.branchesIgnoreDefaultBranch()
+    )
+    or
+    this.hasProperty("branches") and
+    // A positive branch-filter match is rejected when the source run's head repository can be
+    // a fork, even if the fork branch has the same name.
+    not this.sourceEventMayUsePullRequestHeadRepository(sourceEvent) and
+    (
+      this.sourceEventRunsOnDefaultBranch(sourceEvent) and this.branchesMayIncludeDefaultBranch()
+      or
+      not this.sourceEventRunsOnDefaultBranch(sourceEvent)
+    )
+  }
+
+  /** Holds if `sourceEvent` can pass this `workflow_run` event's trigger filters. */
+  predicate acceptsWorkflowRunSourceEvent(EventImpl sourceEvent) {
+    this.getName() = "workflow_run" and
+    this.getALocalWorkflowRunSourceEvent() = sourceEvent and
+    this.sourceEventPassesWorkflowRunBranchFilters(sourceEvent)
+  }
+
+  /** Holds if a locally resolved source event can externally trigger this `workflow_run` event. */
+  private predicate hasExternallyTriggerableWorkflowRunSource() {
+    exists(EventImpl sourceEvent |
+      sourceEvent = this.getALocalWorkflowRunSourceEvent() and
+      sourceEvent.isExternallyTriggerable() and
+      this.sourceEventPassesWorkflowRunBranchFilters(sourceEvent)
+    )
+  }
+
   /** Holds if the event can be triggered by an external actor. */
   predicate isExternallyTriggerable() {
     // the job is triggered by an event that can be triggered externally
@@ -1770,10 +1922,11 @@ class EventImpl extends AstNodeImpl, TEventNode {
     not this.getName() = "workflow_run"
     or
     this.getName() = "workflow_run" and
-    // workflow_run cannot be externally triggered if the triggering workflow runs in the context of the default branch
-    // An attacker can change the triggering workflow from any event to `pull_request` to trigger the workflow
-    // in that case, the triggering workflow will run in the context of the PR head branch
-    not exists(this.getAPropertyValue("branches"))
+    (
+      this.hasUnresolvedWorkflowRunSource()
+      or
+      this.hasExternallyTriggerableWorkflowRunSource()
+    )
     or
     // the event is `workflow_call` and there is a caller workflow that can be triggered externally
     this.getName() = "workflow_call" and
@@ -2116,6 +2269,12 @@ class JobImpl extends AstNodeImpl, TJobNode {
     this.getATriggerEvent() = event and
     // the job is triggerable by an external user
     event.isExternallyTriggerable() and
+    this.isPrivilegedForEvent(event)
+  }
+
+  /** Holds if this job is privileged when it runs for `event`. */
+  predicate isPrivilegedForEvent(EventImpl event) {
+    this.getATriggerEvent() = event and
     // no matter if `pull_request` is granted write permissions or access to secrets
     // when the job is triggered by a `pull_request` event from a fork, they will get revoked
     not event.getName() = "pull_request" and

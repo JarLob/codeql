@@ -88,7 +88,7 @@ predicate sinkMayExecuteForEvent(DataFlow::Node sink, Event event) {
  * Get the relevant event for a sink in EnvPathInjectionCritical.ql where the source type is "artifact".
  */
 Event getRelevantArtifactEventInPrivilegedContext(DataFlow::Node sink) {
-  inPrivilegedContext(sink.asExpr(), result) and
+  workflowRunAwarePrivilegedContext(sink.asExpr(), result) and
   not exists(ControlCheck check |
     check.protects(sink.asExpr(), result, ["untrusted-checkout", "artifact-poisoning"])
   ) and
@@ -99,7 +99,7 @@ Event getRelevantArtifactEventInPrivilegedContext(DataFlow::Node sink) {
  * Get the relevant event for a sink in EnvPathInjectionCritical.ql where the source type is not "artifact".
  */
 Event getRelevantNonArtifactEventInPrivilegedContext(DataFlow::Node sink) {
-  inPrivilegedContext(sink.asExpr(), result) and
+  workflowRunAwarePrivilegedContext(sink.asExpr(), result) and
   not exists(ControlCheck check | check.protects(sink.asExpr(), result, "code-injection"))
 }
 
@@ -112,12 +112,14 @@ predicate sinkMayExecuteOnlyInNonPrivilegedContext(DataFlow::Node sink) {
       not exists(job.getATriggerEvent())
       or
       exists(Event event |
-        job.getATriggerEvent() = event and sinkMayExecuteForEvent(sink, event)
+        job.getATriggerEvent() = event and
+        sinkMayExecuteForEvent(sink, event) and
+        workflowRunAwareExternallyTriggerableContext(sink.asExpr(), event)
       ) and
       not exists(Event event |
         job.getATriggerEvent() = event and
         sinkMayExecuteForEvent(sink, event) and
-        job.isPrivilegedExternallyTriggerable(event)
+        workflowRunAwarePrivilegedContext(sink.asExpr(), event)
       )
     )
   )

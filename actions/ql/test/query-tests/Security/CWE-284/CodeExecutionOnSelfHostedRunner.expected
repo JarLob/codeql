@@ -7,3 +7,6 @@
 | .github/workflows/test1.yml:79:5:85:2 | Job: test9 | Job runs on self-hosted runner |
 | .github/workflows/test1.yml:86:5:95:2 | Job: test10 | Job runs on self-hosted runner |
 | .github/workflows/test1.yml:96:5:102:15 | Job: test11 | Job runs on self-hosted runner |
+| .github/workflows/workflow_run_consumer_pr_branches_ignore.yml:9:5:11:21 | Job: pr-branches-ignore | Job runs on self-hosted runner |
+| .github/workflows/workflow_run_consumer_pr_unfiltered.yml:8:5:10:21 | Job: pr-unfiltered | Job runs on self-hosted runner |
+| .github/workflows/workflow_run_consumers.yml:9:5:11:24 | Job: issue | Job runs on self-hosted runner |

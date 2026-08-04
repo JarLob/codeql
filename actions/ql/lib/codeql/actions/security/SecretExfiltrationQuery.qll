@@ -50,7 +50,7 @@ private class ContainerRegistryCredentialExfiltrationSink extends DataFlow::Node
       job.getRegistryUsernameForContainerImage(image) = username and
       username.getValue().trim() != "" and
       job.getRegistryPasswordExprForContainerImage(image) = password and
-      job.isPrivilegedExternallyTriggerable(event) and
+      workflowRunAwarePrivilegedContext(image, event) and
       jobConditionMayPermitEvent(job, event) and
       image.getATriggerEvent() = event and
       not jobRequiresTrustedAssociation(job)

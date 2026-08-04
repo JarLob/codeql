@@ -1,0 +1,13 @@
+name: Workflow-run push consumer
+on:
+  workflow_run:
+    workflows: [Workflow-run push source]
+    branches: [main]
+    types: [completed]
+permissions:
+  contents: write
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ${{ github.event.workflow_run.display_title }}

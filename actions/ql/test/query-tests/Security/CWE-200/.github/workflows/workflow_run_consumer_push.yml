@@ -1,0 +1,16 @@
+name: Registry push consumer # Expected: no alert; the source is a trusted push.
+on:
+  workflow_run:
+    workflows: [Registry push source]
+    branches: [main]
+    types: [completed]
+jobs:
+  consume:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ github.event.workflow_run.display_title }}
+      credentials:
+        username: publisher
+        password: ${{ secrets.REGISTRY_TOKEN }}
+    steps:
+      - run: echo push

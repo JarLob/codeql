@@ -1,0 +1,17 @@
+name: Mixed downstream # Expected: externally triggerable through the issues source.
+on:
+  workflow_run:
+    workflows: [Mixed source]
+    branches: [main]
+    types: [completed]
+jobs:
+  issues-only: # Expected: feasible only for the issues source.
+    if: github.event.workflow_run.event == 'issues'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream
+  not-pr: # Expected: feasible for both the issues and push sources.
+    if: github.event.workflow_run.event != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream
