@@ -1,28 +1,102 @@
+globMatches
+|  |  |
+| (?:a) | (:a) |
+| **/release | newrelease |
+| **/release | path/release |
+| [A-z] | _ |
+| [a-c]z[B-U] | bzM |
+| \ud83c\udfac Setup | \ud83c\udfac Setup |
+| c\\+\\+.md | c++.md |
+| foo/* | foo/bar |
+| foo/** | foo/bar/baz |
+| releases\\/alpha | releases/alpha |
+| v[0-9]+.[0-9]+.[0-9]+-* | v1.2.3-beta |
+| z+ | z |
+| z+ | zz |
+| z\\* | z* |
+| za? | z |
+| za? | za |
+globDoesNotMatch
+| [a-c]z[B-U] | bzm |
+| foo/* | foo/bar/baz |
+| z\\* | zz |
+| za? | zaa |
+invalidGlob
+| *** |
+| ******** |
+| *? |
+| *[a-b][* |
+| ?? |
+| [0-9 |
+| [0-9]++ |
+| [9-1] |
+| [9-a] |
+| [-9 |
+| [[:word:]] |
+| [^^] |
+| [^a^] |
+| \\ |
+| a**+ |
+| a**? |
+| a+? |
+| a?? |
+| foo*+ |
+| foo++ |
+| foo[-9[* |
+| foo[[[[[[[]0-9] |
+negativeGlob
+| !foo | foo |
 localSources
+| Branch case-sensitive downstream | Issues source | issues |
+| Branch ignore ordered downstream | Issues source | issues |
+| Branch invalid downstream | Issues source | issues |
+| Branch ordered exclude downstream | Issues source | issues |
+| Branch ordered reinclude downstream | Issues source | issues |
+| Branch postfix downstream | Issues source | issues |
 | Issues downstream | Issues source | issues |
 | Mixed downstream | Mixed source | issues |
 | Mixed downstream | Mixed source | push |
+| Multiple-source downstream | Multi source alpha | issues |
+| Multiple-source downstream | Multi source beta | schedule |
 | PR branches downstream | PR source | pull_request |
 | PR branches-ignore downstream | PR source | pull_request |
 | PR unfiltered downstream | PR source | pull_request |
 | Push downstream | Push source | push |
 | Recursive downstream | PR unfiltered downstream | workflow_run |
+| Workflow glob downstream | Glob source | issues |
+| Workflow ordered reinclude downstream | Glob source | issues |
 externallyTriggerable
+| Branch ignore ordered downstream |
+| Branch invalid downstream |
+| Branch ordered reinclude downstream |
+| Branch postfix downstream |
+| Invalid workflow glob downstream |
 | Issues downstream |
 | Mixed downstream |
+| Multiple-source downstream |
 | PR branches-ignore downstream |
 | PR unfiltered downstream |
 | Recursive downstream |
-| Unknown downstream |
+| Workflow glob downstream |
+| Workflow ordered reinclude downstream |
+unresolvedSource
+| Invalid workflow glob downstream |
 sourceConditionFeasible
 | Mixed downstream | issues-only | issues |
 | Mixed downstream | not-pr | issues |
 | Mixed downstream | not-pr | push |
 externalSourceExecution
+| Branch ignore ordered downstream | test |
+| Branch invalid downstream | test |
+| Branch ordered reinclude downstream | test |
+| Branch postfix downstream | test |
+| Invalid workflow glob downstream | test |
 | Issues downstream | test |
 | Mixed downstream | issues-only |
 | Mixed downstream | not-pr |
+| Multiple-source downstream | test |
 | PR branches-ignore downstream | test |
 | PR unfiltered downstream | test |
 | Recursive downstream | test |
-| Unknown downstream | test |
+| Workflow glob downstream | test |
+| Workflow ordered reinclude downstream | test |

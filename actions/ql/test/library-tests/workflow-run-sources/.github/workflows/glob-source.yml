@@ -1,0 +1,8 @@
+name: Glob source # Expected: selected by case-insensitive workflow-name globs.
+on:
+  issues:
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

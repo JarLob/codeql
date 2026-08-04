@@ -1,0 +1,10 @@
+name: Build # Expected: PR and issue runs exercise source-specific workflow_run controls.
+on:
+  pull_request:
+  issues:
+  push:
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

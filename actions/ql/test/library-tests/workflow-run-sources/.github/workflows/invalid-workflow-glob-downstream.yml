@@ -1,0 +1,10 @@
+name: Invalid workflow glob downstream # Expected: invalid source glob remains unresolved and external.
+on:
+  workflow_run:
+    workflows: ['***']
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

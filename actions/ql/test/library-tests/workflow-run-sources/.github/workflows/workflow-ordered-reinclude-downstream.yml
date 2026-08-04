@@ -1,0 +1,10 @@
+name: Workflow ordered reinclude downstream # Expected: final pattern re-includes Glob source.
+on:
+  workflow_run:
+    workflows: ['Glob *', '!Glob source', 'glob SOURCE']
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

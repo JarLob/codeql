@@ -1,0 +1,11 @@
+name: Branch case-sensitive downstream # Expected: uppercase MAIN does not match default branch main.
+on:
+  workflow_run:
+    workflows: [Issues source]
+    branches: [MAIN]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

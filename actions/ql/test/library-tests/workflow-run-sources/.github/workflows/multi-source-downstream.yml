@@ -1,0 +1,10 @@
+name: Multiple-source downstream # Expected: case-insensitive glob resolves both source workflows.
+on:
+  workflow_run:
+    workflows: ['multi SOURCE *']
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

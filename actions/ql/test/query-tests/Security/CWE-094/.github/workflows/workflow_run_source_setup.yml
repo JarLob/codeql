@@ -1,0 +1,8 @@
+name: 🎬 Setup # Expected: external source for the preview deployment consumer.
+on:
+  pull_request:
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

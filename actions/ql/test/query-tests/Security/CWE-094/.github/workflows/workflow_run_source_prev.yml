@@ -1,0 +1,8 @@
+name: prev # Expected: external source for the simple workflow_run injection case.
+on:
+  pull_request:
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

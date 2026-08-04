@@ -1,0 +1,8 @@
+name: Preview Build # Expected: external source for Preview Deploy consumers.
+on:
+  pull_request:
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

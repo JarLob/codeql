@@ -1,0 +1,11 @@
+name: Branch ordered exclude downstream # Expected: later negative pattern excludes main.
+on:
+  workflow_run:
+    workflows: [Issues source]
+    branches: ['*', '!main']
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream
