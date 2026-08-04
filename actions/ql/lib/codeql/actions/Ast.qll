@@ -351,6 +351,20 @@ class Event extends AstNode instanceof EventImpl {
 
   predicate hasProperty(string prop) { super.hasProperty(prop) }
 
+  /** Gets a local workflow named by this `workflow_run` event. */
+  Workflow getALocalWorkflowRunSource() { result = super.getALocalWorkflowRunSource() }
+
+  /** Gets a trigger event of a local workflow named by this `workflow_run` event. */
+  Event getALocalWorkflowRunSourceEvent() { result = super.getALocalWorkflowRunSourceEvent() }
+
+  /** Holds if at least one named workflow-run source is not locally resolvable. */
+  predicate hasUnresolvedWorkflowRunSource() { super.hasUnresolvedWorkflowRunSource() }
+
+  /** Holds if `sourceEvent` can pass this `workflow_run` event's trigger filters. */
+  predicate acceptsWorkflowRunSourceEvent(Event sourceEvent) {
+    super.acceptsWorkflowRunSourceEvent(sourceEvent)
+  }
+
   predicate isExternallyTriggerable() { super.isExternallyTriggerable() }
 
   predicate isPrivileged() { super.isPrivileged() }
@@ -416,8 +430,22 @@ abstract class Job extends AstNode instanceof JobImpl {
     result = super.getRegistryPasswordExprForContainerImage(image)
   }
 
+  /**
+   * Holds if this job may have privileged credentials, without restricting the result to a
+   * specific trigger event or requiring that an external actor can trigger it.
+   */
   predicate isPrivileged() { super.isPrivileged() }
 
+  /**
+   * Holds if this job has privileged credentials when it runs for `event`. Unlike
+   * `isPrivileged()`, this accounts for event-specific permissions, runtime data, and credential
+   * restrictions, but does not require that an external actor can trigger `event`.
+   */
+  predicate isPrivilegedForEvent(Event event) { super.isPrivilegedForEvent(event) }
+
+  /**
+   * Holds if this job is privileged for `event` and an external actor can trigger that event.
+   */
   predicate isPrivilegedExternallyTriggerable(Event event) {
     super.isPrivilegedExternallyTriggerable(event)
   }

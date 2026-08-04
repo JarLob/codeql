@@ -1,0 +1,14 @@
+name: Workflow-run mixed consumer
+on:
+  workflow_run:
+    workflows: [Workflow-run mixed source]
+    branches: [main]
+    types: [completed]
+permissions:
+  contents: write
+jobs:
+  rejected-external-source:
+    if: github.event.workflow_run.event != 'issues'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ${{ github.event.workflow_run.display_title }}

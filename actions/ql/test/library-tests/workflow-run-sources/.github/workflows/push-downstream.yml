@@ -1,0 +1,11 @@
+name: Push downstream # Expected: resolves the push source but is not externally triggerable.
+on:
+  workflow_run:
+    workflows: [Push source]
+    branches: [main]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

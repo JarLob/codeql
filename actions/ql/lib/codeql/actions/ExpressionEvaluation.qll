@@ -843,6 +843,175 @@ private predicate mayEvaluateToBooleanWithStatus(
   )
 }
 
+private predicate accessesWorkflowRunSourceEvent(ExpressionNode node) {
+  node instanceof AccessExpression and
+  node.(AccessExpression).getAccessPath() = "github.event.workflow_run.event"
+}
+
+private predicate containsWorkflowRunSourceEventAccess(ExpressionNode node) {
+  accessesWorkflowRunSourceEvent(node.getAChild*())
+}
+
+bindingset[node, event, sourceEvent]
+pragma[inline_late]
+private predicate getWorkflowRunSourceStringValue(
+  ExpressionNode node, Event event, Event sourceEvent, string value
+) {
+  value = getStringLiteralValue(node)
+  or
+  node instanceof AccessExpression and
+  node.(AccessExpression).getAccessPath() = "github.event_name" and
+  value = event.getName()
+  or
+  node instanceof AccessExpression and
+  node.(AccessExpression).getAccessPath() = "github.event.action" and
+  value = unique(string activity | activity = event.getAnActivityType())
+  or
+  accessesWorkflowRunSourceEvent(node) and
+  event.getName() = "workflow_run" and
+  value = sourceEvent.getName()
+}
+
+private predicate evaluateWorkflowRunSourceFunctionCall(
+  FunctionCallExpression call, Event event, Event sourceEvent, boolean outcome
+) {
+  not containsWorkflowRunSourceEventAccess(call) and
+  evaluatesToBoolean(call, event, outcome)
+  or
+  exists(string left, string right |
+    getWorkflowRunSourceStringValue(call.getArgument(0), event, sourceEvent, left) and
+    getWorkflowRunSourceStringValue(call.getArgument(1), event, sourceEvent, right) and
+    (
+      stringFunctionHolds(call, left, right) and outcome = true
+      or
+      call.getCallee().getName().toLowerCase() = ["contains", "startswith", "endswith"] and
+      not stringFunctionHolds(call, left, right) and
+      outcome = false
+    )
+  )
+}
+
+bindingset[expression, event, sourceEvent]
+private predicate evaluateWorkflowRunSourceEquality(
+  BinaryExpression expression, Event event, Event sourceEvent, boolean outcome
+) {
+  exists(string left, string right |
+    getWorkflowRunSourceStringValue(expression.getLeftOperand(), event, sourceEvent, left) and
+    getWorkflowRunSourceStringValue(expression.getRightOperand(), event, sourceEvent, right) and
+    stringComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
+  )
+  or
+  exists(boolean left, boolean right |
+    evaluatesToBoolean(expression.getLeftOperand(), event, sourceEvent, left) and
+    evaluatesToBoolean(expression.getRightOperand(), event, sourceEvent, right) and
+    booleanComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
+  )
+}
+
+private predicate workflowRunSourceLogicalOperandEvaluatesTo(
+  BinaryExpression expression, int index, Event event, Event sourceEvent, boolean outcome
+) {
+  index = 0 and
+  evaluatesToBoolean(expression.getLeftOperand(), event, sourceEvent, outcome)
+  or
+  index = 1 and
+  evaluatesToBoolean(expression.getRightOperand(), event, sourceEvent, outcome)
+}
+
+private predicate evaluateWorkflowRunSourceLogical(
+  BinaryExpression expression, Event event, Event sourceEvent, boolean outcome
+) {
+  expression.getOperator() = "&&" and
+  outcome = false and
+  workflowRunSourceLogicalOperandEvaluatesTo(expression, _, event, sourceEvent, false)
+  or
+  expression.getOperator() = "&&" and
+  outcome = true and
+  workflowRunSourceLogicalOperandEvaluatesTo(expression, 0, event, sourceEvent, true) and
+  workflowRunSourceLogicalOperandEvaluatesTo(expression, 1, event, sourceEvent, true)
+  or
+  expression.getOperator() = "||" and
+  outcome = true and
+  workflowRunSourceLogicalOperandEvaluatesTo(expression, _, event, sourceEvent, true)
+  or
+  expression.getOperator() = "||" and
+  outcome = false and
+  workflowRunSourceLogicalOperandEvaluatesTo(expression, 0, event, sourceEvent, false) and
+  workflowRunSourceLogicalOperandEvaluatesTo(expression, 1, event, sourceEvent, false)
+}
+
+/** Holds if `node` is known to evaluate to `outcome` for this workflow-run source event. */
+predicate evaluatesToBoolean(ExpressionNode node, Event event, Event sourceEvent, boolean outcome) {
+  event.getName() = "workflow_run" and
+  event.getALocalWorkflowRunSourceEvent() = sourceEvent and
+  (
+    not containsWorkflowRunSourceEventAccess(node) and
+    evaluatesToBoolean(node, event, outcome)
+    or
+    node instanceof ExpressionRoot and
+    evaluatesToBoolean(node.getAChild(), event, sourceEvent, outcome)
+    or
+    node instanceof UnaryExpression and
+    node.(UnaryExpression).getOperator() = "!" and
+    exists(boolean operandOutcome |
+      evaluatesToBoolean(node.(UnaryExpression).getOperand(), event, sourceEvent, operandOutcome) and
+      (
+        operandOutcome = true and outcome = false
+        or
+        operandOutcome = false and outcome = true
+      )
+    )
+    or
+    node instanceof BinaryExpression and
+    node.(BinaryExpression).getOperator() = ["&&", "||"] and
+    evaluateWorkflowRunSourceLogical(node.(BinaryExpression), event, sourceEvent, outcome)
+    or
+    node instanceof BinaryExpression and
+    node.(BinaryExpression).getOperator() = ["==", "!="] and
+    evaluateWorkflowRunSourceEquality(node.(BinaryExpression), event, sourceEvent, outcome)
+    or
+    node instanceof FunctionCallExpression and
+    evaluateWorkflowRunSourceFunctionCall(node.(FunctionCallExpression), event, sourceEvent, outcome)
+  )
+}
+
+/** Holds if `node` may evaluate to `outcome` for this workflow-run source event. */
+bindingset[node, event, sourceEvent]
+pragma[inline_late]
+predicate mayEvaluateToBoolean(ExpressionNode node, Event event, Event sourceEvent, boolean outcome) {
+  evaluatesToBoolean(node, event, sourceEvent, outcome)
+  or
+  outcome in [false, true] and
+  not exists(boolean known | evaluatesToBoolean(node, event, sourceEvent, known))
+}
+
+/** Holds if `node` can be evaluated while `condition` runs for this source event. */
+bindingset[condition, node, event, sourceEvent]
+pragma[inline_late]
+predicate mayEvaluateConditionNode(If condition, ExpressionNode node, Event event, Event sourceEvent) {
+  condition.getConditionExpr() = node.getExpression() and
+  event.getName() = "workflow_run" and
+  event.getALocalWorkflowRunSourceEvent() = sourceEvent and
+  condition.getConditionExpr().getRoot() = node.getParent*() and
+  forall(BinaryExpression binary |
+    binary.getOperator() = ["&&", "||"] and binary.getRightOperand() = node.getParent*()
+  |
+    binary.getOperator() = "&&" and
+    mayEvaluateToBoolean(binary.getLeftOperand(), event, sourceEvent, true)
+    or
+    binary.getOperator() = "||" and
+    mayEvaluateToBoolean(binary.getLeftOperand(), event, sourceEvent, false)
+  )
+}
+
+/** Holds if `condition` may permit execution for this workflow-run source event. */
+predicate isConditionFeasible(If condition, Event event, Event sourceEvent) {
+  condition.getATriggerEvent() = event and
+  event.getName() = "workflow_run" and
+  event.getALocalWorkflowRunSourceEvent() = sourceEvent and
+  not evaluatesToBoolean(condition.getConditionExpr().getRoot(), event, sourceEvent, false)
+}
+
 /** Holds if the condition may permit execution for `event`. */
 predicate isConditionFeasible(If condition, Event event) {
   not conditionEvaluatesToBooleanWithStatus(condition, condition.getConditionExpr().getRoot(),

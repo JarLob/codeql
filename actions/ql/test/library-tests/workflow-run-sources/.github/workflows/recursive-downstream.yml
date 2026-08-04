@@ -1,0 +1,11 @@
+name: Recursive downstream # Expected: external through the recursively resolved PR source.
+on:
+  workflow_run:
+    workflows: [PR unfiltered downstream]
+    branches: [main]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

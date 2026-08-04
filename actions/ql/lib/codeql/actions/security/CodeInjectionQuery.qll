@@ -21,7 +21,7 @@ private predicate jobContainerHasSensitiveCapability(DataFlow::Node sink, Event 
         secret.getEnclosingJob() = job and secret.getFieldName() != "GITHUB_TOKEN"
       )
       or
-      job.isPrivilegedExternallyTriggerable(event) and
+      workflowRunAwarePrivilegedContext(sink.asExpr(), event) and
       (
         exists(SecretsExpression token |
           token.getEnclosingJob() = job and token.getFieldName() = "GITHUB_TOKEN"
@@ -45,6 +45,7 @@ private predicate sinkMayExecuteWithoutProtectionForAnyEvent(DataFlow::Node sink
   exists(Event event |
     sink.asExpr().getEnclosingJob().getATriggerEvent() = event and
     sinkMayExecuteForEvent(sink, event) and
+    workflowRunAwareExternallyTriggerableContext(sink.asExpr(), event) and
     not exists(ControlCheck check | check.protects(sink.asExpr(), event, "code-injection"))
   )
 }
@@ -53,7 +54,7 @@ private predicate sinkMayExecuteWithoutProtectionForAnyEvent(DataFlow::Node sink
  * Get the relevant event for the sink in CodeInjectionCritical.ql.
  */
 Event getRelevantCriticalEventForSink(DataFlow::Node sink) {
-  inPrivilegedContext(sink.asExpr(), result) and
+  workflowRunAwarePrivilegedContext(sink.asExpr(), result) and
   sinkMayExecuteForEvent(sink, result) and
   (not isJobContainerImageSink(sink) or jobContainerHasSensitiveCapability(sink, result)) and
   not exists(ControlCheck check | check.protects(sink.asExpr(), result, "code-injection")) and
@@ -69,7 +70,7 @@ Event getRelevantCachePoisoningEventForSink(DataFlow::Node sink) {
     job.getATriggerEvent() = result and
     // excluding privileged workflows since they can be exploited in easier circumstances
     // which is covered by `actions/code-injection/critical`
-    not job.isPrivilegedExternallyTriggerable(result) and
+    not workflowRunAwarePrivilegedContext(sink.asExpr(), result) and
     hasDefaultBranchCacheWriteAccess(job, result)
   )
 }

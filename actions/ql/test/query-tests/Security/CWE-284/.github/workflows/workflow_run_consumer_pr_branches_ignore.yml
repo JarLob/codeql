@@ -1,0 +1,11 @@
+name: Runner PR branches-ignore consumer # Expected: self-hosted runner alert.
+on:
+  workflow_run:
+    workflows: [Runner PR source]
+    branches-ignore: [release]
+    types: [completed]
+jobs:
+  pr-branches-ignore:
+    runs-on: self-hosted
+    steps:
+      - run: echo pr
