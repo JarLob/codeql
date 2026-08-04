@@ -1,0 +1,8 @@
+name: Dependency Tree Input Builder # Expected: external source for Dependency Tree Reporter.
+on:
+  pull_request:
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

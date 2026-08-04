@@ -1,0 +1,10 @@
+name: codeql/actions-tests-workflow-run-sources
+groups: [codeql, test]
+dependencies:
+  codeql/actions-all: ${workspace}
+  codeql/actions-queries: ${workspace}
+extractor: actions
+tests: .
+warnOnImplicitThis: true
+dataExtensions:
+  - workflow-run-sources.model.yml

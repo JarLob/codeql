@@ -3,6 +3,7 @@ private import codeql.Locations
 private import codeql.actions.Helper
 private import codeql.actions.config.Config
 private import codeql.actions.DataFlow
+private import codeql.actions.ast.internal.WorkflowTriggerGlob as WorkflowTriggerGlob
 
 bindingset[text]
 int numberOfLines(string text) { result = max(int i | exists(text.splitAt("\n", i))) }
@@ -1738,50 +1739,78 @@ class EventImpl extends AstNodeImpl, TEventNode {
   }
 
   /** Gets a string value for any property (eg: branches, branches-ignore, etc.) */
-  string getAPropertyValue(string prop) {
-    result = n.(YamlMapping).lookup(prop).(YamlMappingLikeNode).getNode(_).(YamlScalar).getValue()
-  }
+  string getAPropertyValue(string prop) { result = this.getPropertyValue(prop, _) }
 
   /** Holds if the event has a property with the given name */
   predicate hasProperty(string prop) { exists(this.getAPropertyValue(prop)) }
 
-  /** Gets a local workflow named by this `workflow_run` event. */
-  bindingset[workflowName]
-  pragma[inline_late]
-  private WorkflowImpl getUniqueLocalWorkflowRunSource(string workflowName) {
-    result =
-      unique(WorkflowImpl workflow |
-        workflow.isInSameRepositoryAs(this.getEnclosingWorkflow()) and
-        workflow.getName().toLowerCase() = workflowName.toLowerCase()
-      )
+  private string getPropertyValue(string prop, int index) {
+    exists(YamlSequence sequence |
+      sequence = n.(YamlMapping).lookup(prop) and
+      result = sequence.getElement(index).(YamlScalar).getValue()
+    )
+    or
+    index = 0 and result = n.(YamlMapping).lookup(prop).(YamlScalar).getValue()
   }
 
-  /** Gets a local workflow named by this `workflow_run` event. */
+  bindingset[value, caseInsensitive]
+  pragma[inline_late]
+  private string normalizeGlobValue(string value, boolean caseInsensitive) {
+    if caseInsensitive = true then result = value.toLowerCase() else result = value
+  }
+
+  bindingset[prop, caseInsensitive]
+  pragma[inline_late]
+  private predicate hasValidPropertyGlobSequence(string prop, boolean caseInsensitive) {
+    exists(this.getPropertyValue(prop, _)) and
+    not exists(int index, string pattern |
+      pattern = this.getPropertyValue(prop, index) and
+      not WorkflowTriggerGlob::isValid(this.normalizeGlobValue(pattern, caseInsensitive))
+    )
+  }
+
+  /** Holds if the ordered glob sequence in `prop` includes `input`. */
+  bindingset[prop, input, caseInsensitive]
+  pragma[inline_late]
+  private predicate propertyGlobSequenceIncludes(string prop, string input, boolean caseInsensitive) {
+    this.hasValidPropertyGlobSequence(prop, caseInsensitive) and
+    exists(int index, string pattern, string normalizedPattern, string normalizedInput |
+      pattern = this.getPropertyValue(prop, index) and
+      normalizedPattern = this.normalizeGlobValue(pattern, caseInsensitive) and
+      normalizedInput = this.normalizeGlobValue(input, caseInsensitive) and
+      not WorkflowTriggerGlob::isNegative(normalizedPattern) and
+      WorkflowTriggerGlob::patternMatches(normalizedPattern, normalizedInput) and
+      not exists(int laterIndex, string laterPattern |
+        laterIndex > index and
+        laterPattern = this.getPropertyValue(prop, laterIndex) and
+        WorkflowTriggerGlob::patternMatches(this.normalizeGlobValue(laterPattern, caseInsensitive),
+          normalizedInput)
+      )
+    )
+  }
+
+  /** Gets a local workflow matched by this `workflow_run` event. */
   WorkflowImpl getALocalWorkflowRunSource() {
     this.getName() = "workflow_run" and
-    result = this.getUniqueLocalWorkflowRunSource(this.getAPropertyValue("workflows"))
+    result.isInSameRepositoryAs(this.getEnclosingWorkflow()) and
+    this.propertyGlobSequenceIncludes("workflows", result.getName(), true)
   }
 
-  /** Gets a trigger event of a local workflow named by this `workflow_run` event. */
+  /** Gets a trigger event of a local workflow matched by this `workflow_run` event. */
   EventImpl getALocalWorkflowRunSourceEvent() {
     this.getALocalWorkflowRunSource().getOn().getAnEvent() = result and
     not result.getName() = "workflow_call"
   }
 
-  /** Holds if at least one workflow named by this `workflow_run` event is not locally resolvable. */
+  /** Holds if this `workflow_run` event's source cannot be resolved soundly. */
   predicate hasUnresolvedWorkflowRunSource() {
     this.getName() = "workflow_run" and
     (
       not exists(this.getAPropertyValue("workflows"))
       or
-      exists(string workflowName |
-        workflowName = this.getAPropertyValue("workflows") and
-        (
-          not exists(this.getUniqueLocalWorkflowRunSource(workflowName))
-          or
-          this.getUniqueLocalWorkflowRunSource(workflowName) = this.getEnclosingWorkflow()
-        )
-      )
+      not this.hasValidPropertyGlobSequence("workflows", true)
+      or
+      this.getALocalWorkflowRunSource() = this.getEnclosingWorkflow()
     )
   }
 
@@ -1802,48 +1831,34 @@ class EventImpl extends AstNodeImpl, TEventNode {
       ]
   }
 
-  /** Holds if `pattern` may match `branch` using the common Actions glob forms. */
-  bindingset[pattern, branch]
-  pragma[inline_late]
-  private predicate branchPatternMayMatch(string pattern, string branch) {
-    not pattern.indexOf("!") = 0 and
-    (
-      // Conservatively retain patterns using glob constructs outside the simple wildcard subset.
-      pattern.regexpMatch(".*[\\[\\]+(){}].*")
-      or
-      branch.matches(pattern.replaceAll("**", "%").replaceAll("*", "%").replaceAll("?", "_"))
-    )
-  }
-
-  /** Holds if the supported wildcard subset proves that `pattern` matches `branch`. */
-  bindingset[pattern, branch]
-  pragma[inline_late]
-  private predicate branchPatternDefinitelyMatches(string pattern, string branch) {
-    not pattern.indexOf("!") = 0 and
-    not pattern.regexpMatch(".*[\\[\\]+(){}].*") and
-    branch.matches(pattern.replaceAll("**", "%").replaceAll("*", "%").replaceAll("?", "_"))
-  }
-
   /** Holds if this event's positive branch filter may include the repository default branch. */
   private predicate branchesMayIncludeDefaultBranch() {
-    exists(string pattern, string defaultBranch |
-      pattern = this.getAPropertyValue("branches") and
+    exists(string defaultBranch |
       repositoryDataModel(_, defaultBranch) and
-      this.branchPatternMayMatch(pattern, defaultBranch)
+      (
+        not this.hasValidPropertyGlobSequence("branches", false)
+        or
+        this.propertyGlobSequenceIncludes("branches", defaultBranch, false)
+      )
     )
     or
     not exists(string defaultBranch | repositoryDataModel(_, defaultBranch)) and
-    exists(string pattern |
-      pattern = this.getAPropertyValue("branches") and not pattern.indexOf("!") = 0
+    (
+      not this.hasValidPropertyGlobSequence("branches", false)
+      or
+      exists(int index, string pattern |
+        pattern = this.getPropertyValue("branches", index) and
+        not WorkflowTriggerGlob::isNegative(pattern)
+      )
     )
   }
 
   /** Holds if this event's negative branch filter is known to exclude the default branch. */
   private predicate branchesIgnoreDefaultBranch() {
-    exists(string pattern, string defaultBranch |
-      pattern = this.getAPropertyValue("branches-ignore") and
+    this.hasValidPropertyGlobSequence("branches-ignore", false) and
+    exists(string defaultBranch |
       repositoryDataModel(_, defaultBranch) and
-      this.branchPatternDefinitelyMatches(pattern, defaultBranch)
+      this.propertyGlobSequenceIncludes("branches-ignore", defaultBranch, false)
     )
   }
 

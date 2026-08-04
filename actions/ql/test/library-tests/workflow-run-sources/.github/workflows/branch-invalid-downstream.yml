@@ -1,0 +1,11 @@
+name: Branch invalid downstream # Expected: invalid branch glob is retained conservatively.
+on:
+  workflow_run:
+    workflows: [Issues source]
+    branches: ['***']
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

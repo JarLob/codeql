@@ -1,0 +1,11 @@
+name: Branch postfix downstream # Expected: main? includes the default branch main.
+on:
+  workflow_run:
+    workflows: [Issues source]
+    branches: ['main?']
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

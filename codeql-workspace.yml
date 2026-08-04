@@ -10,6 +10,7 @@ provide:
   - "python/extractor/qlpack.yml"
   - "shared/**/qlpack.yml"
   - "cpp/ql/test/query-tests/Security/CWE/CWE-190/semmle/tainted/qlpack.yml"
+  - "actions/ql/test/library-tests/workflow-run-sources/qlpack.yml"
   - "go/ql/config/legacy-support/qlpack.yml"
   - "csharp/ql/campaigns/Solorigate/lib/qlpack.yml"
   - "csharp/ql/campaigns/Solorigate/src/qlpack.yml"

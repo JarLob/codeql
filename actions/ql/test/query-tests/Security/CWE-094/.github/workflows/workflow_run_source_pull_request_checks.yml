@@ -1,0 +1,8 @@
+name: Pull-Request Checks # Expected: external source for the publish-results consumer.
+on:
+  pull_request:
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source
