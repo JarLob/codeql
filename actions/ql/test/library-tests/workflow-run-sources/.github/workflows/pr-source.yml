@@ -1,5 +1,8 @@
-name: PR source
-on: pull_request
+name: PR source # Expected: review triggers can use externally influenced base-repository runs.
+on:
+  pull_request:
+  pull_request_review:
+  pull_request_review_comment:
 jobs:
   source:
     runs-on: ubuntu-latest

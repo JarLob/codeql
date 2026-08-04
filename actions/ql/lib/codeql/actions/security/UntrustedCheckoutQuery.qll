@@ -536,8 +536,7 @@ predicate knownImproperCheckoutAuthorization(
       event.hasUnresolvedWorkflowRunSource() and check.appliesToEvent(event)
       or
       exists(Event sourceEvent |
-        sourceEvent.isExternallyTriggerable() and
-        event.acceptsWorkflowRunSourceEvent(sourceEvent) and
+        event.acceptsExternalWorkflowRunSourceEvent(sourceEvent) and
         check.appliesToWorkflowRunSource(event, sourceEvent) and
         workflowRunSourceMayCoExecute(check, checkout, event, sourceEvent)
       )

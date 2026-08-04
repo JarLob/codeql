@@ -1814,10 +1814,13 @@ class EventImpl extends AstNodeImpl, TEventNode {
     )
   }
 
-  /** Holds if `sourceEvent` runs with a pull request head repository. */
-  private predicate sourceEventMayUsePullRequestHeadRepository(EventImpl sourceEvent) {
-    sourceEvent.getName() =
-      ["pull_request", "pull_request_target", "pull_request_review", "pull_request_review_comment"]
+  /**
+   * Holds if an externally triggered run for `sourceEvent` necessarily uses a fork head
+   * repository. Review events are excluded because an external reviewer can trigger a run whose
+   * head repository is the base repository.
+   */
+  private predicate externallyTriggeredSourceEventUsesForkHeadRepository(EventImpl sourceEvent) {
+    sourceEvent.getName() = ["pull_request", "pull_request_target"]
   }
 
   /** Holds if `sourceEvent` is known to run on the repository's default branch. */
@@ -1862,8 +1865,8 @@ class EventImpl extends AstNodeImpl, TEventNode {
     )
   }
 
-  /** Holds if `sourceEvent` can pass this `workflow_run` event's branch filters. */
-  private predicate sourceEventPassesWorkflowRunBranchFilters(EventImpl sourceEvent) {
+  /** Holds if a run for `sourceEvent` can pass this `workflow_run` event's branch patterns. */
+  private predicate sourceEventPassesWorkflowRunBranchPatterns(EventImpl sourceEvent) {
     not this.hasProperty("branches") and
     (
       not this.sourceEventRunsOnDefaultBranch(sourceEvent)
@@ -1872,9 +1875,6 @@ class EventImpl extends AstNodeImpl, TEventNode {
     )
     or
     this.hasProperty("branches") and
-    // A positive branch-filter match is rejected when the source run's head repository can be
-    // a fork, even if the fork branch has the same name.
-    not this.sourceEventMayUsePullRequestHeadRepository(sourceEvent) and
     (
       this.sourceEventRunsOnDefaultBranch(sourceEvent) and this.branchesMayIncludeDefaultBranch()
       or
@@ -1882,20 +1882,37 @@ class EventImpl extends AstNodeImpl, TEventNode {
     )
   }
 
+  /**
+   * Holds if an externally triggered run for `sourceEvent` can pass this `workflow_run` event's
+   * branch and source-repository filters.
+   */
+  private predicate externalSourceEventPassesWorkflowRunFilters(EventImpl sourceEvent) {
+    sourceEvent.isExternallyTriggerable() and
+    this.sourceEventPassesWorkflowRunBranchPatterns(sourceEvent) and
+    (
+      not this.hasProperty("branches")
+      or
+      not this.externallyTriggeredSourceEventUsesForkHeadRepository(sourceEvent)
+    )
+  }
+
   /** Holds if `sourceEvent` can pass this `workflow_run` event's trigger filters. */
   predicate acceptsWorkflowRunSourceEvent(EventImpl sourceEvent) {
     this.getName() = "workflow_run" and
     this.getALocalWorkflowRunSourceEvent() = sourceEvent and
-    this.sourceEventPassesWorkflowRunBranchFilters(sourceEvent)
+    this.sourceEventPassesWorkflowRunBranchPatterns(sourceEvent)
+  }
+
+  /** Holds if an external actor can trigger an accepted run for `sourceEvent`. */
+  predicate acceptsExternalWorkflowRunSourceEvent(EventImpl sourceEvent) {
+    this.getName() = "workflow_run" and
+    this.getALocalWorkflowRunSourceEvent() = sourceEvent and
+    this.externalSourceEventPassesWorkflowRunFilters(sourceEvent)
   }
 
   /** Holds if a locally resolved source event can externally trigger this `workflow_run` event. */
   private predicate hasExternallyTriggerableWorkflowRunSource() {
-    exists(EventImpl sourceEvent |
-      sourceEvent = this.getALocalWorkflowRunSourceEvent() and
-      sourceEvent.isExternallyTriggerable() and
-      this.sourceEventPassesWorkflowRunBranchFilters(sourceEvent)
-    )
+    exists(EventImpl sourceEvent | this.acceptsExternalWorkflowRunSourceEvent(sourceEvent))
   }
 
   /** Holds if the event can be triggered by an external actor. */

@@ -85,6 +85,18 @@ query predicate externallyTriggerable(string workflow) {
   )
 }
 
+query predicate externallyAcceptedPrSources(string workflow, string sourceEvent) {
+  exists(Event event, Event source |
+    workflow =
+      ["PR branches downstream", "PR branches-ignore downstream", "PR unfiltered downstream"] and
+    event.getName() = "workflow_run" and
+    workflow = event.getEnclosingWorkflow().getName() and
+    source = event.getALocalWorkflowRunSourceEvent() and
+    sourceEvent = source.getName() and
+    event.acceptsExternalWorkflowRunSourceEvent(source)
+  )
+}
+
 query predicate unresolvedSource(string workflow) {
   exists(Event event |
     event.getName() = "workflow_run" and
