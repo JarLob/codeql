@@ -28,25 +28,69 @@ private predicate unsafePrCheckoutGuardEnabled(UsesStep checkout) {
   checkout.getArgument("allow-unsafe-pr-checkout").trim().toLowerCase() = ["", "false"]
 }
 
+/**
+ * Holds for a value-preserving step between declarative workflow expressions.
+ *
+ * The full Actions data-flow graph also models values transformed by commands and files. Those
+ * provenance steps are too broad for proving which value `actions/checkout` receives, and they
+ * depend on checkout safety themselves.
+ */
+private predicate runtimeGuardValueStep(Expression source, Expression sink) {
+  exists(EnvExpression access |
+    sink = access and source != sink and DataFlow::hasLocalFlowExpr(source, access)
+  )
+  or
+  exists(SimpleReferenceExpression access, Outputs outputs |
+    sink = access and
+    outputs = access.getTarget() and
+    source = outputs.getOutputExpr(access.getFieldName())
+  )
+}
+
+private Expression getARuntimeGuardValueOrigin(Expression expression) {
+  result = expression and
+  not exists(Expression predecessor | runtimeGuardValueStep(predecessor, expression))
+  or
+  exists(Expression predecessor |
+    runtimeGuardValueStep(predecessor, expression) and
+    result = getARuntimeGuardValueOrigin(predecessor)
+  )
+}
+
+bindingset[checkout, argument, pattern]
+pragma[inline_late]
+private predicate runtimeGuardArgumentMatches(UsesStep checkout, string argument, string pattern) {
+  normalizeExpr(checkout.getArgument(argument)).regexpMatch(pattern)
+  or
+  exists(Expression argumentExpression |
+    argumentExpression = checkout.getArgumentExpr(argument) and
+    exists(getARuntimeGuardValueOrigin(argumentExpression)) and
+    not exists(Expression origin |
+      origin = getARuntimeGuardValueOrigin(argumentExpression) and
+      not normalizeExpr(origin.getExpression()).regexpMatch(pattern)
+    )
+  )
+}
+
 private predicate runtimeGuardRecognizesCheckout(UsesStep checkout, Event event) {
   checkout.getArgument("ref").regexpMatch("refs/pull/[0-9]+/(head|merge)")
   or
   event.getName() = "pull_request_target" and
   (
-    normalizeExpr(checkout.getArgument("ref"))
-        .regexpMatch(".*\\bgithub\\.event\\.pull_request\\.(head\\.sha|merge_commit_sha)\\b.*")
+    runtimeGuardArgumentMatches(checkout, "ref",
+      ".*\\bgithub\\.event\\.pull_request\\.(head\\.sha|merge_commit_sha)\\b.*")
     or
-    normalizeExpr(checkout.getArgument("repository"))
-        .regexpMatch(".*\\bgithub\\.event\\.pull_request\\.head\\.repo\\.full_name\\b.*")
+    runtimeGuardArgumentMatches(checkout, "repository",
+      ".*\\bgithub\\.event\\.pull_request\\.head\\.repo\\.full_name\\b.*")
   )
   or
   event.getName() = "workflow_run" and
   (
-    normalizeExpr(checkout.getArgument("ref"))
-        .regexpMatch(".*\\bgithub\\.event\\.workflow_run\\.(head_commit\\.id|head_sha)\\b.*")
+    runtimeGuardArgumentMatches(checkout, "ref",
+      ".*\\bgithub\\.event\\.workflow_run\\.(head_commit\\.id|head_sha)\\b.*")
     or
-    normalizeExpr(checkout.getArgument("repository"))
-        .regexpMatch(".*\\bgithub\\.event\\.workflow_run\\.head_repository\\.full_name\\b.*")
+    runtimeGuardArgumentMatches(checkout, "repository",
+      ".*\\bgithub\\.event\\.workflow_run\\.head_repository\\.full_name\\b.*")
   )
 }
 
