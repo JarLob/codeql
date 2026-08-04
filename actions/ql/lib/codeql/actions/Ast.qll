@@ -275,9 +275,7 @@ class Permissions extends AstNode instanceof PermissionsImpl {
   /** Gets the configured value for `scope`, treating omitted mapping entries as `none`. */
   bindingset[scope]
   pragma[inline_late]
-  string getConfiguredPermission(string scope) {
-    result = super.getConfiguredPermission(scope)
-  }
+  string getConfiguredPermission(string scope) { result = super.getConfiguredPermission(scope) }
 
   string getAPermission() { result = super.getAPermission() }
 }
@@ -400,11 +398,11 @@ abstract class Job extends AstNode instanceof JobImpl {
   Permissions getPermissions() { result = super.getPermissions() }
 
   /**
-    * Gets a statically possible permission for `scope` after applying workflow, job, and
-    * reusable-workflow caller restrictions. Multiple results may exist for multiple callers or
-    * trigger paths. Top-level jobs have no result when repository defaults are required, while a
-    * reusable-workflow job may still have a conservative upper bound when a caller default is
-    * unknown.
+   * Gets a statically possible permission for `scope` after applying workflow, job, and
+   * reusable-workflow caller restrictions. Multiple results may exist for multiple callers or
+   * trigger paths. Top-level jobs have no result when repository defaults are required, while a
+   * reusable-workflow job may still have a conservative upper bound when a caller default is
+   * unknown.
    */
   bindingset[scope]
   pragma[inline_late]

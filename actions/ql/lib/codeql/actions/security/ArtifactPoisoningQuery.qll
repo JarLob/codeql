@@ -9,7 +9,7 @@ import codeql.actions.security.ControlChecks
 private import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 
 class GitHubCurrentWorkflowDownloadArtifactActionStep extends UntrustedArtifactDownloadStep,
-    UsesStep
+  UsesStep
 {
   GitHubCurrentWorkflowDownloadArtifactActionStep() {
     this.getCallee() = "actions/download-artifact" and
