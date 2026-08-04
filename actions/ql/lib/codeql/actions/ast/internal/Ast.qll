@@ -58,9 +58,7 @@ private predicate getAJobOccurrence(
 }
 
 private YamlNode getAContainerOccurrence(YamlMapping container) {
-  exists(YamlMapping workflow, string jobId |
-    getAJobOccurrence(workflow, container, result, jobId)
-  )
+  exists(YamlMapping workflow, string jobId | getAJobOccurrence(workflow, container, result, jobId))
   or
   result = container
 }
@@ -90,9 +88,7 @@ private newtype TAstOccurrence =
   MkAstOccurrence(YamlNode containerOccurrence, YamlNode elementOccurrence) {
     containerOccurrence = elementOccurrence
     or
-    exists(YamlMapping step |
-      getAStepOccurrence(step, containerOccurrence, elementOccurrence)
-    )
+    exists(YamlMapping step | getAStepOccurrence(step, containerOccurrence, elementOccurrence))
   }
 
 private class AstOccurrence extends TAstOccurrence {
@@ -109,15 +105,11 @@ private class AstOccurrence extends TAstOccurrence {
 }
 
 bindingset[containerOccurrence, elementOccurrence]
-private AstOccurrence getAstOccurrence(
-  YamlNode containerOccurrence, YamlNode elementOccurrence
-) {
+private AstOccurrence getAstOccurrence(YamlNode containerOccurrence, YamlNode elementOccurrence) {
   result.getContainer() = containerOccurrence and result.getElement() = elementOccurrence
 }
 
-private predicate hasAliasExpansion(
-  YamlNode occurrenceRoot, YamlNode semanticRoot, YamlNode node
-) {
+private predicate hasAliasExpansion(YamlNode occurrenceRoot, YamlNode semanticRoot, YamlNode node) {
   occurrenceRoot instanceof YamlAliasNode and node = getAnExpandedYamlChild*(semanticRoot)
   or
   exists(YamlAliasNode alias |
@@ -508,7 +500,9 @@ class ExpressionImpl extends AstNodeImpl, TExpressionNode {
 
   override JobImpl getEnclosingJob() { result = this.getParentNode().getEnclosingJob() }
 
-  override WorkflowImpl getEnclosingWorkflow() { result = this.getParentNode().getEnclosingWorkflow() }
+  override WorkflowImpl getEnclosingWorkflow() {
+    result = this.getParentNode().getEnclosingWorkflow()
+  }
 
   override StepImpl getEnclosingStep() { result = this.getParentNode().getEnclosingStep() }
 
@@ -719,34 +713,34 @@ class CompositeActionImpl extends AstNodeImpl, TCompositeAction {
   }
 
   predicate getAnExternalCompositeActionModel(
-    string owner, string repo, string action_path, string requested_ref,
-    string resolved_commit_sha, string local_path
+    string owner, string repo, string action_path, string requested_ref, string resolved_commit_sha,
+    string local_path
   ) {
-    externalCompositeActionDataModel(owner, repo, action_path, requested_ref,
-      resolved_commit_sha, local_path) and
+    externalCompositeActionDataModel(owner, repo, action_path, requested_ref, resolved_commit_sha,
+      local_path) and
     local_path.trim() = this.getLocation().getFile().getRelativePath()
   }
 
   predicate isExternalCompositeAction() {
-    exists(string owner, string repo, string action_path, string requested_ref,
-      string resolved_commit_sha, string local_path |
+    exists(
+      string owner, string repo, string action_path, string requested_ref,
+      string resolved_commit_sha, string local_path
+    |
       this.getAnExternalCompositeActionModel(owner, repo, action_path, requested_ref,
         resolved_commit_sha, local_path)
     )
     or
-    this.getLocation()
-        .getFile()
-        .getRelativePath()
-        .matches("9466014afba34ef28239871ceabf4132/%")
+    this.getLocation().getFile().getRelativePath().matches("9466014afba34ef28239871ceabf4132/%")
   }
 
   string getResolvedPath() {
-    exists(string owner, string repo, string action_path, string requested_ref,
-      string resolved_commit_sha, string local_path |
+    exists(
+      string owner, string repo, string action_path, string requested_ref,
+      string resolved_commit_sha, string local_path
+    |
       this.getAnExternalCompositeActionModel(owner, repo, action_path, requested_ref,
         resolved_commit_sha, local_path) and
-      result =
-        externalCompositeActionName(owner, repo, action_path) + "@" + requested_ref.trim()
+      result = externalCompositeActionName(owner, repo, action_path) + "@" + requested_ref.trim()
     )
     or
     not this.isExternalCompositeAction() and
@@ -923,35 +917,31 @@ class ReusableWorkflowImpl extends AstNodeImpl, WorkflowImpl {
   }
 
   predicate isExternalReusableWorkflow() {
-    exists(string owner, string repo, string workflow_path, string requested_ref,
-      string resolved_commit_sha, string local_path |
+    exists(
+      string owner, string repo, string workflow_path, string requested_ref,
+      string resolved_commit_sha, string local_path
+    |
       this.getAnExternalReusableWorkflowModel(owner, repo, workflow_path, requested_ref,
         resolved_commit_sha, local_path)
     )
     or
-    this.getLocation()
-        .getFile()
-        .getRelativePath()
-        .matches("9466014afba34ef28239871ceabf4132/%") // root folder for external workflows and composite actions
+    this.getLocation().getFile().getRelativePath().matches("9466014afba34ef28239871ceabf4132/%") // root folder for external workflows and composite actions
   }
 
   string getResolvedPath() {
-    exists(string owner, string repo, string workflow_path, string requested_ref,
-      string resolved_commit_sha, string local_path |
+    exists(
+      string owner, string repo, string workflow_path, string requested_ref,
+      string resolved_commit_sha, string local_path
+    |
       this.getAnExternalReusableWorkflowModel(owner, repo, workflow_path, requested_ref,
         resolved_commit_sha, local_path) and
       result =
-        owner.trim() + "/" + repo.trim() + "/" + workflow_path.trim() + "@" +
-          requested_ref.trim()
+        owner.trim() + "/" + repo.trim() + "/" + workflow_path.trim() + "@" + requested_ref.trim()
     )
     or
     not this.isExternalReusableWorkflow() and
     result =
-      ["", "./"] +
-        this.getLocation()
-            .getFile()
-            .getRelativePath()
-            .replaceAll(getRepoRoot(), "")
+      ["", "./"] + this.getLocation().getFile().getRelativePath().replaceAll(getRepoRoot(), "")
   }
 }
 
@@ -1066,9 +1056,9 @@ private string permissionScope() {
   result =
     [
       "actions", "artifact-metadata", "attestations", "checks", "code-quality", "contents",
-      "copilot-requests", "deployments", "discussions", "drives", "id-token", "issues",
-      "models", "packages", "pages", "pull-requests", "repository-projects", "security-events",
-      "statuses", "vulnerability-alerts"
+      "copilot-requests", "deployments", "discussions", "drives", "id-token", "issues", "models",
+      "packages", "pages", "pull-requests", "repository-projects", "security-events", "statuses",
+      "vulnerability-alerts"
     ]
 }
 
@@ -1088,7 +1078,8 @@ private string maximumPermission(string scope) {
     or
     isReadOnlyPermissionScope(scope) and result = "read"
     or
-    not isWriteOnlyPermissionScope(scope) and not isReadOnlyPermissionScope(scope) and
+    not isWriteOnlyPermissionScope(scope) and
+    not isReadOnlyPermissionScope(scope) and
     result = "write"
   )
 }
@@ -1239,9 +1230,7 @@ class StrategyImpl extends AstNodeImpl, TStrategyNode {
   predicate hasStaticCartesianMatrix() {
     exists(this.getAMatrixDimensionName()) and
     not exists(n.lookup("matrix").(YamlMapping).lookup(["include", "exclude"])) and
-    forall(string name |
-      name = this.getAMatrixDimensionName()
-    |
+    forall(string name | name = this.getAMatrixDimensionName() |
       exists(n.lookup("matrix").(YamlMapping).lookup(name).(YamlSequence)) and
       this.getMatrixDimensionValueCount(name) > 0
     )
@@ -1260,9 +1249,8 @@ class StrategyImpl extends AstNodeImpl, TStrategyNode {
       (
         resolveMatrixAccessPath(n.lookup("matrix"), p).getNode(_) = v.getNode()
         or
-        resolveMatrixAccessPath(
-          this.getMatrix().lookup("include").(YamlSequence).getElementNode(_), p
-        ).getNode(_) = v.getNode()
+        resolveMatrixAccessPath(this.getMatrix().lookup("include").(YamlSequence).getElementNode(_),
+          p).getNode(_) = v.getNode()
       ) and
       result.getParentNode() = v
     )
@@ -1272,8 +1260,7 @@ class StrategyImpl extends AstNodeImpl, TStrategyNode {
       (
         result.getParentNode().getNode() = n.lookup("matrix")
         or
-        result.getParentNode().getNode() =
-          n.lookup("matrix").(YamlMapping).lookup("include")
+        result.getParentNode().getNode() = n.lookup("matrix").(YamlMapping).lookup("include")
       )
     )
   }
@@ -1309,9 +1296,7 @@ private YamlValue getAMatrixValueChild(YamlValue parent) {
 bindingset[value]
 pragma[inline_late]
 private predicate isStaticMatrixValue(YamlValue value) {
-  forall(YamlScalar scalar | scalar = getAMatrixValueChild*(value) |
-    isStaticMatrixScalar(scalar)
-  ) and
+  forall(YamlScalar scalar | scalar = getAMatrixValueChild*(value) | isStaticMatrixScalar(scalar)) and
   forall(YamlMapping mapping, YamlValue key |
     mapping = getAMatrixValueChild*(value) and mapping.maps(key, _)
   |
@@ -1365,9 +1350,7 @@ private predicate hasStaticMatrixDefinition(StrategyImpl strategy) {
 
 private string getMatrixDimensionAt(StrategyImpl strategy, int index) {
   result =
-    rank[index + 1](string name | name = strategy.getAMatrixDimensionName() |
-      name order by name
-    )
+    rank[index + 1](string name | name = strategy.getAMatrixDimensionName() | name order by name)
 }
 
 private int getBoundedMatrixProductPrefix(StrategyImpl strategy, int length) {
@@ -1386,8 +1369,7 @@ private int getBoundedBaseMatrixCombinationCount(StrategyImpl strategy) {
   not exists(strategy.getAMatrixDimensionName()) and result = 0
   or
   exists(strategy.getAMatrixDimensionName()) and
-  result =
-    getBoundedMatrixProductPrefix(strategy, count(strategy.getAMatrixDimensionName()))
+  result = getBoundedMatrixProductPrefix(strategy, count(strategy.getAMatrixDimensionName()))
 }
 
 private string getBaseMatrixAssignmentPrefix(StrategyImpl strategy, int length) {
@@ -1408,8 +1390,7 @@ private string getBaseMatrixAssignmentPrefix(StrategyImpl strategy, int length) 
 
 private string getABaseMatrixAssignment(StrategyImpl strategy) {
   getBoundedBaseMatrixCombinationCount(strategy) > 0 and
-  result =
-    getBaseMatrixAssignmentPrefix(strategy, count(strategy.getAMatrixDimensionName()))
+  result = getBaseMatrixAssignmentPrefix(strategy, count(strategy.getAMatrixDimensionName()))
 }
 
 bindingset[assignment, name]
@@ -1424,9 +1405,7 @@ private int getBaseMatrixDimensionIndex(string assignment, string name) {
 
 bindingset[strategy, assignment, name]
 pragma[inline_late]
-private string getBaseMatrixDimensionValue(
-  StrategyImpl strategy, string assignment, string name
-) {
+private string getBaseMatrixDimensionValue(StrategyImpl strategy, string assignment, string name) {
   name = strategy.getAMatrixDimensionName() and
   result = strategy.getMatrixDimensionValue(name, getBaseMatrixDimensionIndex(assignment, name))
 }
@@ -1467,9 +1446,7 @@ private YamlScalar getBaseMatrixAccessScalar(
 
 bindingset[root, accessPath]
 pragma[inline_late]
-private YamlScalar resolveMatrixScalarAccess(
-  YamlMappingLikeNode root, string accessPath
-) {
+private YamlScalar resolveMatrixScalarAccess(YamlMappingLikeNode root, string accessPath) {
   not exists(accessPath.indexOf(".")) and result = root.getNode(accessPath)
   or
   exists(string first, string second |
@@ -1485,12 +1462,7 @@ private YamlScalar resolveMatrixScalarAccess(
     third = accessPath.splitAt(".", 2) and
     not exists(accessPath.splitAt(".", 3)) and
     result =
-      root
-          .getNode(first)
-          .(YamlMappingLikeNode)
-          .getNode(second)
-          .(YamlMappingLikeNode)
-          .getNode(third)
+      root.getNode(first).(YamlMappingLikeNode).getNode(second).(YamlMappingLikeNode).getNode(third)
   )
   or
   exists(string first, string second, string third, string fourth |
@@ -1500,8 +1472,7 @@ private YamlScalar resolveMatrixScalarAccess(
     fourth = accessPath.splitAt(".", 3) and
     not exists(accessPath.splitAt(".", 4)) and
     result =
-      root
-          .getNode(first)
+      root.getNode(first)
           .(YamlMappingLikeNode)
           .getNode(second)
           .(YamlMappingLikeNode)
@@ -1554,9 +1525,7 @@ pragma[inline_late]
 private predicate matrixIncludeMatchesBase(
   StrategyImpl strategy, string assignment, YamlMapping entry
 ) {
-  forall(string key |
-    key = getMatrixEntryKey(entry) and key = strategy.getAMatrixDimensionName()
-  |
+  forall(string key | key = getMatrixEntryKey(entry) and key = strategy.getAMatrixDimensionName() |
     getBaseMatrixDimensionValue(strategy, assignment, key) = getMatrixEntryValue(entry, key)
   )
 }
@@ -2042,7 +2011,8 @@ class JobImpl extends AstNodeImpl, TJobNode {
   PermissionsImpl getPermissions() { result.getNode() = n.lookup("permissions") }
 
   predicate hasRequestedPermissions() {
-    exists(this.getPermissions()) or
+    exists(this.getPermissions())
+    or
     not exists(this.getPermissions()) and exists(this.getEnclosingWorkflow().getPermissions())
   }
 
@@ -2068,9 +2038,7 @@ class JobImpl extends AstNodeImpl, TJobNode {
 
   bindingset[scope]
   pragma[inline_late]
-  string getEffectivePermission(string scope) {
-    effectivePermission(this, scope, result)
-  }
+  string getEffectivePermission(string scope) { effectivePermission(this, scope, result) }
 
   /** Gets the strategy for this job. */
   StrategyImpl getStrategy() { result.getNode() = n.lookup("strategy") }
@@ -2096,7 +2064,8 @@ class JobImpl extends AstNodeImpl, TJobNode {
         not label = runson.getNode("group")
         or
         label = runson.getNode("labels").(YamlMappingLikeNode).getNode(_)
-      ) and lbl = this.getScalarValue(label) and
+      ) and
+      lbl = this.getScalarValue(label) and
       (
         not exists(MatrixExpressionImpl e | e.getParentNode() = lbl) and
         result =
@@ -2120,9 +2089,7 @@ class JobImpl extends AstNodeImpl, TJobNode {
 
   private YamlValue getAServiceContainerDefinition() {
     result =
-      getEvaluatedAnchorValue(
-          getEvaluatedAnchorValue(n.lookup("services")).(YamlMapping).lookup(_)
-        )
+      getEvaluatedAnchorValue(getEvaluatedAnchorValue(n.lookup("services")).(YamlMapping).lookup(_))
   }
 
   bindingset[this, container]
@@ -2134,8 +2101,7 @@ class JobImpl extends AstNodeImpl, TJobNode {
       value = getEvaluatedAnchorValue(container.(YamlMapping).lookup("image")).(YamlScalar)
     |
       hasAliasExpansion(jobOccurrence, n, value) and
-      result =
-        getExpressionAtOccurrence(value, getAstOccurrence(jobOccurrence, jobOccurrence))
+      result = getExpressionAtOccurrence(value, getAstOccurrence(jobOccurrence, jobOccurrence))
       or
       not hasAliasExpansion(jobOccurrence, n, value) and
       result = getExpressionAtOccurrence(value, getAstOccurrence(value, value))
@@ -2157,31 +2123,21 @@ class JobImpl extends AstNodeImpl, TJobNode {
 
   ScalarValueImpl getRegistryUsernameForContainerImage(ExpressionImpl image) {
     result =
-      this.getScalarValue(
-        getEvaluatedAnchorValue(
-          this
-              .getContainerDefinitionForImage(image)
+      this.getScalarValue(getEvaluatedAnchorValue(this.getContainerDefinitionForImage(image)
               .(YamlMapping)
               .lookup("credentials")
               .(YamlMapping)
-              .lookup("username")
-                ).(YamlScalar)
-              )
+              .lookup("username")).(YamlScalar))
   }
 
   ExpressionImpl getRegistryPasswordExprForContainerImage(ExpressionImpl image) {
     exists(ScalarValueImpl password |
       password =
-        this.getScalarValue(
-          getEvaluatedAnchorValue(
-            this
-                .getContainerDefinitionForImage(image)
+        this.getScalarValue(getEvaluatedAnchorValue(this.getContainerDefinitionForImage(image)
                 .(YamlMapping)
                 .lookup("credentials")
                 .(YamlMapping)
-                .lookup("password")
-                ).(YamlScalar)
-                  ) and
+                .lookup("password")).(YamlScalar)) and
       result.getParentNode() = password
     )
   }
@@ -2209,7 +2165,9 @@ class JobImpl extends AstNodeImpl, TJobNode {
   }
 
   private predicate hasEffectiveWritePermission() {
-    exists(string scope | scope = permissionScope() and this.getEffectivePermission(scope) = "write")
+    exists(string scope |
+      scope = permissionScope() and this.getEffectivePermission(scope) = "write"
+    )
   }
 
   private predicate hasEffectiveWritePermissionForEvent(EventImpl event) {
@@ -2478,13 +2436,9 @@ class StepImpl extends AstNodeImpl, TStepNode {
   override AstNodeImpl getAChildNode() { result.getNode() = getAnExpandedYamlChild*(n) }
 
   override AstNodeImpl getParentNode() {
-    exists(LocalJobImpl job |
-      job.getOccurrence() = occurrence.getContainer() and result = job
-    )
+    exists(LocalJobImpl job | job.getOccurrence() = occurrence.getContainer() and result = job)
     or
-    exists(RunsImpl runs |
-      runs.getNode() = occurrence.getContainer() and result = runs
-    )
+    exists(RunsImpl runs | runs.getNode() = occurrence.getContainer() and result = runs)
     or
     exists(ParallelStepImpl parallel |
       parallel.getElementOccurrence() = occurrence.getContainer() and result = parallel
@@ -2642,12 +2596,11 @@ class StepImpl extends AstNodeImpl, TStepNode {
 
 class BackgroundStepImpl extends StepImpl {
   BackgroundStepImpl() {
-    this.runsInBackground() and (this instanceof RunImpl or this instanceof UsesStepImpl)
+    this.runsInBackground() and
+    (this instanceof RunImpl or this instanceof UsesStepImpl)
   }
 
-  BackgroundCompletionImpl getCompletion() {
-    result.getBackgroundStep() = this
-  }
+  BackgroundCompletionImpl getCompletion() { result.getBackgroundStep() = this }
 
   StepImpl getBarrier() { isFirstBackgroundBarrier(this, result) }
 }
@@ -2699,9 +2652,7 @@ class WaitAllStepImpl extends StepImpl {
     n.lookup("wait-all").(YamlScalar).getValue() = "true"
   }
 
-  BackgroundStepImpl getATargetStep() {
-    isFirstBackgroundBarrier(result, this)
-  }
+  BackgroundStepImpl getATargetStep() { isFirstBackgroundBarrier(result, this) }
 
   override string toString() { result = "Wait All Step" }
 }
@@ -2752,9 +2703,7 @@ private predicate isBackgroundBarrierFor(StepImpl barrier, BackgroundStepImpl ba
   barrier.(CancelStepImpl).getTargetId() = background.getId()
 }
 
-private predicate isFirstBackgroundBarrier(
-  BackgroundStepImpl background, StepImpl barrier
-) {
+private predicate isFirstBackgroundBarrier(BackgroundStepImpl background, StepImpl barrier) {
   exists(int backgroundIndex, int barrierIndex |
     background.getContainer() = barrier.getContainer() and
     barrier.getContainer().getStep(backgroundIndex) = background and
@@ -2945,10 +2894,12 @@ class UsesStepImpl extends StepImpl, UsesImpl {
   override predicate isRemoteCall() { not this.isLocalCall() }
 
   private predicate hasModeledExternalCallee() {
-    exists(string owner, string repo, string action_path, string requested_ref,
-      string resolved_commit_sha, string local_path |
-      externalCompositeActionDataModel(owner, repo, action_path, requested_ref,
-        resolved_commit_sha, local_path) and
+    exists(
+      string owner, string repo, string action_path, string requested_ref,
+      string resolved_commit_sha, string local_path
+    |
+      externalCompositeActionDataModel(owner, repo, action_path, requested_ref, resolved_commit_sha,
+        local_path) and
       this.getCallee() = externalCompositeActionName(owner, repo, action_path) and
       this.getVersion() = requested_ref.trim()
     )
@@ -2961,11 +2912,14 @@ class UsesStepImpl extends StepImpl, UsesImpl {
   }
 
   private predicate hasModeledExternalEnclosingCompositeAction() {
-    exists(CompositeActionImpl action, string owner, string repo, string action_path,
-      string requested_ref, string resolved_commit_sha, string local_path |
+    exists(
+      CompositeActionImpl action, string owner, string repo, string action_path,
+      string requested_ref, string resolved_commit_sha, string local_path
+    |
       action = this.getEnclosingCompositeAction() and
-      action.getAnExternalCompositeActionModel(owner, repo, action_path, requested_ref,
-        resolved_commit_sha, local_path)
+      action
+          .getAnExternalCompositeActionModel(owner, repo, action_path, requested_ref,
+            resolved_commit_sha, local_path)
     )
   }
 
@@ -3050,8 +3004,10 @@ class ExternalJobImpl extends JobImpl, UsesImpl {
   }
 
   private predicate hasModeledExternalCallee() {
-    exists(string owner, string repo, string workflow_path, string requested_ref,
-      string resolved_commit_sha, string local_path |
+    exists(
+      string owner, string repo, string workflow_path, string requested_ref,
+      string resolved_commit_sha, string local_path
+    |
       externalReusableWorkflowDataModel(owner, repo, workflow_path, requested_ref,
         resolved_commit_sha, local_path) and
       this.getCallee() = owner.trim() + "/" + repo.trim() + "/" + workflow_path.trim() and
@@ -3061,11 +3017,14 @@ class ExternalJobImpl extends JobImpl, UsesImpl {
 
   override string getCallableName() {
     this.isLocalCall() and
-    exists(ReusableWorkflowImpl enclosing_workflow, string owner, string repo, string workflow_path,
-      string requested_ref, string resolved_commit_sha, string local_path |
+    exists(
+      ReusableWorkflowImpl enclosing_workflow, string owner, string repo, string workflow_path,
+      string requested_ref, string resolved_commit_sha, string local_path
+    |
       enclosing_workflow = this.getEnclosingWorkflow() and
-      enclosing_workflow.getAnExternalReusableWorkflowModel(owner, repo, workflow_path, requested_ref,
-        resolved_commit_sha, local_path) and
+      enclosing_workflow
+          .getAnExternalReusableWorkflowModel(owner, repo, workflow_path, requested_ref,
+            resolved_commit_sha, local_path) and
       result =
         owner.trim() + "/" + repo.trim() + "/" + this.getCallee() + "@" + requested_ref.trim()
     )
@@ -3550,10 +3509,8 @@ class MatrixExpressionImpl extends SimpleReferenceExpressionImpl {
       (
         resolveMatrixAccessPath(s.getMatrix(), p).getNode(_) = v.getNode()
         or
-        resolveMatrixAccessPath(
-          s.getMatrix().lookup("include").(YamlSequence).getElementNode(_),
-          p
-        ).getNode(_) = v.getNode()
+        resolveMatrixAccessPath(s.getMatrix().lookup("include").(YamlSequence).getElementNode(_), p)
+            .getNode(_) = v.getNode()
       ) and
       // Exclude values containing matrix expressions to avoid recursion
       not exists(MatrixExpressionImpl e | e.getParentNode() = v) and

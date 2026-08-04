@@ -101,10 +101,7 @@ private predicate isTrustedPullRequestAuthorAssociationLiteral(ExpressionNode no
   node instanceof LiteralExpression and
   node.(LiteralExpression).getKind() = "StringLiteral" and
   node.(LiteralExpression).getValue().toUpperCase() =
-    [
-      "'COLLABORATOR'", "\"COLLABORATOR\"", "'MEMBER'", "\"MEMBER\"", "'OWNER'",
-      "\"OWNER\""
-    ]
+    ["'COLLABORATOR'", "\"COLLABORATOR\"", "'MEMBER'", "\"MEMBER\"", "'OWNER'", "\"OWNER\""]
 }
 
 private predicate isPullRequestAuthorAssociationCheckAtom(ExpressionNode node) {
@@ -228,7 +225,8 @@ private class ProtectionMode extends TProtectionMode {
     event = actor_not_attacker_event() and
     (
       category = non_toctou_category() and name = "label-identity"
-      or category = toctou_category() and name = "pull-request-author-identity"
+      or
+      category = toctou_category() and name = "pull-request-author-identity"
     )
   }
 

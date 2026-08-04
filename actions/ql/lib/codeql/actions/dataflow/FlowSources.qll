@@ -317,7 +317,7 @@ private predicate unparsedJsonSourceForEvent(Expression expression, string event
     )
     or
     exists(string context |
-    context = expression.getExpression() and
+      context = expression.getExpression() and
       contextTriggerDataModel(event, _) and
       normalizeExpr(context).regexpMatch("(?i).*" + wrapJsonRegexp("\\bgithub.event\\b") + ".*")
     )

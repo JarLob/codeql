@@ -125,9 +125,7 @@ private predicate getBooleanValue(
  */
 bindingset[left, operator, right]
 pragma[inline_late]
-predicate booleanComparisonEvaluatesTo(
-  boolean left, string operator, boolean right, boolean outcome
-) {
+predicate booleanComparisonEvaluatesTo(boolean left, string operator, boolean right, boolean outcome) {
   operator = "==" and left = right and outcome = true
   or
   operator = "==" and left != right and outcome = false
@@ -143,9 +141,7 @@ predicate booleanComparisonEvaluatesTo(
  */
 bindingset[left, operator, right]
 pragma[inline_late]
-predicate stringComparisonEvaluatesTo(
-  string left, string operator, string right, boolean outcome
-) {
+predicate stringComparisonEvaluatesTo(string left, string operator, string right, boolean outcome) {
   operator = "==" and left.toLowerCase() = right.toLowerCase() and outcome = true
   or
   operator = "==" and left.toLowerCase() != right.toLowerCase() and outcome = false
@@ -161,9 +157,7 @@ predicate stringComparisonEvaluatesTo(
  */
 bindingset[left, operator, right]
 pragma[inline_late]
-predicate numericComparisonEvaluatesTo(
-  float left, string operator, float right, boolean outcome
-) {
+predicate numericComparisonEvaluatesTo(float left, string operator, float right, boolean outcome) {
   operator = "==" and left = right and outcome = true
   or
   operator = "==" and left != right and outcome = false
@@ -496,9 +490,7 @@ private predicate conditionEvaluatesToBooleanWithStatus(
       stringTruthinessEvaluatesTo(value, outcome)
     )
     or
-    exists(float value | getNumberValue(node, value) |
-      numericTruthinessEvaluatesTo(value, outcome)
-    )
+    exists(float value | getNumberValue(node, value) | numericTruthinessEvaluatesTo(value, outcome))
   )
 }
 
@@ -596,13 +588,12 @@ private predicate matrixGetBooleanValue(
   matrixEvaluateEquality(node.(BinaryExpression), event, statusMode, combination, outcome)
   or
   node instanceof FunctionCallExpression and
-  matrixEvaluateFunctionCall(node.(FunctionCallExpression), event, statusMode, combination,
-    outcome)
+  matrixEvaluateFunctionCall(node.(FunctionCallExpression), event, statusMode, combination, outcome)
 }
 
 private predicate matrixEvaluateEquality(
-  BinaryExpression expression, Event event, TStatusMode statusMode,
-  MatrixCombination combination, boolean outcome
+  BinaryExpression expression, Event event, TStatusMode statusMode, MatrixCombination combination,
+  boolean outcome
 ) {
   exists(string left, string right |
     matrixGetStringValue(expression.getLeftOperand(), event, combination, left) and
@@ -641,8 +632,8 @@ private predicate matrixLogicalOperandEvaluatesTo(
 }
 
 private predicate matrixEvaluateLogical(
-  BinaryExpression expression, Event event, TStatusMode statusMode,
-  MatrixCombination combination, boolean outcome
+  BinaryExpression expression, Event event, TStatusMode statusMode, MatrixCombination combination,
+  boolean outcome
 ) {
   expression.getOperator() = "&&" and
   outcome = false and
@@ -664,8 +655,8 @@ private predicate matrixEvaluateLogical(
 }
 
 private predicate matrixEvaluateFunctionCall(
-  FunctionCallExpression call, Event event, TStatusMode statusMode,
-  MatrixCombination combination, boolean outcome
+  FunctionCallExpression call, Event event, TStatusMode statusMode, MatrixCombination combination,
+  boolean outcome
 ) {
   evaluateFunctionCall(call, event, statusMode, outcome)
   or
@@ -783,8 +774,8 @@ predicate evaluatesToBooleanForMatrixCombinationAfterNeedsState(
 bindingset[hasFailure, hasCancellation, hasSkip]
 pragma[inline_late]
 predicate mayEvaluateConditionToBooleanForMatrixCombinationAfterNeedsState(
-  If condition, ExpressionNode node, Event event, MatrixCombination combination,
-  boolean hasFailure, boolean hasCancellation, boolean hasSkip, boolean outcome
+  If condition, ExpressionNode node, Event event, MatrixCombination combination, boolean hasFailure,
+  boolean hasCancellation, boolean hasSkip, boolean outcome
 ) {
   condition.getConditionExpr() = node.getExpression() and
   matrixMayEvaluateToBooleanWithStatus(getMatrixEvaluationNode(node), event,
@@ -816,9 +807,7 @@ private predicate evaluatesToBooleanWithStatus(
       stringTruthinessEvaluatesTo(value, outcome)
     )
     or
-    exists(float value | getNumberValue(node, value) |
-      numericTruthinessEvaluatesTo(value, outcome)
-    )
+    exists(float value | getNumberValue(node, value) | numericTruthinessEvaluatesTo(value, outcome))
   )
 }
 

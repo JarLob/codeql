@@ -468,9 +468,7 @@ private predicate isKnownPermissionActionAttempt(UsesStep action) {
   exists(action.getArgument("required-permission"))
   or
   action.getCallee() =
-    [
-      "prince-chrismc/check-actor-permissions-action", "lannonbr/repo-permission-check-action"
-    ] and
+    ["prince-chrismc/check-actor-permissions-action", "lannonbr/repo-permission-check-action"] and
   exists(action.getArgument("permission"))
   or
   action.getCallee() = "xt0rted/slash-command-action" and
@@ -528,21 +526,17 @@ pragma[inline_late]
 private predicate isHeadPushDateCommand(string command) {
   command.toLowerCase().regexpMatch("date\\s+-d.*(commit|pushed)_at.*")
   or
-  command.toLowerCase().regexpMatch(
-    "jq\\s+.*\\.head\\.repo\\.pushed_at.*fromdateiso8601.*"
-  )
+  command.toLowerCase().regexpMatch("jq\\s+.*\\.head\\.repo\\.pushed_at.*fromdateiso8601.*")
 }
 
 bindingset[command]
 pragma[inline_late]
 private predicate isCommentDateCommand(string command) {
-  command.toLowerCase().regexpMatch(
-    "date\\s+-d.*(comment(_created)?_at|commented_at).*"
-  )
+  command.toLowerCase().regexpMatch("date\\s+-d.*(comment(_created)?_at|commented_at).*")
   or
-  command.toLowerCase().regexpMatch(
-    "jq\\s+.*(comment(_created)?_at|comment\\.created_at|commented_at).*fromdateiso8601.*"
-  )
+  command
+      .toLowerCase()
+      .regexpMatch("jq\\s+.*(comment(_created)?_at|comment\\.created_at|commented_at).*fromdateiso8601.*")
 }
 
 class BashCommentVsHeadDateCheck extends CommentVsHeadDateCheck, Run {
