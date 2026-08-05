@@ -1,0 +1,7 @@
+name: Artifact producer # Expected: external source for artifact injection consumers.
+on: pull_request
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo artifact

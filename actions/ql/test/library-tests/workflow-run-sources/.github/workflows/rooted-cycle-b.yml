@@ -1,0 +1,10 @@
+name: Rooted cycle B # Expected: the second B run is blocked after its path repeats.
+on:
+  workflow_run:
+    workflows: [Rooted cycle A]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo rooted-b

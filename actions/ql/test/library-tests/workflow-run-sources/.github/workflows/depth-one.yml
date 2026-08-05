@@ -1,0 +1,10 @@
+name: Depth one # Expected: first workflow_run level is accepted.
+on:
+  workflow_run:
+    workflows: [Cycle root]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo one

@@ -1,0 +1,7 @@
+name: Tests # Expected: external source for the artifact and cycle-control consumers.
+on: pull_request
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo test

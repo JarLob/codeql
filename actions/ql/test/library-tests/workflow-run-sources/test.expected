@@ -58,7 +58,15 @@ localSources
 | Conservative activity downstream | Pattern activity source | discussion |
 | Conservative activity downstream | Pattern activity source | issues |
 | Conservative activity downstream | Unknown activity source | issues |
+| Cycle A | Cycle B | workflow_run |
+| Cycle A | Cycle root | issues |
+| Cycle B | Cycle A | workflow_run |
+| Cycle self | Cycle self | workflow_run |
 | Default activity downstream | Issues source | issues |
+| Depth four | Depth three | workflow_run |
+| Depth one | Cycle root | issues |
+| Depth three | Depth two | workflow_run |
+| Depth two | Depth one | workflow_run |
 | Invalid activity downstream | Issues source | issues |
 | Issues downstream | Issues source | issues |
 | Mixed activity downstream | External activity source | discussion |
@@ -85,6 +93,9 @@ localSources
 | Push downstream | Push source | push |
 | Recursive downstream | PR unfiltered downstream | workflow_run |
 | Requested downstream | Issues source | issues |
+| Rooted cycle A | Rooted cycle B | workflow_run |
+| Rooted cycle B | Rooted cycle A | issues |
+| Rooted cycle B | Rooted cycle A | workflow_run |
 | Workflow glob downstream | Glob source | issues |
 | Workflow ordered reinclude downstream | Glob source | issues |
 externallyTriggerable
@@ -94,7 +105,12 @@ externallyTriggerable
 | Branch ordered reinclude downstream |
 | Branch postfix downstream |
 | Conservative activity downstream |
+| Cycle A |
+| Cycle B |
 | Default activity downstream |
+| Depth one |
+| Depth three |
+| Depth two |
 | Invalid workflow glob downstream |
 | Issues downstream |
 | Mixed activity downstream |
@@ -105,6 +121,8 @@ externallyTriggerable
 | PR unfiltered downstream |
 | Recursive downstream |
 | Requested downstream |
+| Rooted cycle A |
+| Rooted cycle B |
 | Workflow glob downstream |
 | Workflow ordered reinclude downstream |
 externallyAcceptedPrSources
@@ -116,6 +134,14 @@ externallyAcceptedPrSources
 | PR unfiltered downstream | pull_request |
 | PR unfiltered downstream | pull_request_review |
 | PR unfiltered downstream | pull_request_review_comment |
+boundedExternalSources
+| Cycle A | Cycle root | issues |
+| Cycle B | Cycle A | workflow_run |
+| Depth one | Cycle root | issues |
+| Depth three | Depth two | workflow_run |
+| Depth two | Depth one | workflow_run |
+| Rooted cycle A | Rooted cycle B | workflow_run |
+| Rooted cycle B | Rooted cycle A | issues |
 activityFilteredSources
 | Activity downstream | Issues opened source | issues |
 | Conservative activity downstream | Pattern activity source | discussion |
@@ -157,7 +183,12 @@ externalSourceExecution
 | Branch ordered reinclude downstream | test |
 | Branch postfix downstream | test |
 | Conservative activity downstream | test |
+| Cycle A | test |
+| Cycle B | test |
 | Default activity downstream | test |
+| Depth one | test |
+| Depth three | test |
+| Depth two | test |
 | Invalid workflow glob downstream | test |
 | Issues downstream | test |
 | Mixed activity downstream | test |
@@ -169,5 +200,7 @@ externalSourceExecution
 | PR unfiltered downstream | test |
 | Recursive downstream | test |
 | Requested downstream | test |
+| Rooted cycle A | test |
+| Rooted cycle B | test |
 | Workflow glob downstream | test |
 | Workflow ordered reinclude downstream | test |

@@ -1,0 +1,10 @@
+name: Workflow-run self cycle # Expected: no alert; direct self-cycle is rejected.
+on:
+  workflow_run:
+    workflows: [Workflow-run self cycle]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ${{ github.event.workflow_run.head_branch }}

@@ -1,0 +1,11 @@
+name: Rooted cycle A # Expected: the first return from B is accepted from the external root.
+on:
+  issues:
+  workflow_run:
+    workflows: [Rooted cycle B]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo rooted-a

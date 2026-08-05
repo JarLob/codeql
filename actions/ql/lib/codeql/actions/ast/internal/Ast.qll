@@ -1839,6 +1839,18 @@ class EventImpl extends AstNodeImpl, TEventNode {
     )
   }
 
+  /** Holds if this event and `other` belong to workflows with the same name. */
+  private predicate hasSameWorkflowNameAs(EventImpl other) {
+    this.getEnclosingWorkflow().getName().toLowerCase() =
+      other.getEnclosingWorkflow().getName().toLowerCase()
+  }
+
+  /** Holds if this event and `other` belong to workflows at the same repository path. */
+  private predicate hasSameWorkflowPathAs(EventImpl other) {
+    this.getEnclosingWorkflow().getLocation().getFile().getRelativePath().toLowerCase() =
+      other.getEnclosingWorkflow().getLocation().getFile().getRelativePath().toLowerCase()
+  }
+
   /** Gets a local workflow matched by this `workflow_run` event. */
   WorkflowImpl getALocalWorkflowRunSource() {
     this.getName() = "workflow_run" and
@@ -1859,8 +1871,6 @@ class EventImpl extends AstNodeImpl, TEventNode {
       not exists(this.getAPropertyValue("workflows"))
       or
       not this.hasValidPropertyGlobSequence("workflows", true)
-      or
-      this.getALocalWorkflowRunSource() = this.getEnclosingWorkflow()
     )
   }
 
@@ -1936,10 +1946,8 @@ class EventImpl extends AstNodeImpl, TEventNode {
    * Holds if an externally triggered run for `sourceEvent` can pass this `workflow_run` event's
    * branch and source-repository filters.
    */
-  private predicate externalSourceEventPassesWorkflowRunFilters(EventImpl sourceEvent) {
-    sourceEvent.isExternallyTriggerable() and
+  private predicate sourceEventPassesExternalWorkflowRunFilters(EventImpl sourceEvent) {
     sourceEvent.hasExternallyTriggerableActivityType() and
-    this.sourceEventPassesWorkflowRunBranchPatterns(sourceEvent) and
     (
       not this.hasProperty("branches")
       or
@@ -1952,15 +1960,65 @@ class EventImpl extends AstNodeImpl, TEventNode {
     this.getName() = "workflow_run" and
     this.hasFeasibleWorkflowRunActivityType() and
     this.getALocalWorkflowRunSourceEvent() = sourceEvent and
+    not this.hasSameWorkflowNameAs(sourceEvent) and
+    not this.hasSameWorkflowPathAs(sourceEvent) and
     this.sourceEventPassesWorkflowRunBranchPatterns(sourceEvent)
+  }
+
+  /** Holds if this workflow-run edge passes filters that depend on the source event. */
+  private predicate acceptsExternalWorkflowRunSourceEdge(EventImpl sourceEvent) {
+    this.acceptsWorkflowRunSourceEvent(sourceEvent) and
+    this.sourceEventPassesExternalWorkflowRunFilters(sourceEvent)
+  }
+
+  /**
+   * Holds if this event is a known external root for a workflow-run chain. An unresolved
+   * `workflow_run` source remains a root because its runtime ancestry is unavailable.
+   */
+  private predicate isExternalWorkflowRunChainRoot() {
+    this.getName() != "workflow_run" and
+    externallyTriggerableEventsDataModel(this.getName())
+    or
+    this.getName() = "workflow_run" and
+    this.hasFeasibleWorkflowRunActivityType() and
+    this.hasUnresolvedWorkflowRunSource()
+  }
+
+  /**
+   * Holds if `sourceEvent` is externally reachable only at the third workflow-run level. Keeping
+   * this bound avoids enumerating third-level ancestry for sources already reachable sooner.
+   */
+  bindingset[this, sourceEvent]
+  pragma[inline_late]
+  private predicate acceptsExternalWorkflowRunSourceAtThirdLevel(EventImpl sourceEvent) {
+    not sourceEvent.isExternalWorkflowRunChainRoot() and
+    not exists(EventImpl rootEvent |
+      sourceEvent.acceptsExternalWorkflowRunSourceEdge(rootEvent) and
+      rootEvent.isExternalWorkflowRunChainRoot()
+    ) and
+    exists(EventImpl ancestorEvent, EventImpl rootEvent |
+      sourceEvent.acceptsExternalWorkflowRunSourceEdge(ancestorEvent) and
+      ancestorEvent.acceptsExternalWorkflowRunSourceEdge(rootEvent) and
+      rootEvent.isExternalWorkflowRunChainRoot() and
+      not this.hasSameWorkflowPathAs(ancestorEvent)
+    )
   }
 
   /** Holds if an external actor can trigger an accepted run for `sourceEvent`. */
   predicate acceptsExternalWorkflowRunSourceEvent(EventImpl sourceEvent) {
-    this.getName() = "workflow_run" and
-    this.hasFeasibleWorkflowRunActivityType() and
-    this.getALocalWorkflowRunSourceEvent() = sourceEvent and
-    this.externalSourceEventPassesWorkflowRunFilters(sourceEvent)
+    this.acceptsExternalWorkflowRunSourceEdge(sourceEvent) and
+    (
+      // First workflow_run level.
+      sourceEvent.isExternalWorkflowRunChainRoot()
+      or
+      // Second workflow_run level.
+      exists(EventImpl rootEvent |
+        sourceEvent.acceptsExternalWorkflowRunSourceEdge(rootEvent) and
+        rootEvent.isExternalWorkflowRunChainRoot()
+      )
+      or
+      this.acceptsExternalWorkflowRunSourceAtThirdLevel(sourceEvent)
+    )
   }
 
   /** Holds if a locally resolved source event can externally trigger this `workflow_run` event. */

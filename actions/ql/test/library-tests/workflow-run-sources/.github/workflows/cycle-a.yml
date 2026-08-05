@@ -1,0 +1,10 @@
+name: Cycle A # Expected: direct root source accepted; return from Cycle B rejected.
+on:
+  workflow_run:
+    workflows: [Cycle root, Cycle B]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo a
