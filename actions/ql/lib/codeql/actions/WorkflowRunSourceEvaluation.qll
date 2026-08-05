@@ -45,6 +45,7 @@ predicate mayExecuteForSource(AstNode node, Event event, Event sourceEvent) {
 /** Holds if `node` may execute in an externally triggered workflow-run source context. */
 predicate mayExecuteForExternalSource(AstNode node, Event event) {
   event.getName() = "workflow_run" and
+  event.hasFeasibleWorkflowRunActivityType() and
   (
     exists(Event sourceEvent |
       event.acceptsExternalWorkflowRunSourceEvent(sourceEvent) and
@@ -79,6 +80,7 @@ predicate workflowRunAwareMayCoExecute(AstNode left, AstNode right, Event event)
   IntegratedCfg::mayCoExecuteForEvent(left, right, event)
   or
   event.getName() = "workflow_run" and
+  event.hasFeasibleWorkflowRunActivityType() and
   (
     exists(Event sourceEvent |
       event.acceptsExternalWorkflowRunSourceEvent(sourceEvent) and

@@ -1,0 +1,15 @@
+name: Privileged activity source # Expected: each configured activity requires repository privileges.
+on:
+  discussion:
+    types: [labeled]
+  pull_request:
+    types: [labeled]
+  pull_request_target:
+    types: [labeled]
+  pull_request_review:
+    types: [dismissed]
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

@@ -45,6 +45,9 @@ extensible predicate contextTriggerDataModel(string trigger, string context_pref
  */
 extensible predicate externallyTriggerableEventsDataModel(string event);
 
+/** Holds if an activity for the given trigger event requires repository privileges. */
+extensible predicate privilegedEventActivityDataModel(string event, string activity);
+
 /**
  * Holds for strings that match poisonable commands.
  */

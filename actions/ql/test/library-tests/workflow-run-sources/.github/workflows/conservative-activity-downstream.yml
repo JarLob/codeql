@@ -1,0 +1,10 @@
+name: Conservative activity downstream # Expected: globbed and unknown source activities fail open.
+on:
+  workflow_run:
+    workflows: [Pattern activity source, Unknown activity source]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream
