@@ -1,0 +1,9 @@
+name: Issues labeled source # Expected: labeling requires repository privileges.
+on:
+  issues:
+    types: [labeled]
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

@@ -345,6 +345,11 @@ class Event extends AstNode instanceof EventImpl {
 
   string getAnActivityType() { result = super.getAnActivityType() }
 
+  /** Holds if a run with `activity` can pass this event's explicit or default type filters. */
+  bindingset[activity]
+  pragma[inline_late]
+  predicate acceptsActivityType(string activity) { super.acceptsActivityType(activity) }
+
   string getAPropertyValue(string prop) { result = super.getAPropertyValue(prop) }
 
   predicate hasProperty(string prop) { super.hasProperty(prop) }
@@ -357,6 +362,9 @@ class Event extends AstNode instanceof EventImpl {
 
   /** Holds if at least one named workflow-run source is not locally resolvable. */
   predicate hasUnresolvedWorkflowRunSource() { super.hasUnresolvedWorkflowRunSource() }
+
+  /** Holds if this `workflow_run` event can be delivered for a supported activity. */
+  predicate hasFeasibleWorkflowRunActivityType() { super.hasFeasibleWorkflowRunActivityType() }
 
   /** Holds if `sourceEvent` can pass this `workflow_run` event's trigger filters. */
   predicate acceptsWorkflowRunSourceEvent(Event sourceEvent) {

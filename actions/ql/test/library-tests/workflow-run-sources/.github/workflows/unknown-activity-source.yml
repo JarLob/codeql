@@ -1,0 +1,9 @@
+name: Unknown activity source # Expected: future activities remain conservatively external.
+on:
+  issues:
+    types: [future_activity]
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

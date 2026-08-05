@@ -1,0 +1,10 @@
+name: Requested downstream # Expected: requested is a supported workflow_run activity.
+on:
+  workflow_run:
+    workflows: [Issues source]
+    types: [requested]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

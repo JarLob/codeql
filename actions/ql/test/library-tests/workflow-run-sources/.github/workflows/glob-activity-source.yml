@@ -1,0 +1,11 @@
+name: Pattern activity source # Expected: globbed and negative-only activities remain external.
+on:
+  discussion:
+    types: ['!created']
+  issues:
+    types: ['label*']
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

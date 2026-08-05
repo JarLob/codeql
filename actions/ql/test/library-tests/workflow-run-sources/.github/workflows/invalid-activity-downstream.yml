@@ -1,0 +1,10 @@
+name: Invalid activity downstream # Expected: no workflow_run delivery can have this activity.
+on:
+  workflow_run:
+    workflows: [Issues source]
+    types: [labeled]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

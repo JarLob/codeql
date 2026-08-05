@@ -47,13 +47,28 @@ invalidGlob
 negativeGlob
 | !foo | foo |
 localSources
+| Activity downstream | Issues labeled source | issues |
+| Activity downstream | Issues opened source | issues |
 | Branch case-sensitive downstream | Issues source | issues |
 | Branch ignore ordered downstream | Issues source | issues |
 | Branch invalid downstream | Issues source | issues |
 | Branch ordered exclude downstream | Issues source | issues |
 | Branch ordered reinclude downstream | Issues source | issues |
 | Branch postfix downstream | Issues source | issues |
+| Conservative activity downstream | Pattern activity source | discussion |
+| Conservative activity downstream | Pattern activity source | issues |
+| Conservative activity downstream | Unknown activity source | issues |
+| Default activity downstream | Issues source | issues |
+| Invalid activity downstream | Issues source | issues |
 | Issues downstream | Issues source | issues |
+| Mixed activity downstream | External activity source | discussion |
+| Mixed activity downstream | External activity source | pull_request |
+| Mixed activity downstream | External activity source | pull_request_review |
+| Mixed activity downstream | External activity source | pull_request_target |
+| Mixed activity downstream | Privileged activity source | discussion |
+| Mixed activity downstream | Privileged activity source | pull_request |
+| Mixed activity downstream | Privileged activity source | pull_request_review |
+| Mixed activity downstream | Privileged activity source | pull_request_target |
 | Mixed downstream | Mixed source | issues |
 | Mixed downstream | Mixed source | push |
 | Multiple-source downstream | Multi source alpha | issues |
@@ -69,21 +84,27 @@ localSources
 | PR unfiltered downstream | PR source | pull_request_review_comment |
 | Push downstream | Push source | push |
 | Recursive downstream | PR unfiltered downstream | workflow_run |
+| Requested downstream | Issues source | issues |
 | Workflow glob downstream | Glob source | issues |
 | Workflow ordered reinclude downstream | Glob source | issues |
 externallyTriggerable
+| Activity downstream |
 | Branch ignore ordered downstream |
 | Branch invalid downstream |
 | Branch ordered reinclude downstream |
 | Branch postfix downstream |
+| Conservative activity downstream |
+| Default activity downstream |
 | Invalid workflow glob downstream |
 | Issues downstream |
+| Mixed activity downstream |
 | Mixed downstream |
 | Multiple-source downstream |
 | PR branches downstream |
 | PR branches-ignore downstream |
 | PR unfiltered downstream |
 | Recursive downstream |
+| Requested downstream |
 | Workflow glob downstream |
 | Workflow ordered reinclude downstream |
 externallyAcceptedPrSources
@@ -95,19 +116,51 @@ externallyAcceptedPrSources
 | PR unfiltered downstream | pull_request |
 | PR unfiltered downstream | pull_request_review |
 | PR unfiltered downstream | pull_request_review_comment |
+activityFilteredSources
+| Activity downstream | Issues opened source | issues |
+| Conservative activity downstream | Pattern activity source | discussion |
+| Conservative activity downstream | Pattern activity source | issues |
+| Conservative activity downstream | Unknown activity source | issues |
+| Mixed activity downstream | External activity source | discussion |
+| Mixed activity downstream | External activity source | pull_request |
+| Mixed activity downstream | External activity source | pull_request_review |
+| Mixed activity downstream | External activity source | pull_request_target |
+| Requested downstream | Issues source | issues |
+sourceEventExternality
+| Issues labeled source |
+| Issues opened source |
+| Issues source |
+acceptedActivityTypes
+| Default activity downstream | workflow_run | completed |
+| Default activity downstream | workflow_run | in_progress |
+| Default activity downstream | workflow_run | requested |
+| Invalid activity downstream | workflow_run | labeled |
+| Issues labeled source | issues | labeled |
+| Issues opened source | issues | opened |
+| Issues source | issues | labeled |
+| Issues source | issues | opened |
+| PR source | pull_request | opened |
+| Requested downstream | workflow_run | requested |
+feasibleWorkflowRunActivity
+| Requested downstream |
 unresolvedSource
 | Invalid workflow glob downstream |
+| Unresolved invalid activity downstream |
 sourceConditionFeasible
 | Mixed downstream | issues-only | issues |
 | Mixed downstream | not-pr | issues |
 | Mixed downstream | not-pr | push |
 externalSourceExecution
+| Activity downstream | test |
 | Branch ignore ordered downstream | test |
 | Branch invalid downstream | test |
 | Branch ordered reinclude downstream | test |
 | Branch postfix downstream | test |
+| Conservative activity downstream | test |
+| Default activity downstream | test |
 | Invalid workflow glob downstream | test |
 | Issues downstream | test |
+| Mixed activity downstream | test |
 | Mixed downstream | issues-only |
 | Mixed downstream | not-pr |
 | Multiple-source downstream | test |
@@ -115,5 +168,6 @@ externalSourceExecution
 | PR branches-ignore downstream | test |
 | PR unfiltered downstream | test |
 | Recursive downstream | test |
+| Requested downstream | test |
 | Workflow glob downstream | test |
 | Workflow ordered reinclude downstream | test |

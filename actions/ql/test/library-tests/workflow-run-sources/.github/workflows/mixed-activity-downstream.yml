@@ -1,0 +1,10 @@
+name: Mixed activity downstream # Expected: only outsider-performable source activities are accepted.
+on:
+  workflow_run:
+    workflows: [External activity source, Privileged activity source]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

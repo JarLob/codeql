@@ -95,6 +95,16 @@ predicate externallyTriggerableEventsDataModel(string event) {
   Extensions::externallyTriggerableEventsDataModel(event)
 }
 
+/**
+ * MaD models for event activities that require repository privileges.
+ * Fields:
+ *    - event: Event name
+ *    - activity: Activity name
+ */
+predicate privilegedEventActivityDataModel(string event, string activity) {
+  Extensions::privilegedEventActivityDataModel(event, activity)
+}
+
 private string commandLauncher() { result = ["", "sudo\\s+", "su\\s+", "xvfb-run\\s+"] }
 
 /**
