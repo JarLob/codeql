@@ -1,0 +1,9 @@
+name: Issues opened source # Expected: an external actor can open an issue.
+on:
+  issues:
+    types: [opened]
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

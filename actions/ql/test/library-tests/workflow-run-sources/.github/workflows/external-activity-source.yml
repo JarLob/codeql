@@ -1,0 +1,15 @@
+name: External activity source # Expected: each configured activity can be caused by an outsider.
+on:
+  discussion:
+    types: [created]
+  pull_request:
+    types: [synchronize]
+  pull_request_target:
+    types: [synchronize]
+  pull_request_review:
+    types: [submitted]
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo source

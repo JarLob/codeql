@@ -1738,6 +1738,13 @@ class EventImpl extends AstNodeImpl, TEventNode {
       n.(YamlMapping).lookup("types").(YamlMappingLikeNode).getNode(_).(YamlScalar).getValue()
   }
 
+  private predicate defaultActivityType(string event, string activity) {
+    event = ["pull_request", "pull_request_target"] and
+    activity = ["opened", "reopened", "synchronize"]
+    or
+    event = "merge_group" and activity = "checks_requested"
+  }
+
   /** Gets a string value for any property (eg: branches, branches-ignore, etc.) */
   string getAPropertyValue(string prop) { result = this.getPropertyValue(prop, _) }
 
@@ -1786,6 +1793,49 @@ class EventImpl extends AstNodeImpl, TEventNode {
         WorkflowTriggerGlob::patternMatches(this.normalizeGlobValue(laterPattern, caseInsensitive),
           normalizedInput)
       )
+    )
+  }
+
+  /** Holds if a run with `activity` can pass this event's explicit or default type filters. */
+  bindingset[activity]
+  pragma[inline_late]
+  predicate acceptsActivityType(string activity) {
+    this.hasProperty("types") and
+    this.propertyGlobSequenceIncludes("types", activity, false)
+    or
+    not this.hasProperty("types") and
+    (
+      this.defaultActivityType(this.getName(), activity)
+      or
+      not exists(string defaultActivity | this.defaultActivityType(this.getName(), defaultActivity))
+    )
+  }
+
+  /** Holds if this `workflow_run` event can be delivered for a supported activity. */
+  predicate hasFeasibleWorkflowRunActivityType() {
+    this.getName() = "workflow_run" and
+    exists(string activity |
+      activity = ["requested", "in_progress", "completed"] and
+      this.acceptsActivityType(activity)
+    )
+  }
+
+  /**
+   * Holds if this event's type filters accept an activity an external actor can perform. Events
+   * with globbed or unknown activities remain conservatively accepted.
+   */
+  private predicate hasExternallyTriggerableActivityType() {
+    not this.hasProperty("types")
+    or
+    not exists(string pattern |
+      pattern = this.getPropertyValue("types", _) and
+      not WorkflowTriggerGlob::isNegative(pattern)
+    )
+    or
+    exists(string pattern |
+      pattern = this.getPropertyValue("types", _) and
+      not WorkflowTriggerGlob::isNegative(pattern) and
+      not privilegedEventActivityDataModel(this.getName(), pattern)
     )
   }
 
@@ -1888,6 +1938,7 @@ class EventImpl extends AstNodeImpl, TEventNode {
    */
   private predicate externalSourceEventPassesWorkflowRunFilters(EventImpl sourceEvent) {
     sourceEvent.isExternallyTriggerable() and
+    sourceEvent.hasExternallyTriggerableActivityType() and
     this.sourceEventPassesWorkflowRunBranchPatterns(sourceEvent) and
     (
       not this.hasProperty("branches")
@@ -1899,6 +1950,7 @@ class EventImpl extends AstNodeImpl, TEventNode {
   /** Holds if `sourceEvent` can pass this `workflow_run` event's trigger filters. */
   predicate acceptsWorkflowRunSourceEvent(EventImpl sourceEvent) {
     this.getName() = "workflow_run" and
+    this.hasFeasibleWorkflowRunActivityType() and
     this.getALocalWorkflowRunSourceEvent() = sourceEvent and
     this.sourceEventPassesWorkflowRunBranchPatterns(sourceEvent)
   }
@@ -1906,6 +1958,7 @@ class EventImpl extends AstNodeImpl, TEventNode {
   /** Holds if an external actor can trigger an accepted run for `sourceEvent`. */
   predicate acceptsExternalWorkflowRunSourceEvent(EventImpl sourceEvent) {
     this.getName() = "workflow_run" and
+    this.hasFeasibleWorkflowRunActivityType() and
     this.getALocalWorkflowRunSourceEvent() = sourceEvent and
     this.externalSourceEventPassesWorkflowRunFilters(sourceEvent)
   }
@@ -1923,6 +1976,7 @@ class EventImpl extends AstNodeImpl, TEventNode {
     not this.getName() = "workflow_run"
     or
     this.getName() = "workflow_run" and
+    this.hasFeasibleWorkflowRunActivityType() and
     (
       this.hasUnresolvedWorkflowRunSource()
       or

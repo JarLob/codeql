@@ -1,0 +1,10 @@
+name: Unresolved invalid activity downstream # Expected: unresolved fallback cannot bypass activity filtering.
+on:
+  workflow_run:
+    workflows: ['***']
+    types: [labeled]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

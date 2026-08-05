@@ -97,6 +97,76 @@ query predicate externallyAcceptedPrSources(string workflow, string sourceEvent)
   )
 }
 
+query predicate activityFilteredSources(string workflow, string sourceWorkflow, string sourceEvent) {
+  exists(Event event, Event source |
+    workflow =
+      [
+        "Activity downstream", "Conservative activity downstream", "Invalid activity downstream",
+        "Mixed activity downstream", "Requested downstream"
+      ] and
+    event.getName() = "workflow_run" and
+    workflow = event.getEnclosingWorkflow().getName() and
+    source = event.getALocalWorkflowRunSourceEvent() and
+    sourceWorkflow = source.getEnclosingWorkflow().getName() and
+    sourceEvent = source.getName() and
+    event.acceptsExternalWorkflowRunSourceEvent(source)
+  )
+}
+
+query predicate sourceEventExternality(string workflow) {
+  workflow = ["Issues source", "Issues labeled source", "Issues opened source"] and
+  exists(Event event |
+    workflow = event.getEnclosingWorkflow().getName() and
+    event.getName() = "issues" and
+    event.isExternallyTriggerable()
+  )
+}
+
+query predicate acceptedActivityTypes(string workflow, string eventName, string activity) {
+  (
+    workflow = "Issues source" and eventName = "issues" and activity = ["opened", "labeled"]
+    or
+    workflow = "Issues labeled source" and
+    eventName = "issues" and
+    activity = ["opened", "labeled"]
+    or
+    workflow = "Issues opened source" and
+    eventName = "issues" and
+    activity = ["opened", "labeled"]
+    or
+    workflow = "PR source" and eventName = "pull_request" and activity = ["opened", "closed"]
+    or
+    workflow = "Default activity downstream" and
+    eventName = "workflow_run" and
+    activity = ["requested", "in_progress", "completed"]
+    or
+    workflow = "Requested downstream" and
+    eventName = "workflow_run" and
+    activity = ["requested", "completed"]
+    or
+    workflow = "Invalid activity downstream" and
+    eventName = "workflow_run" and
+    activity = ["labeled", "completed"]
+  ) and
+  exists(Event event |
+    workflow = event.getEnclosingWorkflow().getName() and
+    eventName = event.getName() and
+    event.acceptsActivityType(activity)
+  )
+}
+
+query predicate feasibleWorkflowRunActivity(string workflow) {
+  exists(Event event |
+    workflow =
+      [
+        "Invalid activity downstream", "Requested downstream",
+        "Unresolved invalid activity downstream"
+      ] and
+    workflow = event.getEnclosingWorkflow().getName() and
+    event.hasFeasibleWorkflowRunActivityType()
+  )
+}
+
 query predicate unresolvedSource(string workflow) {
   exists(Event event |
     event.getName() = "workflow_run" and

@@ -1,0 +1,9 @@
+name: Default activity downstream # Expected: all workflow_run activities are enabled by default.
+on:
+  workflow_run:
+    workflows: [Issues source]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream

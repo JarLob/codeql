@@ -1,0 +1,10 @@
+name: Activity downstream # Expected: only the opened source is externally accepted.
+on:
+  workflow_run:
+    workflows: [Issues labeled source, Issues opened source]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream
