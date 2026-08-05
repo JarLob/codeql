@@ -1,0 +1,15 @@
+name: Programmatic repository dispatch type negative target
+
+on:
+  repository_dispatch:
+    types: [release]
+
+permissions:
+  contents: write
+
+jobs:
+  consume:
+    runs-on: ubuntu-latest
+    steps:
+      # Not expected: the dispatched event type is `security-scan`, not `release`.
+      - run: echo '${{ github.event.client_payload.message }}'

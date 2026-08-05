@@ -1,6 +1,7 @@
 private import codeql.util.Unit
 private import codeql.dataflow.DataFlow
 private import codeql.actions.Ast
+private import codeql.actions.ProgrammaticDispatch
 private import codeql.actions.Cfg as Cfg
 private import codeql.Locations
 private import codeql.actions.controlflow.BasicBlocks
@@ -317,6 +318,48 @@ predicate simpleLocalFlowStep(Node nodeFrom, Node nodeTo, string model) {
   localFlowStep(nodeFrom, nodeTo) and model = ""
 }
 
+bindingset[nodeFrom, nodeTo]
+pragma[inline_late]
+private predicate dispatchInputJumpStep(Node nodeFrom, Node nodeTo) {
+  exists(WorkflowDispatchStep dispatch, Input input |
+    input = dispatch.getTargetEvent().getInput(_) and
+    nodeFrom.asExpr() = dispatch.getInputExpr(input.getName()) and
+    (
+      exists(InputsExpression access | access.getTarget() = input and nodeTo.asExpr() = access)
+      or
+      exists(WorkflowDispatchInputAccessExpression access |
+        access = nodeTo.asExpr() and
+        access.getEvent() = dispatch.getTargetEvent() and
+        access.getInputName() = input.getName().toLowerCase()
+      )
+    )
+  )
+}
+
+bindingset[nodeFrom, nodeTo]
+pragma[inline_late]
+private predicate repositoryDispatchPayloadJumpStep(Node nodeFrom, Node nodeTo) {
+  exists(
+    RepositoryDispatchStep dispatch, RepositoryDispatchPayloadExpression payload,
+    RepositoryDispatchPayloadAccessExpression access, string payloadName, string payloadText,
+    string key, int keyOffset, int expressionOffset, string between
+  |
+    payload = nodeFrom.asExpr() and
+    dispatch = payload.getDispatch() and
+    access = nodeTo.asExpr() and
+    access.getEvent() = dispatch.getTargetEvent() and
+    payloadName = access.getPayloadName() and
+    payloadText = dispatch.getArgument("client-payload") and
+    key = "\"" + payloadName + "\"" and
+    keyOffset = payloadText.indexOf(key) and
+    expressionOffset = payloadText.indexOf(payload.getRawExpression()) and
+    keyOffset >= 0 and
+    expressionOffset > keyOffset + key.length() and
+    between = payloadText.substring(keyOffset + key.length(), expressionOffset) and
+    between.trim() = [":", ":\""]
+  )
+}
+
 /**
  * Holds if data can flow from `node1` to `node2` through a non-local step
  * that does not follow a call edge. For example, a step through a global
@@ -325,7 +368,10 @@ predicate simpleLocalFlowStep(Node nodeFrom, Node nodeTo, string model) {
  * AKA teleport steps
  * local steps are preferible since they are more predictable and easier to control
  */
-predicate jumpStep(Node nodeFrom, Node nodeTo) { none() }
+predicate jumpStep(Node nodeFrom, Node nodeTo) {
+  dispatchInputJumpStep(nodeFrom, nodeTo) or
+  repositoryDispatchPayloadJumpStep(nodeFrom, nodeTo)
+}
 
 /**
  * Holds if a Expression reads a field from a job (needs/jobs), step (steps) output via a read of `c` (fieldname)

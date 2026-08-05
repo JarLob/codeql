@@ -1,0 +1,20 @@
+name: Programmatic dispatch negative caller
+
+on:
+  issue_comment:
+
+permissions:
+  actions: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: programmatic-dispatch-negative-target.yml
+          inputs: |
+            {
+              "message": "constant",
+              "safe": ${{ toJSON(github.event.comment.body) }}
+            }

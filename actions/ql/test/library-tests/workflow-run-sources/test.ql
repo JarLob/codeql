@@ -81,7 +81,7 @@ query predicate externallyTriggerable(string workflow) {
   exists(Event event |
     event.getName() = "workflow_run" and
     workflow = event.getEnclosingWorkflow().getName() and
-    event.isExternallyTriggerable()
+    isExternalInputRelevant(event)
   )
 }
 
@@ -93,7 +93,7 @@ query predicate externallyAcceptedPrSources(string workflow, string sourceEvent)
     workflow = event.getEnclosingWorkflow().getName() and
     source = event.getALocalWorkflowRunSourceEvent() and
     sourceEvent = source.getName() and
-    event.acceptsExternalWorkflowRunSourceEvent(source)
+    event.acceptsExternalInputWorkflowRunSourceEvent(source)
   )
 }
 
@@ -109,7 +109,7 @@ query predicate boundedExternalSources(string workflow, string sourceWorkflow, s
     source = event.getALocalWorkflowRunSourceEvent() and
     sourceWorkflow = source.getEnclosingWorkflow().getName() and
     sourceEvent = source.getName() and
-    event.acceptsExternalWorkflowRunSourceEvent(source)
+    event.acceptsExternalInputWorkflowRunSourceEvent(source)
   )
 }
 
@@ -125,7 +125,7 @@ query predicate activityFilteredSources(string workflow, string sourceWorkflow, 
     source = event.getALocalWorkflowRunSourceEvent() and
     sourceWorkflow = source.getEnclosingWorkflow().getName() and
     sourceEvent = source.getName() and
-    event.acceptsExternalWorkflowRunSourceEvent(source)
+    event.acceptsExternalInputWorkflowRunSourceEvent(source)
   )
 }
 
@@ -134,7 +134,23 @@ query predicate sourceEventExternality(string workflow) {
   exists(Event event |
     workflow = event.getEnclosingWorkflow().getName() and
     event.getName() = "issues" and
-    event.isExternallyTriggerable()
+    isExternalInputRelevant(event)
+  )
+}
+
+query predicate directlyExternallyTriggerableEvent(string eventName) {
+  exists(Event event |
+    event.getEnclosingWorkflow().getName() = "External input events" and
+    eventName = event.getName() and
+    event.isDirectlyExternallyTriggerable()
+  )
+}
+
+query predicate externalInputRelevantEvent(string eventName) {
+  exists(Event event |
+    event.getEnclosingWorkflow().getName() = "External input events" and
+    eventName = event.getName() and
+    isExternalInputRelevant(event)
   )
 }
 
@@ -209,6 +225,6 @@ query predicate externalSourceExecution(string workflow, string job) {
     job = localJob.getId() and
     event = localJob.getATriggerEvent() and
     event.getName() = "workflow_run" and
-    workflowRunAwarePrivilegedContext(localJob, event)
+    workflowRunAwarePrivilegedExternalInputContext(localJob, event)
   )
 }

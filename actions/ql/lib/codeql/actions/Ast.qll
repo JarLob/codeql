@@ -223,6 +223,9 @@ class Workflow extends AstNode instanceof WorkflowImpl {
   Strategy getStrategy() { result = super.getStrategy() }
 
   On getOn() { result = super.getOn() }
+
+  /** Holds if this workflow and `other` belong to the same repository. */
+  predicate isInSameRepositoryAs(Workflow other) { super.isInSameRepositoryAs(other) }
 }
 
 class ReusableWorkflow extends Workflow instanceof ReusableWorkflowImpl {
@@ -247,7 +250,9 @@ class ReusableWorkflow extends Workflow instanceof ReusableWorkflowImpl {
   ExternalJob getACaller() { result = super.getACaller() }
 }
 
-class Input extends AstNode instanceof InputImpl { }
+class Input extends AstNode instanceof InputImpl {
+  string getName() { result = super.getName() }
+}
 
 class Default extends AstNode instanceof DefaultsImpl {
   ScalarValue getValue(string name, string prop) { result = super.getValue(name, prop) }
@@ -354,6 +359,9 @@ class Event extends AstNode instanceof EventImpl {
 
   predicate hasProperty(string prop) { super.hasProperty(prop) }
 
+  /** Gets an input declared by this `workflow_dispatch` event. */
+  Input getInput(string inputName) { result = super.getInput(inputName) }
+
   /** Gets a local workflow named by this `workflow_run` event. */
   Workflow getALocalWorkflowRunSource() { result = super.getALocalWorkflowRunSource() }
 
@@ -371,12 +379,19 @@ class Event extends AstNode instanceof EventImpl {
     super.acceptsWorkflowRunSourceEvent(sourceEvent)
   }
 
-  /** Holds if an external actor can trigger an accepted run for `sourceEvent`. */
-  predicate acceptsExternalWorkflowRunSourceEvent(Event sourceEvent) {
-    super.acceptsExternalWorkflowRunSourceEvent(sourceEvent)
+  /** Holds if an accepted run for `sourceEvent` can expose externally controlled input. */
+  predicate acceptsExternalInputWorkflowRunSourceEvent(Event sourceEvent) {
+    super.acceptsExternalInputWorkflowRunSourceEvent(sourceEvent)
   }
 
-  predicate isExternallyTriggerable() { super.isExternallyTriggerable() }
+  /** Holds if an external actor can directly initiate this event. */
+  predicate isDirectlyExternallyTriggerable() { super.isDirectlyExternallyTriggerable() }
+
+  /** Holds if this event is an external-input-relevant context without dispatch propagation. */
+  predicate isExternalInputRelevant() { super.isExternalInputRelevant() }
+
+  /** Compatibility alias for the original, broader predicate name. */
+  deprecated predicate isExternallyTriggerable() { super.isExternalInputRelevant() }
 
   predicate isPrivileged() { super.isPrivileged() }
 }
@@ -454,11 +469,11 @@ abstract class Job extends AstNode instanceof JobImpl {
    */
   predicate isPrivilegedForEvent(Event event) { super.isPrivilegedForEvent(event) }
 
-  /**
-   * Holds if this job is privileged for `event` and an external actor can trigger that event.
-   */
-  predicate isPrivilegedExternallyTriggerable(Event event) {
-    super.isPrivilegedExternallyTriggerable(event)
+  /** Compatibility alias for the original predicate name. */
+  deprecated predicate isPrivilegedExternallyTriggerable(Event event) {
+    this.getATriggerEvent() = event and
+    event.isExternalInputRelevant() and
+    this.isPrivilegedForEvent(event)
   }
 }
 

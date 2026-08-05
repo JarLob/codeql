@@ -1,0 +1,19 @@
+name: Programmatic dispatch caller
+
+on:
+  issue_comment:
+
+permissions:
+  actions: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: programmatic-dispatch-target.yml
+          inputs: |
+            {
+              "message": ${{ toJSON(github.event.comment.body) }}
+            }

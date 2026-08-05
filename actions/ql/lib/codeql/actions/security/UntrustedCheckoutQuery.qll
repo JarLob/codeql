@@ -536,7 +536,7 @@ predicate knownImproperCheckoutAuthorization(
       event.hasUnresolvedWorkflowRunSource() and check.appliesToEvent(event)
       or
       exists(Event sourceEvent |
-        event.acceptsExternalWorkflowRunSourceEvent(sourceEvent) and
+        event.acceptsExternalInputWorkflowRunSourceEvent(sourceEvent) and
         check.appliesToWorkflowRunSource(event, sourceEvent) and
         workflowRunSourceMayCoExecute(check, checkout, event, sourceEvent)
       )
@@ -655,13 +655,13 @@ private predicate criticalSeverityCheckout(
   // The checkout and execution can occur for the same external source event in privileged jobs.
   checkout.getEnclosingJob().isPrivilegedForEvent(event) and
   poisonable.getEnclosingJob().isPrivilegedForEvent(event) and
-  workflowRunAwareMayCoExecute(checkout, poisonable, event)
+  workflowRunAwareMayCoExecuteForExternalInput(checkout, poisonable, event)
 }
 
 private predicate highSeverityCheckout(PRHeadCheckoutStep checkout, Event event) {
   IntegratedCfg::mayExecuteForEvent(checkout, event) and
   // The checkout occurs in a privileged context.
-  workflowRunAwarePrivilegedContext(checkout, event) and
+  workflowRunAwarePrivilegedExternalInputContext(checkout, event) and
   // There is no evidence that the checked-out code is executed.
   not exists(PoisonableStep poisonable |
     checkoutMayLeadToCodeExecution(checkout, poisonable, event)
@@ -687,12 +687,12 @@ predicate highSeverityUntrustedCheckout(PRHeadCheckoutStep checkout, Event event
 /** Holds if `checkout` forms a medium ordinary untrusted-checkout finding. */
 predicate mediumSeverityUntrustedCheckout(PRHeadCheckoutStep checkout) {
   // The checkout occurs in a non-privileged context.
-  workflowRunAwareNonPrivilegedContext(checkout) and
+  workflowRunAwareNonPrivilegedExternalInputContext(checkout) and
   mayExecuteUnsafeCheckout(checkout) and
   (
     exists(Event event |
       classifiedAsUntrustedCheckout(checkout, event) and
-      workflowRunAwareExternallyTriggerableContext(checkout, event)
+      workflowRunAwareExternalInputContext(checkout, event)
     )
     or
     // Reusable workflows without a modeled caller may not expose a concrete trigger event. Keep

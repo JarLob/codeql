@@ -18,7 +18,7 @@ from AuthorizationAttemptCheck check, PRHeadCheckoutStep checkout, Event event
 where
   knownImproperCheckoutAuthorization(checkout, event, check) and
   // Preserve the query's existing high-severity privileged-context threshold.
-  workflowRunAwarePrivilegedContext(checkout, event)
+  workflowRunAwarePrivilegedExternalInputContext(checkout, event)
 select checkout,
   "The authorization check $@ does not prevent untrusted code from running in a privileged context.",
   check, check.toString()

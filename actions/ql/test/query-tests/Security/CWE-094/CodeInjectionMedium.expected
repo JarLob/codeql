@@ -110,6 +110,9 @@ edges
 | .github/workflows/matrix_expression_syntax.yml:31:24:31:55 | github.event.comment.body | .github/workflows/matrix_expression_syntax.yml:34:21:34:50 | matrix.object.nested[0] | provenance |  |
 | .github/workflows/matrix_include.yml:12:23:12:54 | github.event.comment.body | .github/workflows/matrix_include.yml:14:21:14:41 | matrix.payload | provenance |  |
 | .github/workflows/matrix_include.yml:20:19:20:60 | fromJSON(github.event.comment.body) | .github/workflows/matrix_include.yml:22:21:22:41 | matrix.payload | provenance |  |
+| .github/workflows/programmatic-dispatch-caller.yml:18:26:18:65 | toJSON(github.event.comment.body) | .github/workflows/programmatic-dispatch-target.yml:18:21:18:41 | inputs.message | provenance |  |
+| .github/workflows/programmatic-dispatch-caller.yml:18:26:18:65 | toJSON(github.event.comment.body) | .github/workflows/programmatic-dispatch-target.yml:20:21:20:54 | github.event.inputs.message | provenance |  |
+| .github/workflows/programmatic-repository-dispatch-caller.yml:18:26:18:65 | toJSON(github.event.comment.body) | .github/workflows/programmatic-repository-dispatch-target.yml:15:21:15:62 | github.event.client_payload.message | provenance |  |
 | .github/workflows/reusable-workflow-1.yml:6:7:6:11 | input taint | .github/workflows/reusable-workflow-1.yml:36:21:36:39 | inputs.taint | provenance |  |
 | .github/workflows/reusable-workflow-1.yml:44:19:44:56 | github.event.pull_request.title | .github/workflows/reusable-workflow-1.yml:53:26:53:39 | env.log | provenance |  |
 | .github/workflows/reusable-workflow-1.yml:45:24:45:61 | github.event.changes.title.from | .github/workflows/reusable-workflow-1.yml:66:34:66:52 | env.prev_log | provenance |  |
@@ -467,6 +470,11 @@ nodes
 | .github/workflows/output_gated_control_check.yml:25:21:25:58 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
 | .github/workflows/parallel-code-injection.yml:13:25:13:56 | github.event.comment.body | semmle.label | github.event.comment.body |
 | .github/workflows/priv_pull_request.yml:14:21:14:57 | github.event.pull_request.body | semmle.label | github.event.pull_request.body |
+| .github/workflows/programmatic-dispatch-caller.yml:18:26:18:65 | toJSON(github.event.comment.body) | semmle.label | toJSON(github.event.comment.body) |
+| .github/workflows/programmatic-dispatch-target.yml:18:21:18:41 | inputs.message | semmle.label | inputs.message |
+| .github/workflows/programmatic-dispatch-target.yml:20:21:20:54 | github.event.inputs.message | semmle.label | github.event.inputs.message |
+| .github/workflows/programmatic-repository-dispatch-caller.yml:18:26:18:65 | toJSON(github.event.comment.body) | semmle.label | toJSON(github.event.comment.body) |
+| .github/workflows/programmatic-repository-dispatch-target.yml:15:21:15:62 | github.event.client_payload.message | semmle.label | github.event.client_payload.message |
 | .github/workflows/pull_request_review.yml:7:19:7:56 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
 | .github/workflows/pull_request_review.yml:8:19:8:55 | github.event.pull_request.body | semmle.label | github.event.pull_request.body |
 | .github/workflows/pull_request_review.yml:9:19:9:61 | github.event.pull_request.head.label | semmle.label | github.event.pull_request.head.label |

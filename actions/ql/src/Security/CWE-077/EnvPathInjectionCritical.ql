@@ -21,7 +21,7 @@ import codeql.actions.security.ControlChecks
 from EnvPathInjectionFlow::PathNode source, EnvPathInjectionFlow::PathNode sink, Event event
 where
   EnvPathInjectionFlow::flowPath(source, sink) and
-  source.getNode().(RemoteFlowSource).getEventName() = event.getName() and
+  source.getNode().(RemoteFlowSource).mayInfluenceEvent(event) and
   sinkMayExecuteForEvent(sink.getNode(), event) and
   (
     not source.getNode().(RemoteFlowSource).getSourceType() = "artifact" and

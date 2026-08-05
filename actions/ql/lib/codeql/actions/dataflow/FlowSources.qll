@@ -2,6 +2,7 @@ private import codeql.actions.security.ArtifactDownloadSteps
 private import codeql.actions.security.UntrustedCheckoutQuery
 private import codeql.actions.config.Config
 private import codeql.actions.DataFlow
+private import codeql.actions.ProgrammaticDispatch as Dispatch
 private import codeql.actions.dataflow.ExternalFlow
 
 /**
@@ -21,6 +22,13 @@ abstract class RemoteFlowSource extends SourceNode {
 
   /** Gets the event that triggered the source. */
   abstract string getEventName();
+
+  /** Holds if this source may influence an execution triggered by `event`. */
+  bindingset[this, event]
+  pragma[inline_late]
+  predicate mayInfluenceEvent(Event event) {
+    this.getEventName() = Dispatch::getADispatchCallerEvent*(event).getName()
+  }
 
   override string getThreatModel() { result = "remote" }
 }

@@ -31,7 +31,7 @@ where
     // exists a poisonable upload artifact in the same workflow
     exists(UsesStep checkout, PoisonableStep poison, UsesStep upload |
       download.getEnclosingWorkflow().getAJob().(LocalJob).getAContainedStep() = checkout and
-      workflowRunAwarePrivilegedContext(download, event) and
+      workflowRunAwarePrivilegedExternalInputContext(download, event) and
       checkout.getCallee() = "actions/checkout" and
       checkout.getAFollowingStep() = poison and
       IntegratedCfg::orderedStepsMayReachForEvent(checkout, poison, event) and

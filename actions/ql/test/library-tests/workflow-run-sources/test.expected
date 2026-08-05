@@ -156,6 +156,12 @@ sourceEventExternality
 | Issues labeled source |
 | Issues opened source |
 | Issues source |
+directlyExternallyTriggerableEvent
+| issue_comment |
+externalInputRelevantEvent
+| issue_comment |
+| schedule |
+| workflow_dispatch |
 acceptedActivityTypes
 | Default activity downstream | workflow_run | completed |
 | Default activity downstream | workflow_run | in_progress |

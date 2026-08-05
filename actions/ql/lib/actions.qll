@@ -1,2 +1,3 @@
 import codeql.actions.Ast
+import codeql.actions.ProgrammaticDispatch
 import codeql.actions.WorkflowRunSourceEvaluation

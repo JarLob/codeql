@@ -1,0 +1,21 @@
+name: Programmatic dispatch negative target
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        required: true
+        type: string
+      safe:
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  consume:
+    runs-on: ubuntu-latest
+    steps:
+      # Not expected: attacker-controlled data is dispatched only to `inputs.safe`.
+      - run: echo '${{ github.event.inputs.message }}'

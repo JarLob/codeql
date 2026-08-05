@@ -22,7 +22,7 @@ import codeql.actions.security.ControlChecks
 from EnvVarInjectionFlow::PathNode source, EnvVarInjectionFlow::PathNode sink, Event event
 where
   EnvVarInjectionFlow::flowPath(source, sink) and
-  source.getNode().(RemoteFlowSource).getEventName() = event.getName() and
+  source.getNode().(RemoteFlowSource).mayInfluenceEvent(event) and
   sinkMayExecuteForEvent(sink.getNode(), event) and
   // exclude paths to file read sinks from non-artifact sources
   (

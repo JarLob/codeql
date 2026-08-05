@@ -1,4 +1,5 @@
 import codeql.actions.Ast
+import codeql.actions.ProgrammaticDispatch as Dispatch
 private import codeql.actions.ExpressionEvaluation as Evaluation
 private import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 
@@ -55,13 +56,13 @@ predicate mayExecuteForSource(AstNode node, Event event, Event sourceEvent) {
   )
 }
 
-/** Holds if `node` may execute in an externally triggered workflow-run source context. */
-predicate mayExecuteForExternalSource(AstNode node, Event event) {
+/** Holds if `node` may execute for a workflow-run source that can expose external input. */
+predicate mayExecuteForExternalInputSource(AstNode node, Event event) {
   event.getName() = "workflow_run" and
   event.hasFeasibleWorkflowRunActivityType() and
   (
     exists(Event sourceEvent |
-      event.acceptsExternalWorkflowRunSourceEvent(sourceEvent) and
+      event.acceptsExternalInputWorkflowRunSourceEvent(sourceEvent) and
       mayExecuteForSource(node, event, sourceEvent)
     )
     or
@@ -79,28 +80,28 @@ predicate workflowRunSourceMayCoExecute(AstNode left, AstNode right, Event event
   IntegratedCfg::mayCoExecuteForEvent(left, right, event)
 }
 
-/** Holds if `node` may execute in a trigger context reachable by an external actor. */
-predicate workflowRunAwareExternallyTriggerableContext(AstNode node, Event event) {
+/** Holds if `node` may execute in a context relevant to externally controlled input. */
+predicate workflowRunAwareExternalInputContext(AstNode node, Event event) {
   event.getName() != "workflow_run" and
-  event.isExternallyTriggerable() and
+  Dispatch::isExternalInputRelevant(event) and
   IntegratedCfg::mayExecuteForEvent(node, event)
   or
-  event.getName() = "workflow_run" and mayExecuteForExternalSource(node, event)
+  event.getName() = "workflow_run" and mayExecuteForExternalInputSource(node, event)
 }
 
-/** Holds if both nodes may execute for the same externally triggered source context. */
+/** Holds if both nodes may execute for the same external-input source context. */
 bindingset[left, right, event]
 pragma[inline_late]
-predicate workflowRunAwareMayCoExecute(AstNode left, AstNode right, Event event) {
+predicate workflowRunAwareMayCoExecuteForExternalInput(AstNode left, AstNode right, Event event) {
   event.getName() != "workflow_run" and
-  event.isExternallyTriggerable() and
+  Dispatch::isExternalInputRelevant(event) and
   IntegratedCfg::mayCoExecuteForEvent(left, right, event)
   or
   event.getName() = "workflow_run" and
   event.hasFeasibleWorkflowRunActivityType() and
   (
     exists(Event sourceEvent |
-      event.acceptsExternalWorkflowRunSourceEvent(sourceEvent) and
+      event.acceptsExternalInputWorkflowRunSourceEvent(sourceEvent) and
       mayExecuteForSource(left, event, sourceEvent) and
       mayExecuteForSource(right, event, sourceEvent) and
       IntegratedCfg::mayCoExecuteForEvent(left, right, event)
@@ -111,17 +112,17 @@ predicate workflowRunAwareMayCoExecute(AstNode left, AstNode right, Event event)
   )
 }
 
-/** Holds if `node` executes in a privileged context reachable by an external actor. */
-predicate workflowRunAwarePrivilegedContext(AstNode node, Event event) {
+/** Holds if `node` executes in a privileged external-input context. */
+predicate workflowRunAwarePrivilegedExternalInputContext(AstNode node, Event event) {
   event.getName() != "workflow_run" and
-  node.getEnclosingJob().isPrivilegedExternallyTriggerable(event)
+  Dispatch::isPrivilegedForExternalInput(node.getEnclosingJob(), event)
   or
   event.getName() = "workflow_run" and
   node.getEnclosingJob().isPrivilegedForEvent(event) and
-  mayExecuteForExternalSource(node, event)
+  mayExecuteForExternalInputSource(node, event)
 }
 
-/** Holds if `node` has no externally reachable privileged trigger context. */
-predicate workflowRunAwareNonPrivilegedContext(AstNode node) {
-  not exists(Event event | workflowRunAwarePrivilegedContext(node, event))
+/** Holds if `node` has no privileged external-input context. */
+predicate workflowRunAwareNonPrivilegedExternalInputContext(AstNode node) {
+  not exists(Event event | workflowRunAwarePrivilegedExternalInputContext(node, event))
 }

@@ -86,13 +86,14 @@ predicate contextTriggerDataModel(string trigger, string context_prefix) {
   Extensions::contextTriggerDataModel(trigger, context_prefix)
 }
 
-/**
- * MaD models for externally triggerable events
- * Fields:
- *    - event: Event name
- */
-predicate externallyTriggerableEventsDataModel(string event) {
+/** Holds if workflows for `event` require analysis for externally controlled input. */
+predicate externalInputRelevantEventsDataModel(string event) {
   Extensions::externallyTriggerableEventsDataModel(event)
+}
+
+/** Compatibility alias for the original data-model name. */
+deprecated predicate externallyTriggerableEventsDataModel(string event) {
+  externalInputRelevantEventsDataModel(event)
 }
 
 /**

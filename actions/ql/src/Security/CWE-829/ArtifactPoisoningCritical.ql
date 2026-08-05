@@ -19,7 +19,7 @@ import codeql.actions.security.ControlChecks
 from ArtifactPoisoningFlow::PathNode source, ArtifactPoisoningFlow::PathNode sink, Event event
 where
   ArtifactPoisoningFlow::flowPath(source, sink) and
-  source.getNode().(ArtifactSource).getEventName() = event.getName() and
+  source.getNode().(ArtifactSource).mayInfluenceEvent(event) and
   event = getRelevantEventInPrivilegedContext(sink.getNode()) and
   sinkMayExecuteForEvent(sink.getNode(), event)
 select source.getNode(), source, sink,

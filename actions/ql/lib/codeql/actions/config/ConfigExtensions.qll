@@ -40,9 +40,7 @@ extensible predicate environmentProtectionDataModel(
  */
 extensible predicate contextTriggerDataModel(string trigger, string context_prefix);
 
-/**
- * Holds if a given trigger event can be fired by an external actor.
- */
+/** Holds if workflows for an event require analysis for externally controlled input. */
 extensible predicate externallyTriggerableEventsDataModel(string event);
 
 /** Holds if an activity for the given trigger event requires repository privileges. */

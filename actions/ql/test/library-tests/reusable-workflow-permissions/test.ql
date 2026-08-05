@@ -1,4 +1,5 @@
 import codeql.actions.Ast
+import codeql.actions.ProgrammaticDispatch as Dispatch
 
 private string selectedScope() {
   result =
@@ -8,9 +9,7 @@ private string selectedScope() {
     ]
 }
 
-query predicate effectivePermissions(
-  string workflow, string jobId, string scope, string permission
-) {
+query predicate effectivePermissions(string workflow, string jobId, string scope, string permission) {
   exists(Job job |
     workflow = job.getLocation().getFile().getBaseName() and
     jobId = job.getId() and
@@ -30,9 +29,7 @@ query predicate privilegedJobs(string workflow, string jobId) {
 query predicate compositeActionPrivilege(string action, string privilege) {
   exists(CompositeAction composite |
     action = composite.getLocation().getFile().getRelativePath() and
-    if composite.isPrivileged()
-    then privilege = "privileged"
-    else privilege = "unprivileged"
+    if composite.isPrivileged() then privilege = "privileged" else privilege = "unprivileged"
   )
 }
 
@@ -42,7 +39,7 @@ query predicate eventPrivilege(string workflow, string jobId, string event, stri
     jobId = job.getId() and
     job.getATriggerEvent() = trigger and
     event = trigger.getName() and
-    if job.isPrivilegedExternallyTriggerable(trigger)
+    if Dispatch::isPrivilegedForExternalInput(job, trigger)
     then privilege = "privileged"
     else privilege = "unprivileged"
   )

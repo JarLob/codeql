@@ -21,7 +21,7 @@ private predicate jobContainerHasSensitiveCapability(DataFlow::Node sink, Event 
         secret.getEnclosingJob() = job and secret.getFieldName() != "GITHUB_TOKEN"
       )
       or
-      workflowRunAwarePrivilegedContext(sink.asExpr(), event) and
+      workflowRunAwarePrivilegedExternalInputContext(sink.asExpr(), event) and
       (
         exists(SecretsExpression token |
           token.getEnclosingJob() = job and token.getFieldName() = "GITHUB_TOKEN"
@@ -45,7 +45,7 @@ private predicate sinkMayExecuteWithoutProtectionForAnyEvent(DataFlow::Node sink
   exists(Event event |
     sink.asExpr().getEnclosingJob().getATriggerEvent() = event and
     sinkMayExecuteForEvent(sink, event) and
-    workflowRunAwareExternallyTriggerableContext(sink.asExpr(), event) and
+    workflowRunAwareExternalInputContext(sink.asExpr(), event) and
     not exists(ControlCheck check | check.protects(sink.asExpr(), event, "code-injection"))
   )
 }
@@ -54,7 +54,7 @@ private predicate sinkMayExecuteWithoutProtectionForAnyEvent(DataFlow::Node sink
  * Get the relevant event for the sink in CodeInjectionCritical.ql.
  */
 Event getRelevantCriticalEventForSink(DataFlow::Node sink) {
-  workflowRunAwarePrivilegedContext(sink.asExpr(), result) and
+  workflowRunAwarePrivilegedExternalInputContext(sink.asExpr(), result) and
   sinkMayExecuteForEvent(sink, result) and
   (not isJobContainerImageSink(sink) or jobContainerHasSensitiveCapability(sink, result)) and
   not exists(ControlCheck check | check.protects(sink.asExpr(), result, "code-injection")) and
@@ -70,7 +70,7 @@ Event getRelevantCachePoisoningEventForSink(DataFlow::Node sink) {
     job.getATriggerEvent() = result and
     // excluding privileged workflows since they can be exploited in easier circumstances
     // which is covered by `actions/code-injection/critical`
-    not workflowRunAwarePrivilegedContext(sink.asExpr(), result) and
+    not workflowRunAwarePrivilegedExternalInputContext(sink.asExpr(), result) and
     hasDefaultBranchCacheWriteAccess(job, result)
   )
 }
@@ -123,7 +123,7 @@ predicate criticalSeverityCodeInjection(
 ) {
   CodeInjectionFlow::flowPath(source, sink) and
   event = getRelevantCriticalEventForSink(sink.getNode()) and
-  source.getNode().(RemoteFlowSource).getEventName() = event.getName()
+  source.getNode().(RemoteFlowSource).mayInfluenceEvent(event)
 }
 
 /**

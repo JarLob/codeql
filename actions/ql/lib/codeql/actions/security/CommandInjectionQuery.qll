@@ -18,7 +18,7 @@ predicate sinkMayExecuteForEvent(DataFlow::Node sink, Event event) {
 
 /** Get the relevant event for the sink in CommandInjectionCritical.ql. */
 Event getRelevantEventInPrivilegedContext(DataFlow::Node sink) {
-  workflowRunAwarePrivilegedContext(sink.asExpr(), result) and
+  workflowRunAwarePrivilegedExternalInputContext(sink.asExpr(), result) and
   not exists(ControlCheck check |
     check.protects(sink.asExpr(), result, ["command-injection", "code-injection"])
   )
@@ -35,12 +35,12 @@ predicate sinkMayExecuteOnlyInNonPrivilegedContext(DataFlow::Node sink) {
       exists(Event event |
         job.getATriggerEvent() = event and
         sinkMayExecuteForEvent(sink, event) and
-        workflowRunAwareExternallyTriggerableContext(sink.asExpr(), event)
+        workflowRunAwareExternalInputContext(sink.asExpr(), event)
       ) and
       not exists(Event event |
         job.getATriggerEvent() = event and
         sinkMayExecuteForEvent(sink, event) and
-        workflowRunAwarePrivilegedContext(sink.asExpr(), event)
+        workflowRunAwarePrivilegedExternalInputContext(sink.asExpr(), event)
       )
     )
   )

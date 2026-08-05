@@ -1010,6 +1010,8 @@ class InputImpl extends AstNodeImpl, TInputNode {
   override Location getLocation() { result = n.getLocation() }
 
   override YamlScalar getNode() { result = n }
+
+  string getName() { result = this.getNode().getValue() }
 }
 
 class OutputsImpl extends AstNodeImpl, TOutputsNode {
@@ -1732,6 +1734,13 @@ class EventImpl extends AstNodeImpl, TEventNode {
   /** Gets the Yaml Node associated with the event if any */
   YamlMappingLikeNode getValueNode() { result = n }
 
+  /** Gets an input declared by this `workflow_dispatch` event. */
+  InputImpl getInput(string name) {
+    this.getName() = "workflow_dispatch" and
+    n.(YamlMapping).lookup("inputs").(YamlMapping).maps(result.getNode(), _) and
+    result.getName() = name
+  }
+
   /** Gets an activity type */
   string getAnActivityType() {
     result =
@@ -1966,7 +1975,7 @@ class EventImpl extends AstNodeImpl, TEventNode {
   }
 
   /** Holds if this workflow-run edge passes filters that depend on the source event. */
-  private predicate acceptsExternalWorkflowRunSourceEdge(EventImpl sourceEvent) {
+  private predicate acceptsExternalInputWorkflowRunSourceEdge(EventImpl sourceEvent) {
     this.acceptsWorkflowRunSourceEvent(sourceEvent) and
     this.sourceEventPassesExternalWorkflowRunFilters(sourceEvent)
   }
@@ -1975,9 +1984,9 @@ class EventImpl extends AstNodeImpl, TEventNode {
    * Holds if this event is a known external root for a workflow-run chain. An unresolved
    * `workflow_run` source remains a root because its runtime ancestry is unavailable.
    */
-  private predicate isExternalWorkflowRunChainRoot() {
+  private predicate isExternalInputChainRoot() {
     this.getName() != "workflow_run" and
-    externallyTriggerableEventsDataModel(this.getName())
+    externalInputRelevantEventsDataModel(this.getName())
     or
     this.getName() = "workflow_run" and
     this.hasFeasibleWorkflowRunActivityType() and
@@ -1990,47 +1999,54 @@ class EventImpl extends AstNodeImpl, TEventNode {
    */
   bindingset[this, sourceEvent]
   pragma[inline_late]
-  private predicate acceptsExternalWorkflowRunSourceAtThirdLevel(EventImpl sourceEvent) {
-    not sourceEvent.isExternalWorkflowRunChainRoot() and
+  private predicate acceptsExternalInputWorkflowRunSourceAtThirdLevel(EventImpl sourceEvent) {
+    not sourceEvent.isExternalInputChainRoot() and
     not exists(EventImpl rootEvent |
-      sourceEvent.acceptsExternalWorkflowRunSourceEdge(rootEvent) and
-      rootEvent.isExternalWorkflowRunChainRoot()
+      sourceEvent.acceptsExternalInputWorkflowRunSourceEdge(rootEvent) and
+      rootEvent.isExternalInputChainRoot()
     ) and
     exists(EventImpl ancestorEvent, EventImpl rootEvent |
-      sourceEvent.acceptsExternalWorkflowRunSourceEdge(ancestorEvent) and
-      ancestorEvent.acceptsExternalWorkflowRunSourceEdge(rootEvent) and
-      rootEvent.isExternalWorkflowRunChainRoot() and
+      sourceEvent.acceptsExternalInputWorkflowRunSourceEdge(ancestorEvent) and
+      ancestorEvent.acceptsExternalInputWorkflowRunSourceEdge(rootEvent) and
+      rootEvent.isExternalInputChainRoot() and
       not this.hasSameWorkflowPathAs(ancestorEvent)
     )
   }
 
-  /** Holds if an external actor can trigger an accepted run for `sourceEvent`. */
-  predicate acceptsExternalWorkflowRunSourceEvent(EventImpl sourceEvent) {
-    this.acceptsExternalWorkflowRunSourceEdge(sourceEvent) and
+  /** Holds if an accepted run for `sourceEvent` can expose externally controlled input. */
+  predicate acceptsExternalInputWorkflowRunSourceEvent(EventImpl sourceEvent) {
+    this.acceptsExternalInputWorkflowRunSourceEdge(sourceEvent) and
     (
       // First workflow_run level.
-      sourceEvent.isExternalWorkflowRunChainRoot()
+      sourceEvent.isExternalInputChainRoot()
       or
       // Second workflow_run level.
       exists(EventImpl rootEvent |
-        sourceEvent.acceptsExternalWorkflowRunSourceEdge(rootEvent) and
-        rootEvent.isExternalWorkflowRunChainRoot()
+        sourceEvent.acceptsExternalInputWorkflowRunSourceEdge(rootEvent) and
+        rootEvent.isExternalInputChainRoot()
       )
       or
-      this.acceptsExternalWorkflowRunSourceAtThirdLevel(sourceEvent)
+      this.acceptsExternalInputWorkflowRunSourceAtThirdLevel(sourceEvent)
     )
   }
 
-  /** Holds if a locally resolved source event can externally trigger this `workflow_run` event. */
-  private predicate hasExternallyTriggerableWorkflowRunSource() {
-    exists(EventImpl sourceEvent | this.acceptsExternalWorkflowRunSourceEvent(sourceEvent))
+  /** Holds if a local workflow-run source can expose externally controlled input. */
+  private predicate hasExternalInputRelevantWorkflowRunSource() {
+    exists(EventImpl sourceEvent | this.acceptsExternalInputWorkflowRunSourceEvent(sourceEvent))
   }
 
-  /** Holds if the event can be triggered by an external actor. */
-  predicate isExternallyTriggerable() {
-    // the job is triggered by an event that can be triggered externally
-    // except for workflow_run which requires additional checks
-    externallyTriggerableEventsDataModel(this.getName()) and
+  /** Holds if an external actor can directly initiate this event. */
+  predicate isDirectlyExternallyTriggerable() {
+    externalInputRelevantEventsDataModel(this.getName()) and
+    not this.getName() = ["schedule", "workflow_call", "workflow_dispatch", "workflow_run"] and
+    this.hasExternallyTriggerableActivityType()
+  }
+
+  /** Holds if workflows for this event require analysis for externally controlled input. */
+  predicate isExternalInputRelevant() {
+    // Direct interaction events, scheduled workflows, and unresolved dispatches are configured as
+    // external-input contexts. workflow_run requires source-specific checks below.
+    externalInputRelevantEventsDataModel(this.getName()) and
     not this.getName() = "workflow_run"
     or
     this.getName() = "workflow_run" and
@@ -2038,7 +2054,7 @@ class EventImpl extends AstNodeImpl, TEventNode {
     (
       this.hasUnresolvedWorkflowRunSource()
       or
-      this.hasExternallyTriggerableWorkflowRunSource()
+      this.hasExternalInputRelevantWorkflowRunSource()
     )
     or
     // the event is `workflow_call` and there is a caller workflow that can be triggered externally
@@ -2048,14 +2064,14 @@ class EventImpl extends AstNodeImpl, TEventNode {
       exists(ExpressionImpl expr, string external_trigger |
         expr.getEnclosingWorkflow() = this.getEnclosingWorkflow() and
         expr.getExpression().matches("%github.event" + external_trigger + "%") and
-        externallyTriggerableEventsDataModel(external_trigger)
+        externalInputRelevantEventsDataModel(external_trigger)
       )
       or
       this.getEnclosingWorkflow()
           .(ReusableWorkflowImpl)
           .getACaller()
           .getATriggerEvent()
-          .isExternallyTriggerable()
+          .isExternalInputRelevant()
     )
   }
 
@@ -2364,14 +2380,6 @@ class JobImpl extends AstNodeImpl, TJobNode {
     or
     // the job has effective write permissions
     this.hasEffectiveWritePermission()
-  }
-
-  /** Holds if the action is privileged and externally triggerable. */
-  predicate isPrivilegedExternallyTriggerable(EventImpl event) {
-    this.getATriggerEvent() = event and
-    // the job is triggerable by an external user
-    event.isExternallyTriggerable() and
-    this.isPrivilegedForEvent(event)
   }
 
   /** Holds if this job is privileged when it runs for `event`. */
@@ -3578,6 +3586,8 @@ class InputsExpressionImpl extends SimpleReferenceExpressionImpl {
       exists(ReusableWorkflowImpl w | w.getInput(fieldName) = result)
       or
       exists(CompositeActionImpl a | a.getInput(fieldName) = result)
+      or
+      exists(EventImpl event | event.getInput(fieldName) = result)
     )
   }
 }

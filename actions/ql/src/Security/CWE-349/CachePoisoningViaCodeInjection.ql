@@ -22,7 +22,7 @@ from CodeInjectionFlow::PathNode source, CodeInjectionFlow::PathNode sink, Event
 where
   CodeInjectionFlow::flowPath(source, sink) and
   event = getRelevantCachePoisoningEventForSink(sink.getNode()) and
-  source.getNode().(RemoteFlowSource).getEventName() = event.getName() and
+  source.getNode().(RemoteFlowSource).mayInfluenceEvent(event) and
   // the checkout is not controlled by an access check
   not exists(ControlCheck check |
     check.protects(source.getNode().asExpr(), event, "code-injection")
