@@ -1,0 +1,10 @@
+name: Depth four # Expected: fourth workflow_run level is rejected.
+on:
+  workflow_run:
+    workflows: [Depth three]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo four

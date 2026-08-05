@@ -1,0 +1,10 @@
+name: Workflow-run cycle control # Expected: code injection alert for an acyclic external source.
+on:
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ${{ github.event.workflow_run.head_branch }}

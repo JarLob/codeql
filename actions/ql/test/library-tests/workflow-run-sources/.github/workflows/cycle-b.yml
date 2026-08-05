@@ -1,0 +1,10 @@
+name: Cycle B # Expected: accepted after Cycle A without completing the return cycle.
+on:
+  workflow_run:
+    workflows: [Cycle A]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo b

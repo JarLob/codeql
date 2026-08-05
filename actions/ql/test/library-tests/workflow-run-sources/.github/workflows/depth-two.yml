@@ -1,0 +1,10 @@
+name: Depth two # Expected: second workflow_run level is accepted.
+on:
+  workflow_run:
+    workflows: [Depth one]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo two

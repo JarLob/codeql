@@ -1,8 +1,8 @@
-name: tests
+name: Process event artifact # Expected: environment injection alert from an untrusted artifact.
 
 on:
   workflow_run:
-    workflows: ["Tests"]
+    workflows: ["Artifact producer"]
     types:
       - completed
 

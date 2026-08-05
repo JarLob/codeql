@@ -97,6 +97,22 @@ query predicate externallyAcceptedPrSources(string workflow, string sourceEvent)
   )
 }
 
+query predicate boundedExternalSources(string workflow, string sourceWorkflow, string sourceEvent) {
+  exists(Event event, Event source |
+    workflow =
+      [
+        "Cycle self", "Cycle A", "Cycle B", "Depth one", "Depth two", "Depth three", "Depth four",
+        "Rooted cycle A", "Rooted cycle B"
+      ] and
+    event.getName() = "workflow_run" and
+    workflow = event.getEnclosingWorkflow().getName() and
+    source = event.getALocalWorkflowRunSourceEvent() and
+    sourceWorkflow = source.getEnclosingWorkflow().getName() and
+    sourceEvent = source.getName() and
+    event.acceptsExternalWorkflowRunSourceEvent(source)
+  )
+}
+
 query predicate activityFilteredSources(string workflow, string sourceWorkflow, string sourceEvent) {
   exists(Event event, Event source |
     workflow =

@@ -1,0 +1,10 @@
+name: Cycle self # Expected: direct self-trigger is rejected.
+on:
+  workflow_run:
+    workflows: [Cycle self]
+    types: [completed]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo self
