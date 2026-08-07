@@ -120,6 +120,8 @@ predicate sinkMayExecuteOnlyInNonPrivilegedContext(DataFlow::Node sink) {
 }
 
 /** Holds if `source` can reach `sink`, but not in a privileged execution context. */
+bindingset[source, sink]
+pragma[inline_late]
 predicate sourceMayReachOnlyNonPrivilegedContext(DataFlow::Node source, DataFlow::Node sink) {
   not exists(sink.asExpr().getEnclosingJob().getATriggerEvent())
   or

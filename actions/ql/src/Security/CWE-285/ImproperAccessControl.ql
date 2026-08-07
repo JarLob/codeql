@@ -13,12 +13,18 @@
 
 import codeql.actions.security.UntrustedCheckoutQuery
 import codeql.actions.security.ControlChecks
+import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 
 from AuthorizationAttemptCheck check, PRHeadCheckoutStep checkout, Event event
 where
   knownImproperCheckoutAuthorization(checkout, event, check) and
   // Preserve the query's existing high-severity privileged-context threshold.
-  getAPrivilegedWorkflowExecutionContext(checkout).getEvent() = event
+  checkout.getEnclosingJob().isPrivilegedForEvent(event) and
+  (
+    event.getName() != "workflow_run" and IntegratedCfg::mayExecuteForEvent(checkout, event)
+    or
+    workflowRunMayExecute(checkout, event)
+  )
 select checkout,
   "The authorization check $@ does not prevent untrusted code from running in a privileged context.",
   check, check.toString()

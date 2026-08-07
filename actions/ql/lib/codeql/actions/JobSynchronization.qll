@@ -42,6 +42,8 @@ private predicate getStaticContinueOnErrorValue(Expression expression, boolean o
   )
 }
 
+bindingset[job, event, outcome]
+pragma[inline_late]
 private predicate jobContinueOnErrorMayEvaluateTo(Job job, Event event, boolean outcome) {
   job.getATriggerEvent() = event and
   exists(string value |
@@ -65,6 +67,8 @@ private predicate jobContinueOnErrorMayEvaluateTo(Job job, Event event, boolean 
   not exists(job.getContinueOnErrorValue()) and outcome = false
 }
 
+bindingset[step, event, outcome]
+pragma[inline_late]
 private predicate stepContinueOnErrorMayEvaluateTo(Step step, Event event, boolean outcome) {
   step.getATriggerEvent() = event and
   exists(string value |

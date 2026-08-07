@@ -65,6 +65,53 @@ predicate workflowRunSourceMayCoExecute(AstNode left, AstNode right, Event event
   IntegratedCfg::mayCoExecuteForEvent(left, right, event)
 }
 
+/** Holds if `node` may execute for some source context of `event`. */
+bindingset[node, event]
+pragma[inline_late]
+predicate workflowRunMayExecute(AstNode node, Event event) {
+  event.getName() = "workflow_run" and
+  event.hasFeasibleWorkflowRunActivityType() and
+  (
+    exists(Event sourceEvent |
+      event.acceptsWorkflowRunSourceEvent(sourceEvent) and
+      mayExecuteForSource(node, event, sourceEvent)
+    )
+    or
+    event.hasUnresolvedWorkflowRunSource() and
+    IntegratedCfg::mayExecuteForEvent(node, event)
+  )
+}
+
+/** Holds if both nodes may execute for the same `workflow_run` source context. */
+bindingset[left, right, event]
+pragma[inline_late]
+predicate workflowRunMayCoExecute(AstNode left, AstNode right, Event event) {
+  event.getName() = "workflow_run" and
+  event.hasFeasibleWorkflowRunActivityType() and
+  (
+    exists(Event sourceEvent |
+      event.acceptsWorkflowRunSourceEvent(sourceEvent) and
+      workflowRunSourceMayCoExecute(left, right, event, sourceEvent)
+    )
+    or
+    event.hasUnresolvedWorkflowRunSource() and
+    IntegratedCfg::mayCoExecuteForEvent(left, right, event)
+  )
+}
+
+/**
+ * Holds if already-feasible nodes share a source context for `event`.
+ *
+ * Callers must separately establish that both nodes can execute for `event`.
+ */
+bindingset[left, right, event]
+pragma[inline_late]
+predicate knownFeasibleNodesShareExecutionContext(AstNode left, AstNode right, Event event) {
+  event.getName() != "workflow_run"
+  or
+  workflowRunMayCoExecute(left, right, event)
+}
+
 private newtype TWorkflowExecutionContext =
   TEventWorkflowExecutionContext(Event event) or
   TResolvedWorkflowRunExecutionContext(Event event, Event sourceEvent) or

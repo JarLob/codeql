@@ -247,6 +247,8 @@ abstract class AuthorizationAttemptCheck extends ControlCheck {
   }
 
   /** Holds if this attempt applies to a concrete workflow-run source event. */
+  bindingset[event, sourceEvent]
+  pragma[inline_late]
   predicate appliesToWorkflowRunSource(Event event, Event sourceEvent) {
     not this instanceof If
     or

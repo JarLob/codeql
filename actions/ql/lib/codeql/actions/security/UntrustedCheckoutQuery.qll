@@ -523,6 +523,8 @@ private predicate hasStalePullRequestLabelAuthorization(
 }
 
 /** Holds if `check` is a recognized authorization attempt that does not protect `checkout`. */
+bindingset[checkout, event]
+pragma[inline_late]
 predicate knownImproperCheckoutAuthorization(
   PRHeadCheckoutStep checkout, Event event, AuthorizationAttemptCheck check
 ) {
@@ -655,13 +657,22 @@ private predicate criticalSeverityCheckout(
   // The checkout and execution can occur for the same external source event in privileged jobs.
   checkout.getEnclosingJob().isPrivilegedForEvent(event) and
   poisonable.getEnclosingJob().isPrivilegedForEvent(event) and
-  getAWorkflowExecutionContextForNodes(checkout, poisonable).getEvent() = event
+  (
+    event.getName() != "workflow_run"
+    or
+    workflowRunMayCoExecute(checkout, poisonable, event)
+  )
 }
 
 private predicate highSeverityCheckout(PRHeadCheckoutStep checkout, Event event) {
   IntegratedCfg::mayExecuteForEvent(checkout, event) and
   // The checkout occurs in a privileged context.
-  getAPrivilegedWorkflowExecutionContext(checkout).getEvent() = event and
+  checkout.getEnclosingJob().isPrivilegedForEvent(event) and
+  (
+    event.getName() != "workflow_run"
+    or
+    workflowRunMayExecute(checkout, event)
+  ) and
   // There is no evidence that the checked-out code is executed.
   not exists(PoisonableStep poisonable |
     checkoutMayLeadToCodeExecution(checkout, poisonable, event)
@@ -687,14 +698,25 @@ predicate highSeverityUntrustedCheckout(PRHeadCheckoutStep checkout, Event event
 /** Holds if `checkout` forms a medium ordinary untrusted-checkout finding. */
 predicate mediumSeverityUntrustedCheckout(PRHeadCheckoutStep checkout) {
   // The checkout occurs in a non-privileged context.
-  not exists(getAPrivilegedWorkflowExecutionContext(checkout)) and
+  not exists(Event event |
+    checkout.getEnclosingJob().isPrivilegedForEvent(event) and
+    (
+      event.getName() != "workflow_run" and IntegratedCfg::mayExecuteForEvent(checkout, event)
+      or
+      workflowRunMayExecute(checkout, event)
+    )
+  ) and
   mayExecuteUnsafeCheckout(checkout) and
   (
     exists(Event event |
       classifiedAsUntrustedCheckout(checkout, event) and
       // Running PR code is the intended use of GitHub's isolated pull_request context.
       not event.getName() = "pull_request" and
-      getAWorkflowExecutionContextForNode(checkout).getEvent() = event
+      (
+        event.getName() != "workflow_run"
+        or
+        workflowRunMayExecute(checkout, event)
+      )
     )
     or
     // Reusable workflows without a modeled caller may not expose a concrete trigger event. Keep
