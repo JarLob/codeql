@@ -19,7 +19,7 @@ private string actualOutcome(Step test) {
 }
 
 private Step getConformanceStep(ExpressionNode node) {
-  result = node.getExpression().getParentNode().getEnclosingStep()
+  result.getIf().getConditionExpr() = node.getExpression()
 }
 
 query predicate mismatches(Step test, string expected, string actual) {
