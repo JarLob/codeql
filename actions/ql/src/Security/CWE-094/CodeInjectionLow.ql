@@ -21,5 +21,5 @@ import CodeInjectionFlow::PathGraph
 from CodeInjectionFlow::PathNode source, CodeInjectionFlow::PathNode sink, Event event
 where lowSeverityCodeInjection(source, sink, event)
 select sink.getNode(), source, sink,
-  "Potential code injection on pull_request in $@ from ($@).", sink,
+  "Potential code injection in $@ from ($@).", sink,
   sink.getNode().asExpr().(Expression).getRawExpression(), event, event.getName()
