@@ -318,8 +318,6 @@ predicate simpleLocalFlowStep(Node nodeFrom, Node nodeTo, string model) {
   localFlowStep(nodeFrom, nodeTo) and model = ""
 }
 
-bindingset[nodeFrom, nodeTo]
-pragma[inline_late]
 private predicate dispatchInputJumpStep(Node nodeFrom, Node nodeTo) {
   exists(WorkflowDispatchStep dispatch, Input input |
     input = dispatch.getTargetEvent().getInput(_) and
@@ -336,8 +334,6 @@ private predicate dispatchInputJumpStep(Node nodeFrom, Node nodeTo) {
   )
 }
 
-bindingset[nodeFrom, nodeTo]
-pragma[inline_late]
 private predicate repositoryDispatchPayloadJumpStep(Node nodeFrom, Node nodeTo) {
   exists(
     RepositoryDispatchStep dispatch, RepositoryDispatchPayloadExpression payload,

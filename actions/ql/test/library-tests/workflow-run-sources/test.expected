@@ -186,6 +186,7 @@ unresolvedSource
 | Invalid workflow glob downstream |
 | Unresolved invalid activity downstream |
 sourceConditionFeasible
+| Mixed downstream | issues-function | issues |
 | Mixed downstream | issues-only | issues |
 | Mixed downstream | not-pr | issues |
 | Mixed downstream | not-pr | push |
@@ -206,6 +207,7 @@ privilegedSourceExecution
 | Invalid workflow glob downstream | test |
 | Issues downstream | test |
 | Mixed activity downstream | test |
+| Mixed downstream | issues-function |
 | Mixed downstream | issues-only |
 | Mixed downstream | not-pr |
 | Multiple-source downstream | test |

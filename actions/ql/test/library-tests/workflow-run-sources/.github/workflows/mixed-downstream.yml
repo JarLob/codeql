@@ -10,6 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo downstream
+  issues-function: # Expected: feasible only for the issues source.
+    if: contains(github.event.workflow_run.event, 'issue')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo downstream
   not-pr: # Expected: feasible for both the issues and push sources.
     if: github.event.workflow_run.event != 'pull_request'
     runs-on: ubuntu-latest

@@ -861,12 +861,12 @@ private predicate getWorkflowRunSourceStringValue(
   value = sourceEvent.getName()
 }
 
-private predicate evaluateWorkflowRunSourceFunctionCall(
+private predicate evaluateWorkflowRunSourceFunctionCallWithSourceAccess(
   FunctionCallExpression call, Event event, Event sourceEvent, boolean outcome
 ) {
-  not containsWorkflowRunSourceEventAccess(call) and
-  evaluatesToBoolean(call, event, outcome)
-  or
+  containsWorkflowRunSourceEventAccess(call) and
+  event.getName() = "workflow_run" and
+  event.getALocalWorkflowRunSourceEvent() = sourceEvent and
   exists(string left, string right |
     getWorkflowRunSourceStringValue(call.getArgument(0), event, sourceEvent, left) and
     getWorkflowRunSourceStringValue(call.getArgument(1), event, sourceEvent, right) and
@@ -878,6 +878,15 @@ private predicate evaluateWorkflowRunSourceFunctionCall(
       outcome = false
     )
   )
+}
+
+private predicate evaluateWorkflowRunSourceFunctionCall(
+  FunctionCallExpression call, Event event, Event sourceEvent, boolean outcome
+) {
+  not containsWorkflowRunSourceEventAccess(call) and
+  evaluatesToBoolean(call, event, outcome)
+  or
+  evaluateWorkflowRunSourceFunctionCallWithSourceAccess(call, event, sourceEvent, outcome)
 }
 
 bindingset[expression, event, sourceEvent]
@@ -927,6 +936,190 @@ private predicate evaluateWorkflowRunSourceLogical(
   outcome = false and
   workflowRunSourceLogicalOperandEvaluatesTo(expression, 0, event, sourceEvent, false) and
   workflowRunSourceLogicalOperandEvaluatesTo(expression, 1, event, sourceEvent, false)
+}
+
+// Keep source-aware condition evaluation keyed by its condition so source-independent subtrees do
+// not re-enter the generic recursive component.
+private predicate isWorkflowRunSourceConditionContext(
+  If condition, Event event, Event sourceEvent
+) {
+  condition.getATriggerEvent() = event and
+  event.getName() = "workflow_run" and
+  event.getALocalWorkflowRunSourceEvent() = sourceEvent
+}
+
+private predicate conditionEvaluateWorkflowRunSourceEquality(
+  If condition, BinaryExpression expression, Event event, Event sourceEvent, boolean outcome
+) {
+  isWorkflowRunSourceConditionContext(condition, event, sourceEvent) and
+  condition.getConditionExpr() = expression.getExpression() and
+  containsWorkflowRunSourceEventAccess(expression) and
+  (
+    exists(string left, string right |
+      conditionWorkflowRunSourceEqualityStringOperand(condition, expression, 0, event, sourceEvent,
+        left) and
+      conditionWorkflowRunSourceEqualityStringOperand(condition, expression, 1, event, sourceEvent,
+        right) and
+      stringComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
+    )
+    or
+    exists(boolean left, boolean right |
+      conditionWorkflowRunSourceEqualityBooleanOperand(condition, expression, 0, event, sourceEvent,
+        left) and
+      conditionWorkflowRunSourceEqualityBooleanOperand(condition, expression, 1, event, sourceEvent,
+        right) and
+      booleanComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
+    )
+  )
+}
+
+private predicate conditionWorkflowRunSourceEqualityStringOperand(
+  If condition, BinaryExpression expression, int index, Event event, Event sourceEvent, string value
+) {
+  isWorkflowRunSourceConditionContext(condition, event, sourceEvent) and
+  condition.getConditionExpr() = expression.getExpression() and
+  containsWorkflowRunSourceEventAccess(expression) and
+  (
+    index = 0 and
+    getWorkflowRunSourceStringValue(expression.getLeftOperand(), event, sourceEvent, value)
+    or
+    index = 1 and
+    getWorkflowRunSourceStringValue(expression.getRightOperand(), event, sourceEvent, value)
+  )
+}
+
+private predicate conditionWorkflowRunSourceEqualityBooleanOperand(
+  If condition, BinaryExpression expression, int index, Event event, Event sourceEvent,
+  boolean outcome
+) {
+  isWorkflowRunSourceConditionContext(condition, event, sourceEvent) and
+  condition.getConditionExpr() = expression.getExpression() and
+  containsWorkflowRunSourceEventAccess(expression) and
+  (
+    index = 0 and
+    conditionEvaluatesToBooleanForWorkflowRunSource(condition, expression.getLeftOperand(), event,
+      sourceEvent, outcome)
+    or
+    index = 1 and
+    conditionEvaluatesToBooleanForWorkflowRunSource(condition, expression.getRightOperand(), event,
+      sourceEvent, outcome)
+  )
+}
+
+private predicate conditionWorkflowRunSourceLogicalOperandEvaluatesTo(
+  If condition, BinaryExpression expression, int index, Event event, Event sourceEvent,
+  boolean outcome
+) {
+  isWorkflowRunSourceConditionContext(condition, event, sourceEvent) and
+  condition.getConditionExpr() = expression.getExpression() and
+  containsWorkflowRunSourceEventAccess(expression) and
+  index = 0 and
+  conditionEvaluatesToBooleanForWorkflowRunSource(condition, expression.getLeftOperand(), event,
+    sourceEvent, outcome)
+  or
+  isWorkflowRunSourceConditionContext(condition, event, sourceEvent) and
+  condition.getConditionExpr() = expression.getExpression() and
+  containsWorkflowRunSourceEventAccess(expression) and
+  index = 1 and
+  conditionEvaluatesToBooleanForWorkflowRunSource(condition, expression.getRightOperand(), event,
+    sourceEvent, outcome)
+}
+
+private predicate conditionEvaluateWorkflowRunSourceLogical(
+  If condition, BinaryExpression expression, Event event, Event sourceEvent, boolean outcome
+) {
+  isWorkflowRunSourceConditionContext(condition, event, sourceEvent) and
+  condition.getConditionExpr() = expression.getExpression() and
+  containsWorkflowRunSourceEventAccess(expression) and
+  expression.getOperator() = "&&" and
+  outcome = false and
+  conditionWorkflowRunSourceLogicalOperandEvaluatesTo(condition, expression, _, event, sourceEvent,
+    false)
+  or
+  isWorkflowRunSourceConditionContext(condition, event, sourceEvent) and
+  condition.getConditionExpr() = expression.getExpression() and
+  containsWorkflowRunSourceEventAccess(expression) and
+  expression.getOperator() = "&&" and
+  outcome = true and
+  conditionWorkflowRunSourceLogicalOperandEvaluatesTo(condition, expression, 0, event, sourceEvent,
+    true) and
+  conditionWorkflowRunSourceLogicalOperandEvaluatesTo(condition, expression, 1, event, sourceEvent,
+    true)
+  or
+  isWorkflowRunSourceConditionContext(condition, event, sourceEvent) and
+  condition.getConditionExpr() = expression.getExpression() and
+  containsWorkflowRunSourceEventAccess(expression) and
+  expression.getOperator() = "||" and
+  outcome = true and
+  conditionWorkflowRunSourceLogicalOperandEvaluatesTo(condition, expression, _, event, sourceEvent,
+    true)
+  or
+  isWorkflowRunSourceConditionContext(condition, event, sourceEvent) and
+  condition.getConditionExpr() = expression.getExpression() and
+  containsWorkflowRunSourceEventAccess(expression) and
+  expression.getOperator() = "||" and
+  outcome = false and
+  conditionWorkflowRunSourceLogicalOperandEvaluatesTo(condition, expression, 0, event, sourceEvent,
+    false) and
+  conditionWorkflowRunSourceLogicalOperandEvaluatesTo(condition, expression, 1, event, sourceEvent,
+    false)
+}
+
+private predicate conditionEvaluatesToBooleanForWorkflowRunSource(
+  If condition, ExpressionNode node, Event event, Event sourceEvent, boolean outcome
+) {
+  condition.getConditionExpr() = node.getExpression() and
+  isWorkflowRunSourceConditionContext(condition, event, sourceEvent) and
+  (
+    not containsWorkflowRunSourceEventAccess(node) and
+    conditionEvaluatesToBooleanWithStatus(condition, node, event, unknownStatusMode(), outcome)
+    or
+    containsWorkflowRunSourceEventAccess(node) and
+    (
+      node instanceof ExpressionRoot and
+      conditionEvaluatesToBooleanForWorkflowRunSource(condition, node.getAChild(), event,
+        sourceEvent, outcome)
+      or
+      node instanceof UnaryExpression and
+      node.(UnaryExpression).getOperator() = "!" and
+      exists(boolean operandOutcome |
+        conditionEvaluatesToBooleanForWorkflowRunSource(condition,
+          node.(UnaryExpression).getOperand(), event, sourceEvent, operandOutcome) and
+        (
+          operandOutcome = true and outcome = false
+          or
+          operandOutcome = false and outcome = true
+        )
+      )
+      or
+      node instanceof BinaryExpression and
+      node.(BinaryExpression).getOperator() = ["&&", "||"] and
+      conditionEvaluateWorkflowRunSourceLogical(condition, node.(BinaryExpression), event,
+        sourceEvent, outcome)
+      or
+      node instanceof BinaryExpression and
+      node.(BinaryExpression).getOperator() = ["==", "!="] and
+      conditionEvaluateWorkflowRunSourceEquality(condition, node.(BinaryExpression), event,
+        sourceEvent, outcome)
+      or
+      node instanceof FunctionCallExpression and
+      evaluateWorkflowRunSourceFunctionCallWithSourceAccess(node.(FunctionCallExpression), event,
+        sourceEvent, outcome)
+    )
+  )
+}
+
+bindingset[condition, node, event, sourceEvent]
+pragma[inline_late]
+private predicate conditionMayEvaluateToBooleanForWorkflowRunSource(
+  If condition, ExpressionNode node, Event event, Event sourceEvent, boolean outcome
+) {
+  conditionEvaluatesToBooleanForWorkflowRunSource(condition, node, event, sourceEvent, outcome)
+  or
+  outcome in [false, true] and
+  not exists(boolean known |
+    conditionEvaluatesToBooleanForWorkflowRunSource(condition, node, event, sourceEvent, known)
+  )
 }
 
 /** Holds if `node` is known to evaluate to `outcome` for this workflow-run source event. */
@@ -986,19 +1179,24 @@ predicate mayEvaluateConditionNode(If condition, ExpressionNode node, Event even
     binary.getOperator() = ["&&", "||"] and binary.getRightOperand() = node.getParent*()
   |
     binary.getOperator() = "&&" and
-    mayEvaluateToBoolean(binary.getLeftOperand(), event, sourceEvent, true)
+    conditionMayEvaluateToBooleanForWorkflowRunSource(condition, binary.getLeftOperand(), event,
+      sourceEvent, true)
     or
     binary.getOperator() = "||" and
-    mayEvaluateToBoolean(binary.getLeftOperand(), event, sourceEvent, false)
+    conditionMayEvaluateToBooleanForWorkflowRunSource(condition, binary.getLeftOperand(), event,
+      sourceEvent, false)
   )
 }
 
 /** Holds if `condition` may permit execution for this workflow-run source event. */
+bindingset[condition, event, sourceEvent]
+pragma[inline_late]
 predicate isConditionFeasible(If condition, Event event, Event sourceEvent) {
   condition.getATriggerEvent() = event and
   event.getName() = "workflow_run" and
   event.getALocalWorkflowRunSourceEvent() = sourceEvent and
-  not evaluatesToBoolean(condition.getConditionExpr().getRoot(), event, sourceEvent, false)
+  not conditionEvaluatesToBooleanForWorkflowRunSource(condition,
+    condition.getConditionExpr().getRoot(), event, sourceEvent, false)
 }
 
 /** Holds if the condition may permit execution for `event`. */
