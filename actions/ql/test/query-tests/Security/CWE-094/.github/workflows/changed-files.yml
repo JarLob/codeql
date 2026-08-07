@@ -4,7 +4,7 @@ on:
   pull_request:
 
 jobs:
-  changed_files:
+  changed_files: # Expected: three low alerts; code injection is confined to pull_request.
     runs-on: ubuntu-latest
     name: Test changed-files
     steps:

@@ -25,11 +25,11 @@ string trimQuotes(string str) {
   result = str.trim().regexpReplaceAll("^(\"|')", "").regexpReplaceAll("(\"|')$", "")
 }
 
-deprecated predicate inPrivilegedContext(AstNode node, Event event) {
+predicate inPrivilegedContext(AstNode node, Event event) {
   node.getEnclosingJob().isPrivilegedExternallyTriggerable(event)
 }
 
-deprecated predicate inNonPrivilegedContext(AstNode node) {
+predicate inNonPrivilegedContext(AstNode node) {
   not node.getEnclosingJob().isPrivilegedExternallyTriggerable(_)
 }
 

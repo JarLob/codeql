@@ -1,5 +1,6 @@
 edges
 nodes
+| .github/workflows/command_injection_medium_issue_comment.yml:13:26:13:57 | github.event.comment.body | semmle.label | github.event.comment.body |
 | .github/workflows/comment_issue.yml:9:26:9:57 | github.event.comment.body | semmle.label | github.event.comment.body |
 | .github/workflows/event_filtered_job.yml:12:26:12:63 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
 subpaths

@@ -1986,7 +1986,7 @@ class EventImpl extends AstNodeImpl, TEventNode {
    */
   private predicate isExternalInputChainRoot() {
     this.getName() != "workflow_run" and
-    externalInputRelevantEventsDataModel(this.getName())
+    externallyTriggerableEventsDataModel(this.getName())
     or
     this.getName() = "workflow_run" and
     this.hasFeasibleWorkflowRunActivityType() and
@@ -2037,16 +2037,16 @@ class EventImpl extends AstNodeImpl, TEventNode {
 
   /** Holds if an external actor can directly initiate this event. */
   predicate isDirectlyExternallyTriggerable() {
-    externalInputRelevantEventsDataModel(this.getName()) and
+    externallyTriggerableEventsDataModel(this.getName()) and
     not this.getName() = ["schedule", "workflow_call", "workflow_dispatch", "workflow_run"] and
     this.hasExternallyTriggerableActivityType()
   }
 
   /** Holds if workflows for this event require analysis for externally controlled input. */
-  predicate isExternalInputRelevant() {
+  predicate isExternallyTriggerable() {
     // Direct interaction events, scheduled workflows, and unresolved dispatches are configured as
     // external-input contexts. workflow_run requires source-specific checks below.
-    externalInputRelevantEventsDataModel(this.getName()) and
+    externallyTriggerableEventsDataModel(this.getName()) and
     not this.getName() = "workflow_run"
     or
     this.getName() = "workflow_run" and
@@ -2064,14 +2064,14 @@ class EventImpl extends AstNodeImpl, TEventNode {
       exists(ExpressionImpl expr, string external_trigger |
         expr.getEnclosingWorkflow() = this.getEnclosingWorkflow() and
         expr.getExpression().matches("%github.event" + external_trigger + "%") and
-        externalInputRelevantEventsDataModel(external_trigger)
+        externallyTriggerableEventsDataModel(external_trigger)
       )
       or
       this.getEnclosingWorkflow()
           .(ReusableWorkflowImpl)
           .getACaller()
           .getATriggerEvent()
-          .isExternalInputRelevant()
+          .isExternallyTriggerable()
     )
   }
 

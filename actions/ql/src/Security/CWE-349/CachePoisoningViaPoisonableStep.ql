@@ -55,7 +55,7 @@ where
   not runtimeGuardPreventsCheckout(source, event) and
   job.getATriggerEvent() = event and
   // source and execution can run for the same externally controlled source event
-  workflowRunAwareMayCoExecuteForExternalInput(source, step, event) and
+  getAWorkflowExecutionContextForNodes(source, step).getEvent() = event and
   hasDefaultBranchCacheWriteAccess(job, event) and
   // the job executes checked-out code
   // (The cache specific token can be leaked even for non-privileged workflows)
@@ -63,7 +63,7 @@ where
   IntegratedCfg::orderedStepsMayReachForEvent(source, step, event) and
   step instanceof PoisonableStep and
   // excluding privileged workflows since they can be exploited in easier circumstances
-  not workflowRunAwarePrivilegedExternalInputContext(step, event)
+  not getAPrivilegedWorkflowExecutionContext(step).getEvent() = event
 select step, untrustedInput, step,
   "Potential cache poisoning in the context of the default branch " + message + " $@. ($@).",
   untrustedInput, untrustedInputText, event, event.getName()

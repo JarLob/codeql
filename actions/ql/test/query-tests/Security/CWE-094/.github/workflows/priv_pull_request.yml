@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 jobs:
-  test:
+  test: # Expected: low alert; pull_request isolates the injected code from untrusted forks.
     runs-on: ubuntu-latest
     steps:
       - run: echo "${{ github.event.pull_request.body }}"

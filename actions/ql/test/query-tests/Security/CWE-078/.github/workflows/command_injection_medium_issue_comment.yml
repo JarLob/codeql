@@ -1,0 +1,13 @@
+name: Issue comment runtime selection
+
+on: issue_comment
+
+permissions: {}
+
+jobs:
+  setup: # Expected: medium alert; an unprivileged job passes comment data to an action command.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ruby/setup-ruby@v2
+        with:
+          ruby-version: ${{ github.event.comment.body }}

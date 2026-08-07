@@ -20,12 +20,15 @@ import codeql.actions.security.ControlChecks
 
 from CodeInjectionFlow::PathNode source, CodeInjectionFlow::PathNode sink, Event event
 where
-  CodeInjectionFlow::flowPath(source, sink) and
-  event = getRelevantCachePoisoningEventForSink(sink.getNode()) and
-  source.getNode().(RemoteFlowSource).mayInfluenceEvent(event) and
-  // the checkout is not controlled by an access check
-  not exists(ControlCheck check |
-    check.protects(source.getNode().asExpr(), event, "code-injection")
+  exists(WorkflowExecutionContext context |
+    CodeInjectionFlow::flowPath(source, sink) and
+    context = getRelevantCachePoisoningContextForSink(sink.getNode()) and
+    source.getNode().(RemoteFlowSource).isUntrustedIn(context) and
+    // the checkout is not controlled by an access check
+    not exists(ControlCheck check |
+      check.protects(source.getNode().asExpr(), context.getEvent(), "code-injection")
+    ) and
+    event = context.getEvent()
   )
 select sink.getNode(), source, sink,
   "Code injection in $@ may allow poisoning the default-branch cache (event trigger: $@).", sink,

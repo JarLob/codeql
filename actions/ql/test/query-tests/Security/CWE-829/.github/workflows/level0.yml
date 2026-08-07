@@ -109,7 +109,7 @@ jobs:
           npm run lint
           npm start
 
-  toppings:
+  toppings: # Expected: no alert; this job executes PR-head code only in isolated pull_request.
     runs-on: ubuntu-latest
     timeout-minutes: 1
     if: github.event_name == 'pull_request'

@@ -11,7 +11,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repo on head ref
+      - name: Check out repo on head ref # Expected: no alert; pull_request isolates untrusted forks.
         uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
         with:
           ref: ${{ github.head_ref }}

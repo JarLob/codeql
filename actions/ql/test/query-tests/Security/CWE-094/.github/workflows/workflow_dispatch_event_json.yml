@@ -1,0 +1,14 @@
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        required: true
+        type: string
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # Expected: no alert; an authorized manual dispatch does not make its payload untrusted.
+      - run: echo '${{ toJSON(github.event) }}'
+      - run: echo '${{ toJSON(github.event.inputs) }}'

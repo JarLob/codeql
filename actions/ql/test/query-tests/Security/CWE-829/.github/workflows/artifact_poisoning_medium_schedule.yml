@@ -1,0 +1,17 @@
+name: Scheduled artifact consumer
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+permissions: {}
+
+jobs:
+  consume: # Expected: medium alert; an unprivileged job executes an artifact not bound to a trusted run.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dawidd6/action-download-artifact@v2
+        with:
+          name: build-output
+          path: downloaded
+      - run: sh downloaded/run-tests.sh

@@ -1,5 +1,6 @@
 edges
 nodes
+| .github/workflows/pull_request.yml:10:19:10:56 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
 | .github/workflows/test.yml:9:19:9:50 | github.event.comment.body | semmle.label | github.event.comment.body |
 subpaths
 #select

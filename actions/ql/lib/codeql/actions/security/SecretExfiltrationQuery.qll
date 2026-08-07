@@ -39,23 +39,39 @@ private predicate jobConditionMayPermitEvent(LocalJob job, Event event) {
   )
 }
 
+private predicate isContainerRegistryCredentialExfiltrationSink(
+  DataFlow::Node sink, WorkflowExecutionContext context
+) {
+  exists(LocalJob job, Expression image, ScalarValue username, SecretsExpression password |
+    image = [job.getJobContainerImageExpr(), job.getAServiceContainerImageExpr()] and
+    sink.asExpr() = image and
+    isDirectWholeValueAccess(image) and
+    job.getRegistryUsernameForContainerImage(image) = username and
+    username.getValue().trim() != "" and
+    job.getRegistryPasswordExprForContainerImage(image) = password and
+    context = getAPrivilegedWorkflowExecutionContext(image) and
+    jobConditionMayPermitEvent(job, context.getEvent()) and
+    image.getATriggerEvent() = context.getEvent() and
+    not jobRequiresTrustedAssociation(job)
+  )
+}
+
 private class ContainerRegistryCredentialExfiltrationSink extends DataFlow::Node {
   ContainerRegistryCredentialExfiltrationSink() {
-    exists(
-      LocalJob job, Expression image, ScalarValue username, SecretsExpression password, Event event
-    |
-      image = [job.getJobContainerImageExpr(), job.getAServiceContainerImageExpr()] and
-      this.asExpr() = image and
-      isDirectWholeValueAccess(image) and
-      job.getRegistryUsernameForContainerImage(image) = username and
-      username.getValue().trim() != "" and
-      job.getRegistryPasswordExprForContainerImage(image) = password and
-      workflowRunAwarePrivilegedExternalInputContext(image, event) and
-      jobConditionMayPermitEvent(job, event) and
-      image.getATriggerEvent() = event and
-      not jobRequiresTrustedAssociation(job)
+    exists(WorkflowExecutionContext context |
+      isContainerRegistryCredentialExfiltrationSink(this, context)
     )
   }
+}
+
+/** Gets a relevant context for a context-sensitive secret-exfiltration sink. */
+WorkflowExecutionContext getRelevantContextForSecretExfiltrationSink(DataFlow::Node sink) {
+  isContainerRegistryCredentialExfiltrationSink(sink, result)
+}
+
+/** Holds if `sink` requires execution-context correlation. */
+predicate isContextSensitiveSecretExfiltrationSink(DataFlow::Node sink) {
+  exists(getRelevantContextForSecretExfiltrationSink(sink))
 }
 
 private class SecretExfiltrationSink extends DataFlow::Node {

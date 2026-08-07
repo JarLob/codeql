@@ -3,7 +3,7 @@ on:
   pull_request_target:
 
 jobs:
-  pull-request-only:
+  pull-request-only: # Expected: no alert; non-code findings are suppressed in pull_request.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     env:

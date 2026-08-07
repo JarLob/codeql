@@ -1,0 +1,15 @@
+name: Manually dispatched artifact consumer
+
+on: workflow_dispatch
+
+permissions: {}
+
+jobs:
+  consume: # Expected: medium alert; an unprivileged job executes an artifact not bound to a trusted run.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dawidd6/action-download-artifact@v2
+        with:
+          name: build-output
+          path: downloaded
+      - run: sh downloaded/run-tests.sh

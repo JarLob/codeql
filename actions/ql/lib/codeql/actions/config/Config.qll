@@ -70,9 +70,7 @@ predicate repositoryDataModel(string visibility, string default_branch_name) {
  *      `deployment-branch-policy`, or `custom-protection-rule`
  *    - enabled: Whether the capability is enabled
  */
-predicate environmentProtectionDataModel(
-  string environment, string capability, boolean enabled
-) {
+predicate environmentProtectionDataModel(string environment, string capability, boolean enabled) {
   Extensions::environmentProtectionDataModel(environment, capability, enabled)
 }
 
@@ -87,13 +85,8 @@ predicate contextTriggerDataModel(string trigger, string context_prefix) {
 }
 
 /** Holds if workflows for `event` require analysis for externally controlled input. */
-predicate externalInputRelevantEventsDataModel(string event) {
+predicate externallyTriggerableEventsDataModel(string event) {
   Extensions::externallyTriggerableEventsDataModel(event)
-}
-
-/** Compatibility alias for the original data-model name. */
-deprecated predicate externallyTriggerableEventsDataModel(string event) {
-  externalInputRelevantEventsDataModel(event)
 }
 
 /**
@@ -239,9 +232,7 @@ private predicate minimumActionBehaviorVersionMatches(string version, string mod
  *    - capability: modeled behavior name
  */
 bindingset[action, version, capability]
-predicate actionsControlBehaviorDataModel(
-  string action, string version, string capability
-) {
+predicate actionsControlBehaviorDataModel(string action, string version, string capability) {
   exists(string modeledVersion |
     Extensions::actionsControlBehaviorDataModel(action, modeledVersion, capability) and
     (

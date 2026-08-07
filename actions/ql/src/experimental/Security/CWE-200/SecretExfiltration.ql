@@ -17,7 +17,24 @@ import codeql.actions.security.SecretExfiltrationQuery
 import SecretExfiltrationFlow::PathGraph
 
 from SecretExfiltrationFlow::PathNode source, SecretExfiltrationFlow::PathNode sink
-where SecretExfiltrationFlow::flowPath(source, sink)
+where
+  SecretExfiltrationFlow::flowPath(source, sink) and
+  (
+    not isContextSensitiveSecretExfiltrationSink(sink.getNode()) and
+    not exists(sink.getNode().asExpr().getEnclosingJob().getATriggerEvent())
+    or
+    exists(WorkflowExecutionContext context |
+      source.getNode().(RemoteFlowSource).isUntrustedIn(context) and
+      context.mayExecute(sink.getNode().asExpr()) and
+      not context.isPullRequest() and
+      (
+        not isContextSensitiveSecretExfiltrationSink(sink.getNode())
+        or
+        context = getRelevantContextForSecretExfiltrationSink(sink.getNode()) and
+        context.isPrivileged(sink.getNode().asExpr())
+      )
+    )
+  )
 select sink.getNode(), source, sink,
   "Potential secret exfiltration in $@, which may be leaked to an attacker-controlled resource.",
   sink, sink.getNode().asExpr().(Expression).getRawExpression()

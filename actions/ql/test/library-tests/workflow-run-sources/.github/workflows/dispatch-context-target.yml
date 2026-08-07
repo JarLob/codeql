@@ -1,0 +1,14 @@
+name: Dispatch context target
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        required: true
+        type: string
+
+jobs:
+  consume:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo '${{ inputs.message }}'

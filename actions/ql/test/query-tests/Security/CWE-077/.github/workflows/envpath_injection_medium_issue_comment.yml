@@ -1,0 +1,14 @@
+name: Issue comment path export
+
+on: issue_comment
+
+permissions: {}
+
+jobs:
+  export-path:
+    runs-on: ubuntu-latest
+    steps:
+      # Expected: medium alert; an unprivileged job writes comment data to GITHUB_PATH.
+      - env:
+          COMMENT_PATH: ${{ github.event.comment.body }}
+        run: echo "$COMMENT_PATH" >> "$GITHUB_PATH"

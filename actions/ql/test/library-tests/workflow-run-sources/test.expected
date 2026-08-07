@@ -162,6 +162,13 @@ externalInputRelevantEvent
 | issue_comment |
 | schedule |
 | workflow_dispatch |
+dispatchContextSources
+| issue_comment |
+| push |
+| workflow_dispatch |
+dispatchContextRemoteSources
+| issue_comment |
+| push |
 acceptedActivityTypes
 | Default activity downstream | workflow_run | completed |
 | Default activity downstream | workflow_run | in_progress |
@@ -182,7 +189,7 @@ sourceConditionFeasible
 | Mixed downstream | issues-only | issues |
 | Mixed downstream | not-pr | issues |
 | Mixed downstream | not-pr | push |
-externalSourceExecution
+privilegedSourceExecution
 | Activity downstream | test |
 | Branch ignore ordered downstream | test |
 | Branch invalid downstream | test |
@@ -192,6 +199,7 @@ externalSourceExecution
 | Cycle A | test |
 | Cycle B | test |
 | Default activity downstream | test |
+| Depth four | test |
 | Depth one | test |
 | Depth three | test |
 | Depth two | test |
@@ -204,6 +212,7 @@ externalSourceExecution
 | PR branches downstream | test |
 | PR branches-ignore downstream | test |
 | PR unfiltered downstream | test |
+| Push downstream | test |
 | Recursive downstream | test |
 | Requested downstream | test |
 | Rooted cycle A | test |

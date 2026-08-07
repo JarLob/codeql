@@ -2,7 +2,7 @@ private import codeql.actions.security.ArtifactDownloadSteps
 private import codeql.actions.security.UntrustedCheckoutQuery
 private import codeql.actions.config.Config
 private import codeql.actions.DataFlow
-private import codeql.actions.ProgrammaticDispatch as Dispatch
+private import codeql.actions.WorkflowRunSourceEvaluation as ExecutionContexts
 private import codeql.actions.dataflow.ExternalFlow
 
 /**
@@ -23,15 +23,37 @@ abstract class RemoteFlowSource extends SourceNode {
   /** Gets the event that triggered the source. */
   abstract string getEventName();
 
-  /** Holds if this source may influence an execution triggered by `event`. */
-  bindingset[this, event]
+  /** Gets a concrete trigger event associated with this source, if one is available. */
+  Event getAProvenanceEvent() {
+    result = this.asExpr().getATriggerEvent() and result.getName() = this.getEventName()
+  }
+
+  /** Holds if this source provides untrusted data in `context`. */
+  bindingset[this, context]
   pragma[inline_late]
-  predicate mayInfluenceEvent(Event event) {
-    this.getEventName() = Dispatch::getADispatchCallerEvent*(event).getName()
+  predicate isUntrustedIn(ExecutionContexts::WorkflowExecutionContext context) {
+    (
+      exists(Event sourceEvent |
+        this.getAProvenanceEvent() = sourceEvent and context.acceptsSourceEvent(sourceEvent)
+      )
+      or
+      not exists(this.getAProvenanceEvent()) and
+      context.mayExecute(this.asExpr())
+    ) and
+    (
+      not this instanceof GitHubEventPayloadSource
+      or
+      not this.getEventName() = "workflow_run"
+      or
+      context.isDirectlyExternallyInitiated()
+    )
   }
 
   override string getThreatModel() { result = "remote" }
 }
+
+/** A remote source read from the GitHub event payload. */
+abstract class GitHubEventPayloadSource extends RemoteFlowSource { }
 
 /**
  * A data flow source of user input from github context.
@@ -159,7 +181,7 @@ private predicate isProtectedWorkflowRunHeadValue(Expression expression) {
   )
 }
 
-class GitHubEventCtxSource extends RemoteFlowSource {
+class GitHubEventCtxSource extends GitHubEventPayloadSource {
   string flag;
   string context;
   string event;
@@ -253,7 +275,7 @@ class GhCLICommandSource extends RemoteFlowSource, CommandSource {
   override string getCommand() { result = cmd }
 }
 
-class GitHubEventPathSource extends RemoteFlowSource, CommandSource {
+class GitHubEventPathSource extends GitHubEventPayloadSource, CommandSource {
   string cmd;
   string flag;
   Run run;
@@ -293,6 +315,17 @@ private predicate isUntrustedEventPropertyNode(ExpressionNode node) {
   )
 }
 
+/** Holds if `event` exposes at least one payload property modeled as untrusted. */
+bindingset[event]
+pragma[inline_late]
+private predicate eventHasUntrustedPayload(string event) {
+  exists(string contextPrefix, string regexp |
+    contextTriggerDataModel(event, contextPrefix) and
+    untrustedEventPropertiesDataModel(regexp, _) and
+    regexp.replaceAll("\\.", ".").matches(contextPrefix + "%")
+  )
+}
+
 bindingset[expression, event]
 private predicate parsedJsonSourceForEvent(Expression expression, string event) {
   exists(FunctionCallExpression call, ExpressionNode argument |
@@ -307,7 +340,7 @@ private predicate parsedJsonSourceForEvent(Expression expression, string event) 
       )
       or
       normalizeExpr(argument.getText()) = "github.event" and
-      contextTriggerDataModel(event, _)
+      eventHasUntrustedPayload(event)
     )
   )
 }
@@ -326,13 +359,13 @@ private predicate unparsedJsonSourceForEvent(Expression expression, string event
     or
     exists(string context |
       context = expression.getExpression() and
-      contextTriggerDataModel(event, _) and
+      eventHasUntrustedPayload(event) and
       normalizeExpr(context).regexpMatch("(?i).*" + wrapJsonRegexp("\\bgithub.event\\b") + ".*")
     )
   )
 }
 
-class GitHubEventJsonSource extends RemoteFlowSource {
+class GitHubEventJsonSource extends GitHubEventPayloadSource {
   string flag;
   string event;
 

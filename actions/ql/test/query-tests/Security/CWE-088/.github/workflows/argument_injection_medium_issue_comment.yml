@@ -1,0 +1,13 @@
+name: Issue comment argument processing
+
+on: issue_comment
+
+permissions: {}
+
+jobs:
+  process: # Expected: medium alert; an unprivileged job passes comment data to sed.
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          BODY: ${{ github.event.comment.body }}
+        run: sed "s/PLACEHOLDER/$BODY/g" template.txt

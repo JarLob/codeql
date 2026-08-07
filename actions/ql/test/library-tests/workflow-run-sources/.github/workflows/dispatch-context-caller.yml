@@ -1,0 +1,21 @@
+name: Dispatch context caller
+
+on:
+  issue_comment:
+  push:
+
+permissions:
+  actions: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: dispatch-context-target.yml
+          inputs: |
+            {
+              "message": ${{ toJSON(github.event.head_commit.message) }},
+              "safe": ${{ toJSON(github.event.comment.body) }}
+            }

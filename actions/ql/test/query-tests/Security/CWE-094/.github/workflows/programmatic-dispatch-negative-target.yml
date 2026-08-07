@@ -17,5 +17,5 @@ jobs:
   consume:
     runs-on: ubuntu-latest
     steps:
-      # Not expected: attacker-controlled data is dispatched only to `inputs.safe`.
+      # Expected: critical for the untrusted push source, without borrowing issue-comment provenance.
       - run: echo '${{ github.event.inputs.message }}'

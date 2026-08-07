@@ -1,2 +1,2 @@
 | .github/workflows/classification.yml:22:9:26:2 | Uses Step | Potential unsafe checkout of untrusted pull request on non-privileged workflow. |
-| .github/workflows/pull_request.yml:13:9:15:56 | Uses Step | Potential unsafe checkout of untrusted pull request on non-privileged workflow. |
+| .github/workflows/workflow_run.yml:14:9:19:2 | Uses Step | Potential unsafe checkout of untrusted pull request on non-privileged workflow. |

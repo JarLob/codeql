@@ -2,6 +2,7 @@ name: Programmatic dispatch negative caller
 
 on:
   issue_comment:
+  push:
 
 permissions:
   actions: write
@@ -15,6 +16,6 @@ jobs:
           workflow: programmatic-dispatch-negative-target.yml
           inputs: |
             {
-              "message": "constant",
+              "message": ${{ toJSON(github.event.head_commit.message) }},
               "safe": ${{ toJSON(github.event.comment.body) }}
             }

@@ -6,7 +6,7 @@ on:
 
 jobs:
 
-  test1:
+  test1: # Expected: medium alert; an unresolved reusable caller may provide issue_comment context.
     runs-on: ubuntu-20.04
     steps:
       - name: (PR comment) Get PR branch
@@ -19,7 +19,7 @@ jobs:
         with:
           ref: ${{ steps.comment-branch.outputs.head_sha }}
 
-  test2:
+  test2: # Expected: medium alert; an unresolved reusable caller may provide issue_comment context.
     runs-on: ubuntu-20.04
     steps:
       - name: (PR comment) Get PR branch

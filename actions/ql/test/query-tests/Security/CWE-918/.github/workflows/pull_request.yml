@@ -1,0 +1,10 @@
+on: pull_request
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # Expected: no alert; non-code findings are suppressed in isolated pull_request.
+      - uses: octokit/request-action@v2
+        with:
+          route: ${{ github.event.pull_request.title }}

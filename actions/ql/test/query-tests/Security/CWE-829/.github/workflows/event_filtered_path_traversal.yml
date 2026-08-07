@@ -3,7 +3,7 @@ on:
   pull_request_target:
 
 jobs:
-  upload:
+  upload: # Expected: no alert; pull_request is the isolated context intended to run PR-head code.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:

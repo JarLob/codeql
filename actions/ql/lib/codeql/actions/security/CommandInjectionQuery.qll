@@ -16,12 +16,16 @@ predicate sinkMayExecuteForEvent(DataFlow::Node sink, Event event) {
   IntegratedCfg::mayExecuteForEvent(sink.asExpr(), event)
 }
 
-/** Get the relevant event for the sink in CommandInjectionCritical.ql. */
-Event getRelevantEventInPrivilegedContext(DataFlow::Node sink) {
-  workflowRunAwarePrivilegedExternalInputContext(sink.asExpr(), result) and
+/** Gets a relevant execution context for the sink in CommandInjectionCritical.ql. */
+WorkflowExecutionContext getRelevantContextInPrivilegedContext(DataFlow::Node sink) {
+  result = getAPrivilegedWorkflowExecutionContext(sink.asExpr()) and
   not exists(ControlCheck check |
-    check.protects(sink.asExpr(), result, ["command-injection", "code-injection"])
+    check.protects(sink.asExpr(), result.getEvent(), ["command-injection", "code-injection"])
   )
+}
+
+Event getRelevantEventInPrivilegedContext(DataFlow::Node sink) {
+  result = getRelevantContextInPrivilegedContext(sink).getEvent()
 }
 
 bindingset[sink]
@@ -35,14 +39,28 @@ predicate sinkMayExecuteOnlyInNonPrivilegedContext(DataFlow::Node sink) {
       exists(Event event |
         job.getATriggerEvent() = event and
         sinkMayExecuteForEvent(sink, event) and
-        workflowRunAwareExternalInputContext(sink.asExpr(), event)
+        getAWorkflowExecutionContextForNode(sink.asExpr()).getEvent() = event
       ) and
       not exists(Event event |
         job.getATriggerEvent() = event and
         sinkMayExecuteForEvent(sink, event) and
-        workflowRunAwarePrivilegedExternalInputContext(sink.asExpr(), event)
+        getAPrivilegedWorkflowExecutionContext(sink.asExpr()).getEvent() = event
       )
     )
+  )
+}
+
+/** Holds if `source` can reach `sink`, but not in a privileged execution context. */
+predicate sourceMayReachOnlyNonPrivilegedContext(DataFlow::Node source, DataFlow::Node sink) {
+  not exists(sink.asExpr().getEnclosingJob().getATriggerEvent())
+  or
+  exists(WorkflowExecutionContext context |
+    source.(RemoteFlowSource).isUntrustedIn(context) and
+    context.mayExecute(sink.asExpr()) and
+    not context.isPullRequest()
+  ) and
+  not exists(WorkflowExecutionContext context |
+    source.(RemoteFlowSource).isUntrustedIn(context) and context.isPrivileged(sink.asExpr())
   )
 }
 

@@ -387,11 +387,8 @@ class Event extends AstNode instanceof EventImpl {
   /** Holds if an external actor can directly initiate this event. */
   predicate isDirectlyExternallyTriggerable() { super.isDirectlyExternallyTriggerable() }
 
-  /** Holds if this event is an external-input-relevant context without dispatch propagation. */
-  predicate isExternalInputRelevant() { super.isExternalInputRelevant() }
-
-  /** Compatibility alias for the original, broader predicate name. */
-  deprecated predicate isExternallyTriggerable() { super.isExternalInputRelevant() }
+  /** Holds if workflows for this event require analysis for externally controlled input. */
+  predicate isExternallyTriggerable() { super.isExternallyTriggerable() }
 
   predicate isPrivileged() { super.isPrivileged() }
 }
@@ -469,10 +466,9 @@ abstract class Job extends AstNode instanceof JobImpl {
    */
   predicate isPrivilegedForEvent(Event event) { super.isPrivilegedForEvent(event) }
 
-  /** Compatibility alias for the original predicate name. */
-  deprecated predicate isPrivilegedExternallyTriggerable(Event event) {
+  predicate isPrivilegedExternallyTriggerable(Event event) {
     this.getATriggerEvent() = event and
-    event.isExternalInputRelevant() and
+    event.isExternallyTriggerable() and
     this.isPrivilegedForEvent(event)
   }
 }

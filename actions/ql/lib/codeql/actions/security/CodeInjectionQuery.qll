@@ -12,16 +12,18 @@ private predicate isJobContainerImageSink(DataFlow::Node sink) {
   exists(LocalJob job | job.getJobContainerImageExpr() = sink.asExpr())
 }
 
-private predicate jobContainerHasSensitiveCapability(DataFlow::Node sink, Event event) {
+private predicate jobContainerHasSensitiveCapability(
+  DataFlow::Node sink, WorkflowExecutionContext context
+) {
   exists(LocalJob job |
     job.getJobContainerImageExpr() = sink.asExpr() and
-    job.getATriggerEvent() = event and
+    job.getATriggerEvent() = context.getEvent() and
     (
       exists(SecretsExpression secret |
         secret.getEnclosingJob() = job and secret.getFieldName() != "GITHUB_TOKEN"
       )
       or
-      workflowRunAwarePrivilegedExternalInputContext(sink.asExpr(), event) and
+      context.isPrivileged(sink.asExpr()) and
       (
         exists(SecretsExpression token |
           token.getEnclosingJob() = job and token.getFieldName() = "GITHUB_TOKEN"
@@ -39,40 +41,44 @@ private predicate sinkMayExecuteForEvent(DataFlow::Node sink, Event event) {
   JobSync::jobMayExecuteForEvent(sink.asExpr().getEnclosingJob(), event)
 }
 
-private predicate sinkMayExecuteWithoutProtectionForAnyEvent(DataFlow::Node sink) {
-  not exists(sink.asExpr().getEnclosingJob().getATriggerEvent())
-  or
-  exists(Event event |
-    sink.asExpr().getEnclosingJob().getATriggerEvent() = event and
-    sinkMayExecuteForEvent(sink, event) and
-    workflowRunAwareExternalInputContext(sink.asExpr(), event) and
-    not exists(ControlCheck check | check.protects(sink.asExpr(), event, "code-injection"))
-  )
-}
-
 /**
- * Get the relevant event for the sink in CodeInjectionCritical.ql.
+ * Gets a relevant execution context for the sink in CodeInjectionCritical.ql.
  */
-Event getRelevantCriticalEventForSink(DataFlow::Node sink) {
-  workflowRunAwarePrivilegedExternalInputContext(sink.asExpr(), result) and
-  sinkMayExecuteForEvent(sink, result) and
+bindingset[sink]
+pragma[inline_late]
+WorkflowExecutionContext getRelevantCriticalContextForSink(DataFlow::Node sink) {
+  result = getAPrivilegedWorkflowExecutionContext(sink.asExpr()) and
+  sinkMayExecuteForEvent(sink, result.getEvent()) and
   (not isJobContainerImageSink(sink) or jobContainerHasSensitiveCapability(sink, result)) and
-  not exists(ControlCheck check | check.protects(sink.asExpr(), result, "code-injection")) and
+  not exists(ControlCheck check |
+    check.protects(sink.asExpr(), result.getEvent(), "code-injection")
+  ) and
   not isGithubScriptUsingToJson(sink.asExpr())
 }
 
+/** Gets the event for a relevant critical execution context. */
+Event getRelevantCriticalEventForSink(DataFlow::Node sink) {
+  result = getRelevantCriticalContextForSink(sink).getEvent()
+}
+
 /**
- * Get the relevant event for the sink in CachePoisoningViaCodeInjection.ql.
+ * Gets a relevant execution context for the sink in CachePoisoningViaCodeInjection.ql.
  */
-Event getRelevantCachePoisoningEventForSink(DataFlow::Node sink) {
-  exists(LocalJob job |
+WorkflowExecutionContext getRelevantCachePoisoningContextForSink(DataFlow::Node sink) {
+  exists(LocalJob job, Event event |
     job = sink.asExpr().getEnclosingJob() and
-    job.getATriggerEvent() = result and
+    job.getATriggerEvent() = event and
+    result = getAWorkflowExecutionContextForNode(sink.asExpr()) and
+    result.getEvent() = event and
     // excluding privileged workflows since they can be exploited in easier circumstances
     // which is covered by `actions/code-injection/critical`
-    not workflowRunAwarePrivilegedExternalInputContext(sink.asExpr(), result) and
-    hasDefaultBranchCacheWriteAccess(job, result)
+    not getAPrivilegedWorkflowExecutionContext(sink.asExpr()).getEvent() = event and
+    hasDefaultBranchCacheWriteAccess(job, event)
   )
+}
+
+Event getRelevantCachePoisoningEventForSink(DataFlow::Node sink) {
+  result = getRelevantCachePoisoningContextForSink(sink).getEvent()
 }
 
 /**
@@ -115,15 +121,44 @@ private module CodeInjectionConfig implements DataFlow::ConfigSig {
 module CodeInjectionFlow = TaintTracking::Global<CodeInjectionConfig>;
 
 /**
+ * Holds if untrusted input flows from `source` to `sink` and the sink may execute without
+ * protection in `context`.
+ */
+predicate codeInjectionInContext(
+  CodeInjectionFlow::PathNode source, CodeInjectionFlow::PathNode sink,
+  WorkflowExecutionContext context
+) {
+  CodeInjectionFlow::flowPath(source, sink) and
+  source.getNode().(RemoteFlowSource).isUntrustedIn(context) and
+  context.mayExecute(sink.getNode().asExpr()) and
+  sinkMayExecuteForEvent(sink.getNode(), context.getEvent()) and
+  not exists(ControlCheck check |
+    check.protects(sink.getNode().asExpr(), context.getEvent(), "code-injection")
+  ) and
+  not isGithubScriptUsingToJson(sink.getNode().asExpr())
+}
+
+/** Holds if a code-injection flow has no concrete trigger context to correlate. */
+private predicate codeInjectionWithoutKnownContext(
+  CodeInjectionFlow::PathNode source, CodeInjectionFlow::PathNode sink
+) {
+  CodeInjectionFlow::flowPath(source, sink) and
+  not exists(sink.getNode().asExpr().getEnclosingJob().getATriggerEvent()) and
+  not isGithubScriptUsingToJson(sink.getNode().asExpr())
+}
+
+/**
  * Holds if there is a code injection flow from `source` to `sink` with
  * critical severity, linked by `event`.
  */
 predicate criticalSeverityCodeInjection(
   CodeInjectionFlow::PathNode source, CodeInjectionFlow::PathNode sink, Event event
 ) {
-  CodeInjectionFlow::flowPath(source, sink) and
-  event = getRelevantCriticalEventForSink(sink.getNode()) and
-  source.getNode().(RemoteFlowSource).mayInfluenceEvent(event)
+  exists(WorkflowExecutionContext context |
+    codeInjectionInContext(source, sink, context) and
+    context = getRelevantCriticalContextForSink(sink.getNode()) and
+    event = context.getEvent()
+  )
 }
 
 /**
@@ -132,11 +167,32 @@ predicate criticalSeverityCodeInjection(
 predicate mediumSeverityCodeInjection(
   CodeInjectionFlow::PathNode source, CodeInjectionFlow::PathNode sink
 ) {
-  CodeInjectionFlow::flowPath(source, sink) and
   not isJobContainerImageSink(sink.getNode()) and
-  sinkMayExecuteWithoutProtectionForAnyEvent(sink.getNode()) and
+  (
+    exists(WorkflowExecutionContext context |
+      codeInjectionInContext(source, sink, context) and not context.isPullRequest()
+    )
+    or
+    codeInjectionWithoutKnownContext(source, sink)
+  ) and
+  not criticalSeverityCodeInjection(source, sink, _)
+}
+
+/**
+ * Holds if there is a code injection flow from `source` to `sink` exclusively in an isolated
+ * `pull_request` context, linked by `event`.
+ */
+predicate lowSeverityCodeInjection(
+  CodeInjectionFlow::PathNode source, CodeInjectionFlow::PathNode sink, Event event
+) {
+  not isJobContainerImageSink(sink.getNode()) and
+  exists(WorkflowExecutionContext context |
+    codeInjectionInContext(source, sink, context) and
+    context.isPullRequest() and
+    event = context.getEvent()
+  ) and
   not criticalSeverityCodeInjection(source, sink, _) and
-  not isGithubScriptUsingToJson(sink.getNode().asExpr())
+  not mediumSeverityCodeInjection(source, sink)
 }
 
 /**

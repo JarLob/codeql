@@ -17,7 +17,7 @@ import codeql.actions.security.RequestForgeryQuery
 import RequestForgeryFlow::PathGraph
 
 from RequestForgeryFlow::PathNode source, RequestForgeryFlow::PathNode sink
-where RequestForgeryFlow::flowPath(source, sink)
+where requestForgeryInReportableContext(source, sink)
 select sink.getNode(), source, sink,
   "Potential request forgery in $@, which may be controlled by an external user.", sink,
   sink.getNode().asExpr().(Expression).getRawExpression()

@@ -57,25 +57,30 @@ private string getSinkLabel(OutputClobberingFlow::PathNode sink) {
 
 from OutputClobberingFlow::PathNode source, OutputClobberingFlow::PathNode sink, Event event
 where
-  OutputClobberingFlow::flowPath(source, sink) and
-  source.getNode().(RemoteFlowSource).mayInfluenceEvent(event) and
-  workflowRunAwarePrivilegedExternalInputContext(sink.getNode().asExpr(), event) and
-  sinkMayExecuteForEvent(sink.getNode(), event) and
-  // exclude paths to file read sinks from non-artifact sources
-  (
-    not source.getNode().(RemoteFlowSource).getSourceType() = "artifact" and
-    not exists(ControlCheck check |
-      check.protects(sink.getNode().asExpr(), event, "code-injection")
-    )
-    or
-    source.getNode().(RemoteFlowSource).getSourceType() = "artifact" and
-    not exists(ControlCheck check |
-      check.protects(sink.getNode().asExpr(), event, ["untrusted-checkout", "artifact-poisoning"])
-    ) and
+  exists(WorkflowExecutionContext context |
+    OutputClobberingFlow::flowPath(source, sink) and
+    source.getNode().(RemoteFlowSource).isUntrustedIn(context) and
+    context = getAPrivilegedWorkflowExecutionContext(sink.getNode().asExpr()) and
+    sinkMayExecuteForEvent(sink.getNode(), context.getEvent()) and
+    // exclude paths to file read sinks from non-artifact sources
     (
-      sink.getNode() instanceof OutputClobberingFromFileReadSink or
-      sink.getNode() instanceof WorkflowCommandClobberingFromFileReadSink or
-      madSink(sink.getNode(), "output-clobbering")
-    )
+      not source.getNode().(RemoteFlowSource).getSourceType() = "artifact" and
+      not exists(ControlCheck check |
+        check.protects(sink.getNode().asExpr(), context.getEvent(), "code-injection")
+      )
+      or
+      source.getNode().(RemoteFlowSource).getSourceType() = "artifact" and
+      not exists(ControlCheck check |
+        check
+            .protects(sink.getNode().asExpr(), context.getEvent(),
+              ["untrusted-checkout", "artifact-poisoning"])
+      ) and
+      (
+        sink.getNode() instanceof OutputClobberingFromFileReadSink or
+        sink.getNode() instanceof WorkflowCommandClobberingFromFileReadSink or
+        madSink(sink.getNode(), "output-clobbering")
+      )
+    ) and
+    event = context.getEvent()
   )
 select sink.getNode(), source, sink, getMessage(sink), sink, getSinkLabel(sink)

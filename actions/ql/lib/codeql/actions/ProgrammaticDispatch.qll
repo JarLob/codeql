@@ -130,15 +130,3 @@ Event getADispatchCallerEvent(Event target) {
     dispatch.getTargetEvent() = target and result = dispatch.getATriggerEvent()
   )
 }
-
-/** Holds if workflows for `event` require analysis for externally controlled input. */
-predicate isExternalInputRelevant(Event event) {
-  getADispatchCallerEvent*(event).isExternalInputRelevant()
-}
-
-/** Holds if `job` is privileged for an external-input-relevant `event`. */
-predicate isPrivilegedForExternalInput(Job job, Event event) {
-  job.getATriggerEvent() = event and
-  isExternalInputRelevant(event) and
-  job.isPrivilegedForEvent(event)
-}

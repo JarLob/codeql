@@ -87,13 +87,20 @@ class ArtifactPoisoningSink extends DataFlow::Node {
 }
 
 /**
- * Gets the event that is relevant for the given node in the context of artifact poisoning.
+ * Gets a relevant execution context for the given node in artifact poisoning.
  *
- * This is used to highlight the event in the query results when an alert is raised.
+ * This is used to correlate the untrusted source with the privileged sink.
  */
+WorkflowExecutionContext getRelevantContextInPrivilegedContext(DataFlow::Node node) {
+  result = getAPrivilegedWorkflowExecutionContext(node.asExpr()) and
+  not exists(ControlCheck check |
+    check.protects(node.asExpr(), result.getEvent(), "artifact-poisoning")
+  )
+}
+
+/** Gets the event for a relevant artifact-poisoning context. */
 Event getRelevantEventInPrivilegedContext(DataFlow::Node node) {
-  workflowRunAwarePrivilegedExternalInputContext(node.asExpr(), result) and
-  not exists(ControlCheck check | check.protects(node.asExpr(), result, "artifact-poisoning"))
+  result = getRelevantContextInPrivilegedContext(node).getEvent()
 }
 
 bindingset[sink, event]
@@ -113,14 +120,28 @@ predicate sinkMayExecuteOnlyInNonPrivilegedContext(DataFlow::Node sink) {
       exists(Event event |
         job.getATriggerEvent() = event and
         sinkMayExecuteForEvent(sink, event) and
-        workflowRunAwareExternalInputContext(sink.asExpr(), event)
+        getAWorkflowExecutionContextForNode(sink.asExpr()).getEvent() = event
       ) and
       not exists(Event event |
         job.getATriggerEvent() = event and
         sinkMayExecuteForEvent(sink, event) and
-        workflowRunAwarePrivilegedExternalInputContext(sink.asExpr(), event)
+        getAPrivilegedWorkflowExecutionContext(sink.asExpr()).getEvent() = event
       )
     )
+  )
+}
+
+/** Holds if `source` can reach `sink`, but not in a privileged execution context. */
+predicate sourceMayReachOnlyNonPrivilegedContext(DataFlow::Node source, DataFlow::Node sink) {
+  not exists(sink.asExpr().getEnclosingJob().getATriggerEvent())
+  or
+  exists(WorkflowExecutionContext context |
+    source.(ArtifactSource).isUntrustedIn(context) and
+    context.mayExecute(sink.asExpr()) and
+    not context.isPullRequest()
+  ) and
+  not exists(WorkflowExecutionContext context |
+    source.(ArtifactSource).isUntrustedIn(context) and context.isPrivileged(sink.asExpr())
   )
 }
 

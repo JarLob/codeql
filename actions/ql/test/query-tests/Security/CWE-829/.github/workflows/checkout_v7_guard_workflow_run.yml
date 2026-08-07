@@ -12,6 +12,17 @@ jobs:
           ref: ${{ github.event.workflow_run.head_commit.id }}
       - run: npm install
 
+  opted-out-nonprivileged: # Expected: medium alert; the runtime guard is disabled without privileges.
+    permissions: {}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          repository: ${{ github.event.workflow_run.head_repository.full_name }}
+          ref: ${{ github.event.workflow_run.head_commit.id }}
+          allow-unsafe-pr-checkout: true
+      - run: npm install
+
   opted-out: # Expected: critical alert; allow-unsafe-pr-checkout disables the runtime guard.
     runs-on: ubuntu-latest
     steps:

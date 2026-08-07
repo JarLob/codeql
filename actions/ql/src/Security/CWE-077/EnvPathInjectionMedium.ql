@@ -20,7 +20,7 @@ import EnvPathInjectionFlow::PathGraph
 from EnvPathInjectionFlow::PathNode source, EnvPathInjectionFlow::PathNode sink
 where
   EnvPathInjectionFlow::flowPath(source, sink) and
-  sinkMayExecuteOnlyInNonPrivilegedContext(sink.getNode()) and
+  sourceMayReachOnlyNonPrivilegedContext(source.getNode(), sink.getNode()) and
   (
     not source.getNode().(RemoteFlowSource).getSourceType() = "artifact"
     or

@@ -6,7 +6,7 @@ on:
 permissions: {}
 
 jobs:
-  trigger-discriminated-label: # Expected: ordinary medium; pull_request is outside the privileged authorization-event model.
+  trigger-discriminated-label: # Expected: no alert; pull_request is the isolated context intended to run PR-head code.
     if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'safe-to-test'
     runs-on: ubuntu-latest
     steps:

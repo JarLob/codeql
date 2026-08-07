@@ -1,0 +1,18 @@
+name: Scheduled issue processor
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+permissions: {}
+
+jobs:
+  process: # Expected: medium alert; an unprivileged job interpolates remote issue data as code.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch open issues
+        id: issues
+        uses: octokit/request-action@v2.x
+        with:
+          route: GET /repos/example/project/issues?state=open
+      - run: echo '${{ steps.issues.outputs.data }}' > issues.json

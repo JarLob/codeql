@@ -1,5 +1,5 @@
 import codeql.actions.Ast
-import codeql.actions.ProgrammaticDispatch as Dispatch
+import codeql.actions.WorkflowRunSourceEvaluation as ExecutionContexts
 
 private string selectedScope() {
   result =
@@ -39,7 +39,7 @@ query predicate eventPrivilege(string workflow, string jobId, string event, stri
     jobId = job.getId() and
     job.getATriggerEvent() = trigger and
     event = trigger.getName() and
-    if Dispatch::isPrivilegedForExternalInput(job, trigger)
+    if ExecutionContexts::getAPrivilegedWorkflowExecutionContext(job).getEvent() = trigger
     then privilege = "privileged"
     else privilege = "unprivileged"
   )

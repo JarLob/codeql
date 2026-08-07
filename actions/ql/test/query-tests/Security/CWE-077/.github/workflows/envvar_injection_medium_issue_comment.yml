@@ -1,0 +1,14 @@
+name: Issue comment environment export
+
+on: issue_comment
+
+permissions: {}
+
+jobs:
+  export-comment:
+    runs-on: ubuntu-latest
+    steps:
+      # Expected: medium alert; an unprivileged job writes comment data to GITHUB_ENV.
+      - env:
+          BODY: ${{ github.event.comment.body }}
+        run: echo "COMMENT_BODY=$BODY" >> "$GITHUB_ENV"

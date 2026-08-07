@@ -3,6 +3,7 @@ edges
 | .github/workflows/artifactpoisoning52.yml:13:9:15:6 | Run Step | .github/workflows/artifactpoisoning52.yml:19:14:22:40 | echo "PACKAGES_FILE_LIST<<EOF" >> "${GITHUB_ENV}"\ncat foo >> "$GITHUB_ENV"\necho "EOF" >> "${GITHUB_ENV}"\n | provenance | Config |
 | .github/workflows/artifactpoisoning53.yml:13:9:15:6 | Run Step | .github/workflows/artifactpoisoning53.yml:18:14:23:29 | {\n  echo 'JSON_RESPONSE<<EOF'\n  cat foo\n  echo EOF\n} >> "$GITHUB_ENV"\n | provenance | Config |
 | .github/workflows/checkout_v7_runtime_guard.yml:16:9:20:6 | Uses Step | .github/workflows/checkout_v7_runtime_guard.yml:20:14:20:57 | echo "VALUE=$(cat value.txt)" >> $GITHUB_ENV | provenance | Config |
+| .github/workflows/envvar_injection_medium_issue_comment.yml:13:18:13:49 | github.event.comment.body | .github/workflows/envvar_injection_medium_issue_comment.yml:14:14:14:55 | echo "COMMENT_BODY=$BODY" >> "$GITHUB_ENV" | provenance | Config |
 | .github/workflows/event_filtered_envvar.yml:11:19:11:56 | github.event.pull_request.title | .github/workflows/event_filtered_envvar.yml:12:14:12:52 | echo "PR_TITLE=$TITLE" >> "$GITHUB_ENV" | provenance | Config |
 | .github/workflows/test2.yml:12:9:41:6 | Uses Step | .github/workflows/test2.yml:41:14:43:52 | unzip pr.zip\necho "pr_number=$(cat NR)" >> $GITHUB_ENV\n | provenance | Config |
 | .github/workflows/test3.yml:13:7:20:4 | Uses Step | .github/workflows/test3.yml:20:12:23:77 | echo "PR_NUMBER=$(cat pr_number.txt \| jq -r .)" >> $GITHUB_ENV\necho "PR_HEAD_REPO=$(cat pr_head_repo.txt \| jq -Rr .)" >> $GITHUB_ENV\necho "PR_HEAD_REF=$(cat pr_head_ref.txt \| jq -Rr .)" >> $GITHUB_ENV\n | provenance | Config |
@@ -31,7 +32,7 @@ edges
 | .github/workflows/test12.yml:55:9:61:6 | Uses Step | .github/workflows/test12.yml:63:14:68:29 | {\n  echo 'PRERELEASE_REPORT<<EOF'\n  cat prerelease-report.md\n  echo EOF\n} >> "$GITHUB_ENV"\n | provenance | Config |
 | .github/workflows/test16.yml:10:9:15:6 | Uses Step | .github/workflows/test16.yml:15:14:17:63 | # VULNERABLE\necho "PR_NUMBER=$(cat pr_number.txt)" >> $GITHUB_ENV\n | provenance | Config |
 | .github/workflows/test16.yml:10:9:15:6 | Uses Step | .github/workflows/test16.yml:18:14:20:77 | # VULNERABLE\necho "PR_NUMBER=$(cat pr_number.txt \| tr ',' '\\n')" >> $GITHUB_ENV\n | provenance | Config |
-| .github/workflows/test18.yml:37:18:37:54 | github.event.pull_request.body | .github/workflows/test18.yml:38:14:38:45 | echo "BODY=$BODY" >> $GITHUB_ENV | provenance | Config |
+| .github/workflows/test18.yml:38:18:38:54 | github.event.pull_request.body | .github/workflows/test18.yml:39:14:39:45 | echo "BODY=$BODY" >> $GITHUB_ENV | provenance | Config |
 nodes
 | .github/workflows/artifactpoisoning51.yml:13:9:15:6 | Run Step | semmle.label | Run Step |
 | .github/workflows/artifactpoisoning51.yml:19:14:20:57 | echo "pr_number=$(cat foo/bar)" >> $GITHUB_ENV\n | semmle.label | echo "pr_number=$(cat foo/bar)" >> $GITHUB_ENV\n |
@@ -41,6 +42,8 @@ nodes
 | .github/workflows/artifactpoisoning53.yml:18:14:23:29 | {\n  echo 'JSON_RESPONSE<<EOF'\n  cat foo\n  echo EOF\n} >> "$GITHUB_ENV"\n | semmle.label | {\n  echo 'JSON_RESPONSE<<EOF'\n  cat foo\n  echo EOF\n} >> "$GITHUB_ENV"\n |
 | .github/workflows/checkout_v7_runtime_guard.yml:16:9:20:6 | Uses Step | semmle.label | Uses Step |
 | .github/workflows/checkout_v7_runtime_guard.yml:20:14:20:57 | echo "VALUE=$(cat value.txt)" >> $GITHUB_ENV | semmle.label | echo "VALUE=$(cat value.txt)" >> $GITHUB_ENV |
+| .github/workflows/envvar_injection_medium_issue_comment.yml:13:18:13:49 | github.event.comment.body | semmle.label | github.event.comment.body |
+| .github/workflows/envvar_injection_medium_issue_comment.yml:14:14:14:55 | echo "COMMENT_BODY=$BODY" >> "$GITHUB_ENV" | semmle.label | echo "COMMENT_BODY=$BODY" >> "$GITHUB_ENV" |
 | .github/workflows/event_filtered_envvar.yml:11:19:11:56 | github.event.pull_request.title | semmle.label | github.event.pull_request.title |
 | .github/workflows/event_filtered_envvar.yml:12:14:12:52 | echo "PR_TITLE=$TITLE" >> "$GITHUB_ENV" | semmle.label | echo "PR_TITLE=$TITLE" >> "$GITHUB_ENV" |
 | .github/workflows/test2.yml:12:9:41:6 | Uses Step | semmle.label | Uses Step |
@@ -98,8 +101,8 @@ nodes
 | .github/workflows/test16.yml:10:9:15:6 | Uses Step | semmle.label | Uses Step |
 | .github/workflows/test16.yml:15:14:17:63 | # VULNERABLE\necho "PR_NUMBER=$(cat pr_number.txt)" >> $GITHUB_ENV\n | semmle.label | # VULNERABLE\necho "PR_NUMBER=$(cat pr_number.txt)" >> $GITHUB_ENV\n |
 | .github/workflows/test16.yml:18:14:20:77 | # VULNERABLE\necho "PR_NUMBER=$(cat pr_number.txt \| tr ',' '\\n')" >> $GITHUB_ENV\n | semmle.label | # VULNERABLE\necho "PR_NUMBER=$(cat pr_number.txt \| tr ',' '\\n')" >> $GITHUB_ENV\n |
-| .github/workflows/test18.yml:37:18:37:54 | github.event.pull_request.body | semmle.label | github.event.pull_request.body |
-| .github/workflows/test18.yml:38:14:38:45 | echo "BODY=$BODY" >> $GITHUB_ENV | semmle.label | echo "BODY=$BODY" >> $GITHUB_ENV |
+| .github/workflows/test18.yml:38:18:38:54 | github.event.pull_request.body | semmle.label | github.event.pull_request.body |
+| .github/workflows/test18.yml:39:14:39:45 | echo "BODY=$BODY" >> $GITHUB_ENV | semmle.label | echo "BODY=$BODY" >> $GITHUB_ENV |
 subpaths
 #select
-| .github/workflows/event_filtered_envvar.yml:12:14:12:52 | echo "PR_TITLE=$TITLE" >> "$GITHUB_ENV" | .github/workflows/event_filtered_envvar.yml:11:19:11:56 | github.event.pull_request.title | .github/workflows/event_filtered_envvar.yml:12:14:12:52 | echo "PR_TITLE=$TITLE" >> "$GITHUB_ENV" | Potential environment variable injection in $@, which may be controlled by an external user. | .github/workflows/event_filtered_envvar.yml:12:14:12:52 | echo "PR_TITLE=$TITLE" >> "$GITHUB_ENV" | echo "PR_TITLE=$TITLE" >> "$GITHUB_ENV" |
+| .github/workflows/envvar_injection_medium_issue_comment.yml:14:14:14:55 | echo "COMMENT_BODY=$BODY" >> "$GITHUB_ENV" | .github/workflows/envvar_injection_medium_issue_comment.yml:13:18:13:49 | github.event.comment.body | .github/workflows/envvar_injection_medium_issue_comment.yml:14:14:14:55 | echo "COMMENT_BODY=$BODY" >> "$GITHUB_ENV" | Potential environment variable injection in $@, which may be controlled by an external user. | .github/workflows/envvar_injection_medium_issue_comment.yml:14:14:14:55 | echo "COMMENT_BODY=$BODY" >> "$GITHUB_ENV" | echo "COMMENT_BODY=$BODY" >> "$GITHUB_ENV" |

@@ -1,4 +1,5 @@
 import actions
+import codeql.actions.dataflow.FlowSources
 import codeql.actions.ExpressionEvaluation as Evaluation
 import codeql.actions.ast.internal.WorkflowTriggerGlob as WorkflowTriggerGlob
 
@@ -81,7 +82,7 @@ query predicate externallyTriggerable(string workflow) {
   exists(Event event |
     event.getName() = "workflow_run" and
     workflow = event.getEnclosingWorkflow().getName() and
-    isExternalInputRelevant(event)
+    event.isExternallyTriggerable()
   )
 }
 
@@ -134,15 +135,16 @@ query predicate sourceEventExternality(string workflow) {
   exists(Event event |
     workflow = event.getEnclosingWorkflow().getName() and
     event.getName() = "issues" and
-    isExternalInputRelevant(event)
+    event.isExternallyTriggerable()
   )
 }
 
 query predicate directlyExternallyTriggerableEvent(string eventName) {
-  exists(Event event |
+  exists(Event event, WorkflowExecutionContext context |
     event.getEnclosingWorkflow().getName() = "External input events" and
     eventName = event.getName() and
-    event.isDirectlyExternallyTriggerable()
+    context = getAWorkflowExecutionContext(event) and
+    context.isDirectlyExternallyInitiated()
   )
 }
 
@@ -150,7 +152,28 @@ query predicate externalInputRelevantEvent(string eventName) {
   exists(Event event |
     event.getEnclosingWorkflow().getName() = "External input events" and
     eventName = event.getName() and
-    isExternalInputRelevant(event)
+    event.isExternallyTriggerable()
+  )
+}
+
+query predicate dispatchContextSources(string sourceEvent) {
+  exists(Event event, Event source, WorkflowExecutionContext context |
+    event.getEnclosingWorkflow().getName() = "Dispatch context target" and
+    event.getName() = "workflow_dispatch" and
+    context = getAWorkflowExecutionContext(event) and
+    context.acceptsSourceEvent(source) and
+    sourceEvent = source.getName()
+  )
+}
+
+query predicate dispatchContextRemoteSources(string sourceEvent) {
+  exists(Event event, RemoteFlowSource source, WorkflowExecutionContext context |
+    event.getEnclosingWorkflow().getName() = "Dispatch context target" and
+    event.getName() = "workflow_dispatch" and
+    source.asExpr().getEnclosingWorkflow().getName() = "Dispatch context caller" and
+    context = getAWorkflowExecutionContext(event) and
+    source.isUntrustedIn(context) and
+    sourceEvent = source.getEventName()
   )
 }
 
@@ -219,12 +242,12 @@ query predicate sourceConditionFeasible(string workflow, string job, string sour
   )
 }
 
-query predicate externalSourceExecution(string workflow, string job) {
+query predicate privilegedSourceExecution(string workflow, string job) {
   exists(LocalJob localJob, Event event |
     workflow = localJob.getEnclosingWorkflow().getName() and
     job = localJob.getId() and
     event = localJob.getATriggerEvent() and
     event.getName() = "workflow_run" and
-    workflowRunAwarePrivilegedExternalInputContext(localJob, event)
+    getAPrivilegedWorkflowExecutionContext(localJob).getEvent() = event
   )
 }

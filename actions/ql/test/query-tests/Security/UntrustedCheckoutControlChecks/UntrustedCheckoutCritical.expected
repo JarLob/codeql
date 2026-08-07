@@ -61,9 +61,10 @@ edges
 | .github/workflows/pull_request_target.yml:140:9:141:6 | Uses Step | .github/workflows/pull_request_target.yml:141:9:145:6 | Uses Step |
 | .github/workflows/pull_request_target.yml:141:9:145:6 | Uses Step | .github/workflows/pull_request_target.yml:145:9:145:18 | Run Step |
 | .github/workflows/pull_request_target.yml:144:17:144:57 | github.event.pull_request.head.ref | .github/workflows/pull_request_target.yml:141:9:145:6 | Uses Step |
-| .github/workflows/workflow_run.yml:15:17:15:60 | github.event.workflow_run.head_branch | .github/workflows/workflow_run.yml:13:9:17:2 | Uses Step |
+| .github/workflows/workflow_run.yml:17:17:17:74 | github.event.workflow_run.pull_requests[0].head.ref | .github/workflows/workflow_run.yml:14:9:19:2 | Uses Step |
 | .github/workflows/workflow_run.yml:25:17:25:60 | github.event.workflow_run.head_branch | .github/workflows/workflow_run.yml:23:9:27:2 | Uses Step |
-| .github/workflows/workflow_run.yml:37:17:37:60 | github.event.workflow_run.head_branch | .github/workflows/workflow_run.yml:35:9:37:59 | Uses Step |
+| .github/workflows/workflow_run.yml:35:17:35:60 | github.event.workflow_run.head_branch | .github/workflows/workflow_run.yml:33:9:37:2 | Uses Step |
+| .github/workflows/workflow_run.yml:47:17:47:60 | github.event.workflow_run.head_branch | .github/workflows/workflow_run.yml:45:9:47:59 | Uses Step |
 | .github/workflows/workflow_run_issue_consumer.yml:12:9:15:6 | Uses Step | .github/workflows/workflow_run_issue_consumer.yml:15:9:19:6 | Uses Step |
 | .github/workflows/workflow_run_issue_consumer.yml:15:9:19:6 | Uses Step | .github/workflows/workflow_run_issue_consumer.yml:19:9:21:2 | Run Step |
 | .github/workflows/workflow_run_issue_consumer.yml:18:17:18:74 | github.event.workflow_run.pull_requests[0].head.ref | .github/workflows/workflow_run_issue_consumer.yml:15:9:19:6 | Uses Step |

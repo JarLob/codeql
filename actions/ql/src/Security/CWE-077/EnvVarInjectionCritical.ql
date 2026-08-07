@@ -21,18 +21,21 @@ import codeql.actions.security.ControlChecks
 
 from EnvVarInjectionFlow::PathNode source, EnvVarInjectionFlow::PathNode sink, Event event
 where
-  EnvVarInjectionFlow::flowPath(source, sink) and
-  source.getNode().(RemoteFlowSource).mayInfluenceEvent(event) and
-  sinkMayExecuteForEvent(sink.getNode(), event) and
-  // exclude paths to file read sinks from non-artifact sources
-  (
-    // source is text
-    not source.getNode().(RemoteFlowSource).getSourceType() = "artifact" and
-    event = getRelevantNonArtifactEventInPrivilegedContext(sink.getNode())
-    or
-    // source is an artifact or a file from an untrusted checkout
-    source.getNode().(RemoteFlowSource).getSourceType() = "artifact" and
-    event = getRelevantArtifactEventInPrivilegedContext(sink.getNode())
+  exists(WorkflowExecutionContext context |
+    EnvVarInjectionFlow::flowPath(source, sink) and
+    source.getNode().(RemoteFlowSource).isUntrustedIn(context) and
+    sinkMayExecuteForEvent(sink.getNode(), context.getEvent()) and
+    // exclude paths to file read sinks from non-artifact sources
+    (
+      // source is text
+      not source.getNode().(RemoteFlowSource).getSourceType() = "artifact" and
+      context = getRelevantNonArtifactContextInPrivilegedContext(sink.getNode())
+      or
+      // source is an artifact or a file from an untrusted checkout
+      source.getNode().(RemoteFlowSource).getSourceType() = "artifact" and
+      context = getRelevantArtifactContextInPrivilegedContext(sink.getNode())
+    ) and
+    event = context.getEvent()
   )
 select sink.getNode(), source, sink,
   "Potential environment variable injection in $@, which may be controlled by an external user ($@).",

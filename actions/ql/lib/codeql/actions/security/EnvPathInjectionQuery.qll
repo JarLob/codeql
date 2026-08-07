@@ -85,22 +85,32 @@ predicate sinkMayExecuteForEvent(DataFlow::Node sink, Event event) {
 }
 
 /**
- * Get the relevant event for a sink in EnvPathInjectionCritical.ql where the source type is "artifact".
+ * Gets a relevant context for an artifact source in EnvPathInjectionCritical.ql.
  */
-Event getRelevantArtifactEventInPrivilegedContext(DataFlow::Node sink) {
-  workflowRunAwarePrivilegedExternalInputContext(sink.asExpr(), result) and
+WorkflowExecutionContext getRelevantArtifactContextInPrivilegedContext(DataFlow::Node sink) {
+  result = getAPrivilegedWorkflowExecutionContext(sink.asExpr()) and
   not exists(ControlCheck check |
-    check.protects(sink.asExpr(), result, ["untrusted-checkout", "artifact-poisoning"])
+    check.protects(sink.asExpr(), result.getEvent(), ["untrusted-checkout", "artifact-poisoning"])
   ) and
   sink instanceof EnvPathInjectionFromFileReadSink
 }
 
 /**
- * Get the relevant event for a sink in EnvPathInjectionCritical.ql where the source type is not "artifact".
+ * Gets a relevant context for a non-artifact source in EnvPathInjectionCritical.ql.
  */
+WorkflowExecutionContext getRelevantNonArtifactContextInPrivilegedContext(DataFlow::Node sink) {
+  result = getAPrivilegedWorkflowExecutionContext(sink.asExpr()) and
+  not exists(ControlCheck check |
+    check.protects(sink.asExpr(), result.getEvent(), "code-injection")
+  )
+}
+
+Event getRelevantArtifactEventInPrivilegedContext(DataFlow::Node sink) {
+  result = getRelevantArtifactContextInPrivilegedContext(sink).getEvent()
+}
+
 Event getRelevantNonArtifactEventInPrivilegedContext(DataFlow::Node sink) {
-  workflowRunAwarePrivilegedExternalInputContext(sink.asExpr(), result) and
-  not exists(ControlCheck check | check.protects(sink.asExpr(), result, "code-injection"))
+  result = getRelevantNonArtifactContextInPrivilegedContext(sink).getEvent()
 }
 
 bindingset[sink]
@@ -114,14 +124,28 @@ predicate sinkMayExecuteOnlyInNonPrivilegedContext(DataFlow::Node sink) {
       exists(Event event |
         job.getATriggerEvent() = event and
         sinkMayExecuteForEvent(sink, event) and
-        workflowRunAwareExternalInputContext(sink.asExpr(), event)
+        getAWorkflowExecutionContextForNode(sink.asExpr()).getEvent() = event
       ) and
       not exists(Event event |
         job.getATriggerEvent() = event and
         sinkMayExecuteForEvent(sink, event) and
-        workflowRunAwarePrivilegedExternalInputContext(sink.asExpr(), event)
+        getAPrivilegedWorkflowExecutionContext(sink.asExpr()).getEvent() = event
       )
     )
+  )
+}
+
+/** Holds if `source` can reach `sink`, but not in a privileged execution context. */
+predicate sourceMayReachOnlyNonPrivilegedContext(DataFlow::Node source, DataFlow::Node sink) {
+  not exists(sink.asExpr().getEnclosingJob().getATriggerEvent())
+  or
+  exists(WorkflowExecutionContext context |
+    source.(RemoteFlowSource).isUntrustedIn(context) and
+    context.mayExecute(sink.asExpr()) and
+    not context.isPullRequest()
+  ) and
+  not exists(WorkflowExecutionContext context |
+    source.(RemoteFlowSource).isUntrustedIn(context) and context.isPrivileged(sink.asExpr())
   )
 }
 
