@@ -5,4 +5,7 @@ completion
 | high-fanout | failure |
 | high-fanout | skipped |
 | high-fanout | success |
+impossibleCorrelatedExecution
 requiredSuccessfulCompletion
+| deep-fanout | chain-0 |
+| high-fanout | root-0 |

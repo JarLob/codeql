@@ -285,29 +285,6 @@ class Permissions extends AstNode instanceof PermissionsImpl {
   string getAPermission() { result = super.getAPermission() }
 }
 
-/** One statically known effective combination of a matrix strategy. */
-class MatrixCombination instanceof MatrixCombinationImpl {
-  Strategy getStrategy() { result = super.getStrategy() }
-
-  /** Gets the stable assignment identifier for this combination. */
-  string getAssignment() { result = super.getAssignment() }
-
-  /** Gets a key defined for this combination. */
-  string getAKey() { result = super.getAKey() }
-
-  /** Gets the effective scalar value for `accessPath`. */
-  bindingset[accessPath]
-  pragma[inline_late]
-  string getValue(string accessPath) { result = super.getValue(accessPath) }
-
-  /** Gets the expression literal kind of the effective scalar at `accessPath`. */
-  bindingset[accessPath]
-  pragma[inline_late]
-  string getValueKind(string accessPath) { result = super.getValueKind(accessPath) }
-
-  string toString() { result = super.toString() }
-}
-
 class Strategy extends AstNode instanceof StrategyImpl {
   predicate hasMatrix() { super.hasMatrix() }
 
@@ -323,11 +300,53 @@ class Strategy extends AstNode instanceof StrategyImpl {
 
   predicate hasStaticCartesianMatrix() { super.hasStaticCartesianMatrix() }
 
-  /** Holds if this strategy's effective matrix combinations are modeled exactly. */
-  predicate hasExactMatrixCombinations() { super.hasExactMatrixCombinations() }
+  /** Holds if this strategy supports finite demand-driven matrix projection. */
+  predicate hasStaticMatrixProjection() { super.hasStaticMatrixProjection() }
 
-  /** Gets an effective matrix combination for this strategy. */
-  MatrixCombination getAMatrixCombination() { result = super.getAMatrixCombination() }
+  /** Holds if the base matrix has a combination not ruled out by a simple exhaustive exclusion. */
+  predicate hasPossibleProjectedBaseCombination() {
+    super.hasPossibleProjectedBaseCombination()
+  }
+
+  /** Gets an effective variant of a bound projected base assignment. */
+  bindingset[baseAssignment]
+  pragma[inline_late]
+  string getAProjectedMatrixAssignment(string baseAssignment) {
+    result = super.getAProjectedMatrixAssignment(baseAssignment)
+  }
+
+  /** Gets a projected assignment contributed directly by an `include` entry. */
+  string getAProjectedMatrixIncludeAssignment() {
+    result = super.getAProjectedMatrixIncludeAssignment()
+  }
+
+  /** Gets a key supplied by the `include` entry represented by an assignment. */
+  bindingset[assignment]
+  pragma[inline_late]
+  string getAProjectedMatrixIncludeKey(string assignment) {
+    result = super.getAProjectedMatrixIncludeKey(assignment)
+  }
+
+  /** Gets a key represented by a projected assignment. */
+  bindingset[assignment]
+  pragma[inline_late]
+  string getAProjectedMatrixKey(string assignment) {
+    result = super.getAProjectedMatrixKey(assignment)
+  }
+
+  /** Gets an effective scalar value from a projected assignment. */
+  bindingset[assignment, accessPath]
+  pragma[inline_late]
+  string getProjectedMatrixValue(string assignment, string accessPath) {
+    result = super.getProjectedMatrixValue(assignment, accessPath)
+  }
+
+  /** Gets the expression literal kind of a projected scalar value. */
+  bindingset[assignment, accessPath]
+  pragma[inline_late]
+  string getProjectedMatrixValueKind(string assignment, string accessPath) {
+    result = super.getProjectedMatrixValueKind(assignment, accessPath)
+  }
 
   Expression getMatrixVarExpr(string varName) { result = super.getMatrixVarExpr(varName) }
 

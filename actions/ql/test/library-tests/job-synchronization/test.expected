@@ -368,36 +368,16 @@ decisionEdges
 | matrix-call-reusable | execute matrix-call-reusable[platform=1] |
 | matrix-continue-dependent | complete matrix-continue-dependent as skipped |
 | matrix-continue-dependent | execute matrix-continue-dependent |
-| matrix-continue-true | execute matrix-continue-true[version=0] |
-| matrix-continue-true | execute matrix-continue-true[version=1] |
+| matrix-continue-true | execute matrix-continue-true[*] |
 | matrix-dependent | complete matrix-dependent as skipped |
 | matrix-dependent | execute matrix-dependent |
 | matrix-dynamic | execute matrix-dynamic[*] |
 | matrix-dynamic-include | execute matrix-dynamic-include[*] |
 | matrix-dynamic-object-axis | execute matrix-dynamic-object-axis[*] |
 | matrix-empty-include | execute matrix-empty-include[include=0] |
-| matrix-exclude | execute matrix-exclude[os=0,version=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=0,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=1,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=2,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=3,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=4,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=5,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=6,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=7,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=8,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=9,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=10,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=11,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=12,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=13,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=14,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=15,minor=0] |
-| matrix-include | execute matrix-include[animal=0,fruit=0] |
-| matrix-include | execute matrix-include[animal=0,fruit=1] |
-| matrix-include | execute matrix-include[animal=1,fruit=0] |
-| matrix-include | execute matrix-include[include=2] |
-| matrix-include | execute matrix-include[include=3] |
+| matrix-exclude | execute matrix-exclude[*] |
+| matrix-generated-cap | execute matrix-generated-cap[*] |
+| matrix-include | execute matrix-include[*] |
 | matrix-include-only | execute matrix-include-only[include=0] |
 | matrix-include-only | execute matrix-include-only[include=1] |
 | matrix-job-continue-complex | execute matrix-job-continue-complex[experimental=0,os=0] |
@@ -410,8 +390,7 @@ decisionEdges
 | matrix-job-continue-nested | execute matrix-job-continue-nested[platform=0] |
 | matrix-job-continue-nested | execute matrix-job-continue-nested[platform=1] |
 | matrix-job-continue-nested | execute matrix-job-continue-nested[platform=2] |
-| matrix-object-axis | execute matrix-object-axis[tool=0] |
-| matrix-object-axis | execute matrix-object-axis[tool=1] |
+| matrix-object-axis | execute matrix-object-axis[*] |
 | matrix-output-blocked | complete matrix-output-blocked as skipped |
 | matrix-output-blocked | execute matrix-output-blocked |
 | matrix-output-dynamic | complete matrix-output-dynamic as skipped |
@@ -420,27 +399,9 @@ decisionEdges
 | matrix-output-enabled | execute matrix-output-enabled |
 | matrix-over-cap | execute matrix-over-cap[*] |
 | matrix-post-cap | execute matrix-post-cap[*] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=0] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=1] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=2] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=3] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=4] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=5] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=6] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=7] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=8] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=9] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=10] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=11] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=12] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=13] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=14] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=15] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[*] |
 | matrix-reusable-terminal | execute matrix-reusable-terminal |
-| matrix-root | execute matrix-root[os=0,version=0] |
-| matrix-root | execute matrix-root[os=0,version=1] |
-| matrix-root | execute matrix-root[os=1,version=0] |
-| matrix-root | execute matrix-root[os=1,version=1] |
+| matrix-root | execute matrix-root[*] |
 | matrix-step-continue-expression | execute matrix-step-continue-expression[experimental=0] |
 | matrix-step-continue-expression | execute matrix-step-continue-expression[experimental=1] |
 | mixed-dependent | complete mixed-dependent as skipped |
@@ -532,36 +493,16 @@ pushDecisionEdges
 | matrix-call-reusable | execute matrix-call-reusable[platform=1] |
 | matrix-continue-dependent | complete matrix-continue-dependent as skipped |
 | matrix-continue-dependent | execute matrix-continue-dependent |
-| matrix-continue-true | execute matrix-continue-true[version=0] |
-| matrix-continue-true | execute matrix-continue-true[version=1] |
+| matrix-continue-true | execute matrix-continue-true[*] |
 | matrix-dependent | complete matrix-dependent as skipped |
 | matrix-dependent | execute matrix-dependent |
 | matrix-dynamic | execute matrix-dynamic[*] |
 | matrix-dynamic-include | execute matrix-dynamic-include[*] |
 | matrix-dynamic-object-axis | execute matrix-dynamic-object-axis[*] |
 | matrix-empty-include | execute matrix-empty-include[include=0] |
-| matrix-exclude | execute matrix-exclude[os=0,version=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=0,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=1,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=2,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=3,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=4,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=5,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=6,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=7,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=8,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=9,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=10,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=11,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=12,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=13,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=14,minor=0] |
-| matrix-generated-cap | execute matrix-generated-cap[major=15,minor=0] |
-| matrix-include | execute matrix-include[animal=0,fruit=0] |
-| matrix-include | execute matrix-include[animal=0,fruit=1] |
-| matrix-include | execute matrix-include[animal=1,fruit=0] |
-| matrix-include | execute matrix-include[include=2] |
-| matrix-include | execute matrix-include[include=3] |
+| matrix-exclude | execute matrix-exclude[*] |
+| matrix-generated-cap | execute matrix-generated-cap[*] |
+| matrix-include | execute matrix-include[*] |
 | matrix-include-only | execute matrix-include-only[include=0] |
 | matrix-include-only | execute matrix-include-only[include=1] |
 | matrix-job-continue-complex | execute matrix-job-continue-complex[experimental=0,os=0] |
@@ -574,8 +515,7 @@ pushDecisionEdges
 | matrix-job-continue-nested | execute matrix-job-continue-nested[platform=0] |
 | matrix-job-continue-nested | execute matrix-job-continue-nested[platform=1] |
 | matrix-job-continue-nested | execute matrix-job-continue-nested[platform=2] |
-| matrix-object-axis | execute matrix-object-axis[tool=0] |
-| matrix-object-axis | execute matrix-object-axis[tool=1] |
+| matrix-object-axis | execute matrix-object-axis[*] |
 | matrix-output-blocked | complete matrix-output-blocked as skipped |
 | matrix-output-dynamic | complete matrix-output-dynamic as skipped |
 | matrix-output-dynamic | execute matrix-output-dynamic |
@@ -583,26 +523,8 @@ pushDecisionEdges
 | matrix-output-enabled | execute matrix-output-enabled |
 | matrix-over-cap | execute matrix-over-cap[*] |
 | matrix-post-cap | execute matrix-post-cap[*] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=0] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=1] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=2] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=3] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=4] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=5] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=6] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=7] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=8] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=9] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=10] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=11] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=12] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=13] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=14] |
-| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[row=15] |
-| matrix-root | execute matrix-root[os=0,version=0] |
-| matrix-root | execute matrix-root[os=0,version=1] |
-| matrix-root | execute matrix-root[os=1,version=0] |
-| matrix-root | execute matrix-root[os=1,version=1] |
+| matrix-pre-cap-exclude | execute matrix-pre-cap-exclude[*] |
+| matrix-root | execute matrix-root[*] |
 | matrix-step-continue-expression | execute matrix-step-continue-expression[experimental=0] |
 | matrix-step-continue-expression | execute matrix-step-continue-expression[experimental=1] |
 | mixed-dependent | execute mixed-dependent |
@@ -957,34 +879,14 @@ executionCfgNodes
 matrixExecutions
 | matrix-call-reusable | matrix-call-reusable[platform=0] |
 | matrix-call-reusable | matrix-call-reusable[platform=1] |
-| matrix-continue-true | matrix-continue-true[version=0] |
-| matrix-continue-true | matrix-continue-true[version=1] |
+| matrix-continue-true | matrix-continue-true[*] |
 | matrix-dynamic | matrix-dynamic[*] |
 | matrix-dynamic-include | matrix-dynamic-include[*] |
 | matrix-dynamic-object-axis | matrix-dynamic-object-axis[*] |
 | matrix-empty-include | matrix-empty-include[include=0] |
-| matrix-exclude | matrix-exclude[os=0,version=0] |
-| matrix-generated-cap | matrix-generated-cap[major=0,minor=0] |
-| matrix-generated-cap | matrix-generated-cap[major=1,minor=0] |
-| matrix-generated-cap | matrix-generated-cap[major=2,minor=0] |
-| matrix-generated-cap | matrix-generated-cap[major=3,minor=0] |
-| matrix-generated-cap | matrix-generated-cap[major=4,minor=0] |
-| matrix-generated-cap | matrix-generated-cap[major=5,minor=0] |
-| matrix-generated-cap | matrix-generated-cap[major=6,minor=0] |
-| matrix-generated-cap | matrix-generated-cap[major=7,minor=0] |
-| matrix-generated-cap | matrix-generated-cap[major=8,minor=0] |
-| matrix-generated-cap | matrix-generated-cap[major=9,minor=0] |
-| matrix-generated-cap | matrix-generated-cap[major=10,minor=0] |
-| matrix-generated-cap | matrix-generated-cap[major=11,minor=0] |
-| matrix-generated-cap | matrix-generated-cap[major=12,minor=0] |
-| matrix-generated-cap | matrix-generated-cap[major=13,minor=0] |
-| matrix-generated-cap | matrix-generated-cap[major=14,minor=0] |
-| matrix-generated-cap | matrix-generated-cap[major=15,minor=0] |
-| matrix-include | matrix-include[animal=0,fruit=0] |
-| matrix-include | matrix-include[animal=0,fruit=1] |
-| matrix-include | matrix-include[animal=1,fruit=0] |
-| matrix-include | matrix-include[include=2] |
-| matrix-include | matrix-include[include=3] |
+| matrix-exclude | matrix-exclude[*] |
+| matrix-generated-cap | matrix-generated-cap[*] |
+| matrix-include | matrix-include[*] |
 | matrix-include-only | matrix-include-only[include=0] |
 | matrix-include-only | matrix-include-only[include=1] |
 | matrix-job-continue-complex | matrix-job-continue-complex[experimental=0,os=0] |
@@ -997,66 +899,19 @@ matrixExecutions
 | matrix-job-continue-nested | matrix-job-continue-nested[platform=0] |
 | matrix-job-continue-nested | matrix-job-continue-nested[platform=1] |
 | matrix-job-continue-nested | matrix-job-continue-nested[platform=2] |
-| matrix-object-axis | matrix-object-axis[tool=0] |
-| matrix-object-axis | matrix-object-axis[tool=1] |
+| matrix-object-axis | matrix-object-axis[*] |
 | matrix-over-cap | matrix-over-cap[*] |
 | matrix-post-cap | matrix-post-cap[*] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=0] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=1] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=2] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=3] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=4] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=5] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=6] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=7] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=8] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=9] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=10] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=11] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=12] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=13] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=14] |
-| matrix-pre-cap-exclude | matrix-pre-cap-exclude[row=15] |
-| matrix-root | matrix-root[os=0,version=0] |
-| matrix-root | matrix-root[os=0,version=1] |
-| matrix-root | matrix-root[os=1,version=0] |
-| matrix-root | matrix-root[os=1,version=1] |
+| matrix-pre-cap-exclude | matrix-pre-cap-exclude[*] |
+| matrix-root | matrix-root[*] |
 | matrix-step-continue-expression | matrix-step-continue-expression[experimental=0] |
 | matrix-step-continue-expression | matrix-step-continue-expression[experimental=1] |
-matrixCombinationValues
+matrixProjectedValues
 | matrix-empty-include | matrix-empty-include[include=0] | os | ubuntu |
-| matrix-exclude | matrix-exclude[os=0,version=0] | os | ubuntu |
-| matrix-exclude | matrix-exclude[os=0,version=0] | version | 1 |
-| matrix-include | matrix-include[animal=0,fruit=0] | animal | cat |
-| matrix-include | matrix-include[animal=0,fruit=0] | color | pink |
-| matrix-include | matrix-include[animal=0,fruit=0] | fruit | apple |
-| matrix-include | matrix-include[animal=0,fruit=1] | animal | cat |
-| matrix-include | matrix-include[animal=0,fruit=1] | color | pink |
-| matrix-include | matrix-include[animal=0,fruit=1] | fruit | pear |
-| matrix-include | matrix-include[animal=1,fruit=0] | animal | dog |
-| matrix-include | matrix-include[animal=1,fruit=0] | color | green |
-| matrix-include | matrix-include[animal=1,fruit=0] | fruit | apple |
-| matrix-include | matrix-include[include=2] | fruit | banana |
-| matrix-include | matrix-include[include=3] | animal | dog |
-| matrix-include | matrix-include[include=3] | color | blue |
-| matrix-include | matrix-include[include=3] | fruit | pear |
 | matrix-include-only | matrix-include-only[include=0] | experimental | false |
 | matrix-include-only | matrix-include-only[include=0] | os | ubuntu |
 | matrix-include-only | matrix-include-only[include=1] | experimental | true |
 | matrix-include-only | matrix-include-only[include=1] | os | windows |
-matrixCombinationModels
-| matrix-dynamic-include | wildcard | 0 |
-| matrix-dynamic-object-axis | wildcard | 0 |
-| matrix-empty | exact | 0 |
-| matrix-empty-include | exact | 1 |
-| matrix-exclude | exact | 1 |
-| matrix-exclude-all | exact | 0 |
-| matrix-generated-cap | exact | 16 |
-| matrix-include | exact | 5 |
-| matrix-include-only | exact | 2 |
-| matrix-object-axis | exact | 2 |
-| matrix-post-cap | wildcard | 0 |
-| matrix-pre-cap-exclude | exact | 16 |
 matrixFanInRequirements
 | after-matrix-reusable | matrix-call-reusable | cancelled |
 | after-matrix-reusable | matrix-call-reusable | failure |

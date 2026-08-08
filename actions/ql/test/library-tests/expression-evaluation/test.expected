@@ -60,24 +60,6 @@ feasibleConditions
 | .github/workflows/test.yml:137:9:137:21 | "cancelled()" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
 | .github/workflows/test.yml:143:9:143:34 | "failur ... lled()" | .github/workflows/test.yml:2:3:2:14 | pull_request |
 | .github/workflows/test.yml:143:9:143:34 | "failur ... lled()" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
-| .github/workflows/test.yml:157:13:157:59 | "matrix ... mental" | .github/workflows/test.yml:2:3:2:14 | pull_request |
-| .github/workflows/test.yml:157:13:157:59 | "matrix ... mental" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
-| .github/workflows/test.yml:160:13:160:33 | "matrix ... n >= 2" | .github/workflows/test.yml:2:3:2:14 | pull_request |
-| .github/workflows/test.yml:160:13:160:33 | "matrix ... n >= 2" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
-| .github/workflows/test.yml:163:13:163:42 | "starts ... 'win')" | .github/workflows/test.yml:2:3:2:14 | pull_request |
-| .github/workflows/test.yml:163:13:163:42 | "starts ... 'win')" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
-| .github/workflows/test.yml:166:13:166:33 | "matrix ... mental" | .github/workflows/test.yml:2:3:2:14 | pull_request |
-| .github/workflows/test.yml:166:13:166:33 | "matrix ... mental" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
-| .github/workflows/test.yml:169:13:169:65 | "matrix ... tocat'" | .github/workflows/test.yml:2:3:2:14 | pull_request |
-| .github/workflows/test.yml:169:13:169:65 | "matrix ... tocat'" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
-| .github/workflows/test.yml:172:13:172:46 | "succes ... mental" | .github/workflows/test.yml:2:3:2:14 | pull_request |
-| .github/workflows/test.yml:172:13:172:46 | "succes ... mental" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
-| .github/workflows/test.yml:186:13:186:77 | "matrix ... mental" | .github/workflows/test.yml:2:3:2:14 | pull_request |
-| .github/workflows/test.yml:186:13:186:77 | "matrix ... mental" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
-| .github/workflows/test.yml:197:13:197:37 | "matrix ... = null" | .github/workflows/test.yml:2:3:2:14 | pull_request |
-| .github/workflows/test.yml:197:13:197:37 | "matrix ... = null" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
-| .github/workflows/test.yml:200:13:200:25 | "matrix.text" | .github/workflows/test.yml:2:3:2:14 | pull_request |
-| .github/workflows/test.yml:200:13:200:25 | "matrix.text" | .github/workflows/test.yml:4:3:4:19 | workflow_dispatch |
 literalSubexpressionValues
 | AndExpression(1 && true) | true |
 | AndExpression(1 && true) | true |
@@ -136,7 +118,6 @@ statusCheckConditions
 | .github/workflows/test.yml:131:9:131:19 | "failure()" |
 | .github/workflows/test.yml:137:9:137:21 | "cancelled()" |
 | .github/workflows/test.yml:143:9:143:34 | "failur ... lled()" |
-| .github/workflows/test.yml:172:13:172:46 | "succes ... mental" |
 knownNeedsStatusValues
 | cancelled-status | cancelled | true |
 | cancelled-status | failure | false |
@@ -179,133 +160,3 @@ knownNeedsStateValues
 | failure-status | true | false | true | true |
 | failure-status | true | true | false | true |
 | failure-status | true | true | true | true |
-matrixConditionValues
-| matrix-scalars | experimental=0,os=0,version=0 | compound | false |
-| matrix-scalars | experimental=0,os=0,version=0 | direct-boolean | true |
-| matrix-scalars | experimental=0,os=0,version=0 | numeric | false |
-| matrix-scalars | experimental=0,os=0,version=0 | partial-unknown | false |
-| matrix-scalars | experimental=0,os=0,version=0 | string-function | false |
-| matrix-scalars | experimental=0,os=0,version=1 | compound | false |
-| matrix-scalars | experimental=0,os=0,version=1 | direct-boolean | true |
-| matrix-scalars | experimental=0,os=0,version=1 | numeric | true |
-| matrix-scalars | experimental=0,os=0,version=1 | partial-unknown | false |
-| matrix-scalars | experimental=0,os=0,version=1 | string-function | false |
-| matrix-scalars | experimental=0,os=1,version=0 | compound | true |
-| matrix-scalars | experimental=0,os=1,version=0 | direct-boolean | true |
-| matrix-scalars | experimental=0,os=1,version=0 | numeric | false |
-| matrix-scalars | experimental=0,os=1,version=0 | string-function | true |
-| matrix-scalars | experimental=0,os=1,version=1 | compound | true |
-| matrix-scalars | experimental=0,os=1,version=1 | direct-boolean | true |
-| matrix-scalars | experimental=0,os=1,version=1 | numeric | true |
-| matrix-scalars | experimental=0,os=1,version=1 | string-function | true |
-| matrix-scalars | experimental=1,os=0,version=0 | compound | false |
-| matrix-scalars | experimental=1,os=0,version=0 | direct-boolean | false |
-| matrix-scalars | experimental=1,os=0,version=0 | numeric | false |
-| matrix-scalars | experimental=1,os=0,version=0 | partial-unknown | false |
-| matrix-scalars | experimental=1,os=0,version=0 | status-and-matrix | false |
-| matrix-scalars | experimental=1,os=0,version=0 | string-function | false |
-| matrix-scalars | experimental=1,os=0,version=1 | compound | false |
-| matrix-scalars | experimental=1,os=0,version=1 | direct-boolean | false |
-| matrix-scalars | experimental=1,os=0,version=1 | numeric | true |
-| matrix-scalars | experimental=1,os=0,version=1 | partial-unknown | false |
-| matrix-scalars | experimental=1,os=0,version=1 | status-and-matrix | false |
-| matrix-scalars | experimental=1,os=0,version=1 | string-function | false |
-| matrix-scalars | experimental=1,os=1,version=0 | compound | false |
-| matrix-scalars | experimental=1,os=1,version=0 | direct-boolean | false |
-| matrix-scalars | experimental=1,os=1,version=0 | numeric | false |
-| matrix-scalars | experimental=1,os=1,version=0 | status-and-matrix | false |
-| matrix-scalars | experimental=1,os=1,version=0 | string-function | true |
-| matrix-scalars | experimental=1,os=1,version=1 | compound | false |
-| matrix-scalars | experimental=1,os=1,version=1 | direct-boolean | false |
-| matrix-scalars | experimental=1,os=1,version=1 | numeric | true |
-| matrix-scalars | experimental=1,os=1,version=1 | status-and-matrix | false |
-| matrix-scalars | experimental=1,os=1,version=1 | string-function | true |
-| matrix-structured | platform=0 | nested | false |
-| matrix-structured | platform=1 | nested | true |
-| matrix-types | nullable=0,text=0 | null-equality | true |
-| matrix-types | nullable=0,text=0 | quoted-false | true |
-matrixConditionMayValues
-| matrix-scalars | experimental=0,os=0,version=0 | compound | false |
-| matrix-scalars | experimental=0,os=0,version=0 | direct-boolean | true |
-| matrix-scalars | experimental=0,os=0,version=0 | numeric | false |
-| matrix-scalars | experimental=0,os=0,version=0 | partial-unknown | false |
-| matrix-scalars | experimental=0,os=0,version=0 | status-and-matrix | false |
-| matrix-scalars | experimental=0,os=0,version=0 | status-and-matrix | true |
-| matrix-scalars | experimental=0,os=0,version=0 | string-function | false |
-| matrix-scalars | experimental=0,os=0,version=1 | compound | false |
-| matrix-scalars | experimental=0,os=0,version=1 | direct-boolean | true |
-| matrix-scalars | experimental=0,os=0,version=1 | numeric | true |
-| matrix-scalars | experimental=0,os=0,version=1 | partial-unknown | false |
-| matrix-scalars | experimental=0,os=0,version=1 | status-and-matrix | false |
-| matrix-scalars | experimental=0,os=0,version=1 | status-and-matrix | true |
-| matrix-scalars | experimental=0,os=0,version=1 | string-function | false |
-| matrix-scalars | experimental=0,os=1,version=0 | compound | true |
-| matrix-scalars | experimental=0,os=1,version=0 | direct-boolean | true |
-| matrix-scalars | experimental=0,os=1,version=0 | numeric | false |
-| matrix-scalars | experimental=0,os=1,version=0 | partial-unknown | false |
-| matrix-scalars | experimental=0,os=1,version=0 | partial-unknown | true |
-| matrix-scalars | experimental=0,os=1,version=0 | status-and-matrix | false |
-| matrix-scalars | experimental=0,os=1,version=0 | status-and-matrix | true |
-| matrix-scalars | experimental=0,os=1,version=0 | string-function | true |
-| matrix-scalars | experimental=0,os=1,version=1 | compound | true |
-| matrix-scalars | experimental=0,os=1,version=1 | direct-boolean | true |
-| matrix-scalars | experimental=0,os=1,version=1 | numeric | true |
-| matrix-scalars | experimental=0,os=1,version=1 | partial-unknown | false |
-| matrix-scalars | experimental=0,os=1,version=1 | partial-unknown | true |
-| matrix-scalars | experimental=0,os=1,version=1 | status-and-matrix | false |
-| matrix-scalars | experimental=0,os=1,version=1 | status-and-matrix | true |
-| matrix-scalars | experimental=0,os=1,version=1 | string-function | true |
-| matrix-scalars | experimental=1,os=0,version=0 | compound | false |
-| matrix-scalars | experimental=1,os=0,version=0 | direct-boolean | false |
-| matrix-scalars | experimental=1,os=0,version=0 | numeric | false |
-| matrix-scalars | experimental=1,os=0,version=0 | partial-unknown | false |
-| matrix-scalars | experimental=1,os=0,version=0 | status-and-matrix | false |
-| matrix-scalars | experimental=1,os=0,version=0 | string-function | false |
-| matrix-scalars | experimental=1,os=0,version=1 | compound | false |
-| matrix-scalars | experimental=1,os=0,version=1 | direct-boolean | false |
-| matrix-scalars | experimental=1,os=0,version=1 | numeric | true |
-| matrix-scalars | experimental=1,os=0,version=1 | partial-unknown | false |
-| matrix-scalars | experimental=1,os=0,version=1 | status-and-matrix | false |
-| matrix-scalars | experimental=1,os=0,version=1 | string-function | false |
-| matrix-scalars | experimental=1,os=1,version=0 | compound | false |
-| matrix-scalars | experimental=1,os=1,version=0 | direct-boolean | false |
-| matrix-scalars | experimental=1,os=1,version=0 | numeric | false |
-| matrix-scalars | experimental=1,os=1,version=0 | partial-unknown | false |
-| matrix-scalars | experimental=1,os=1,version=0 | partial-unknown | true |
-| matrix-scalars | experimental=1,os=1,version=0 | status-and-matrix | false |
-| matrix-scalars | experimental=1,os=1,version=0 | string-function | true |
-| matrix-scalars | experimental=1,os=1,version=1 | compound | false |
-| matrix-scalars | experimental=1,os=1,version=1 | direct-boolean | false |
-| matrix-scalars | experimental=1,os=1,version=1 | numeric | true |
-| matrix-scalars | experimental=1,os=1,version=1 | partial-unknown | false |
-| matrix-scalars | experimental=1,os=1,version=1 | partial-unknown | true |
-| matrix-scalars | experimental=1,os=1,version=1 | status-and-matrix | false |
-| matrix-scalars | experimental=1,os=1,version=1 | string-function | true |
-| matrix-structured | platform=0 | nested | false |
-| matrix-structured | platform=1 | nested | true |
-| matrix-types | nullable=0,text=0 | null-equality | true |
-| matrix-types | nullable=0,text=0 | quoted-false | true |
-matrixKnownNeedsStateValues
-| experimental=0,os=0,version=0 | false | true |
-| experimental=0,os=0,version=0 | true | false |
-| experimental=0,os=0,version=1 | false | true |
-| experimental=0,os=0,version=1 | true | false |
-| experimental=0,os=1,version=0 | false | true |
-| experimental=0,os=1,version=0 | true | false |
-| experimental=0,os=1,version=1 | false | true |
-| experimental=0,os=1,version=1 | true | false |
-| experimental=1,os=0,version=0 | false | false |
-| experimental=1,os=0,version=0 | true | false |
-| experimental=1,os=0,version=1 | false | false |
-| experimental=1,os=0,version=1 | true | false |
-| experimental=1,os=1,version=0 | false | false |
-| experimental=1,os=1,version=0 | true | false |
-| experimental=1,os=1,version=1 | false | false |
-| experimental=1,os=1,version=1 | true | false |
-matrixScalarValues
-| matrix-structured | platform=0 | platform.experimental | BooleanLiteral | false |
-| matrix-structured | platform=0 | platform.os | StringLiteral | ubuntu |
-| matrix-structured | platform=1 | platform.experimental | BooleanLiteral | true |
-| matrix-structured | platform=1 | platform.os | StringLiteral | windows |
-| matrix-types | nullable=0,text=0 | nullable | NullLiteral | null |
-| matrix-types | nullable=0,text=0 | text | StringLiteral | false |

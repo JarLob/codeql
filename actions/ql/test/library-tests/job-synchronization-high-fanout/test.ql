@@ -19,10 +19,22 @@ query predicate completion(string job, string status) {
   )
 }
 
+query predicate impossibleCorrelatedExecution(string job) {
+  exists(Job candidate, Event event |
+    candidate.getId() = "impossible-correlated-fanout" and
+    event.getName() = "push" and
+    jobMayExecuteForEvent(candidate, event) and
+    job = candidate.getId()
+  )
+}
+
 query predicate requiredSuccessfulCompletion(string job, string needed) {
   exists(Job candidate, Job prerequisite, Event event |
-    candidate.getId() = "high-fanout" and
-    prerequisite.getId() = "root-0" and
+    (
+      candidate.getId() = "high-fanout" and prerequisite.getId() = "root-0"
+      or
+      candidate.getId() = "deep-fanout" and prerequisite.getId() = "chain-0"
+    ) and
     event.getName() = "push" and
     jobExecutionRequiresSuccessfulCompletionOf(candidate, prerequisite, event) and
     job = candidate.getId() and

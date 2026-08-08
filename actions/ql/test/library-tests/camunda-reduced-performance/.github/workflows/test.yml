@@ -238,6 +238,7 @@ jobs:
         continue-on-error: false
         run: echo false
       - id: static-true
+        if: matrix.shard != ''
         continue-on-error: true
         run: echo true
 
@@ -258,6 +259,7 @@ jobs:
       matrix:
         first: [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q]
         second: [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p]
+    continue-on-error: ${{ matrix.first == 'a' }}
     runs-on: ubuntu-latest
     steps:
       - run: echo capped

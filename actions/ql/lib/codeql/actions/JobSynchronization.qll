@@ -202,20 +202,6 @@ private ReusableWorkflow getCalledReusableWorkflow(Job job) {
 
 private Job getANeededAncestor(Job job) { result = job.getANeededJob+() }
 
-/** Bounds exact status assignments to at most 4^4 combinations. */
-private int maxExactPrerequisiteCount() { result = 4 }
-
-private predicate hasBoundedPrerequisiteClosure(Job job) {
-  count(getANeededAncestor(job)) <= maxExactPrerequisiteCount()
-}
-
-private int maxExactAssignedNeedsCount() { result = 2 }
-
-private predicate hasBoundedAssignedNeeds(Job job) {
-  hasBoundedPrerequisiteClosure(job) and
-  count(job.getANeededJob()) <= maxExactAssignedNeedsCount()
-}
-
 private predicate needsStatusMayOccur(Job job, NeedsStatus status) {
   isRootJob(job) and status.isSuccess()
   or
@@ -229,33 +215,165 @@ private predicate needsStatusMayOccur(Job job, NeedsStatus status) {
   )
 }
 
+bindingset[expression]
+pragma[inline_late]
+private string getMatrixAccessPath(Expression expression) {
+  exists(MatrixAccessExpression access, string path |
+    access.getExpression() = expression and
+    path = access.getAccessPath() and
+    result = path.suffix("matrix.".length())
+  )
+}
+
+bindingset[job]
+pragma[inline_late]
+private string getSynchronizationMatrixAccessPath(Job job) {
+  result = getMatrixAccessPath(job.getContinueOnErrorExpr())
+  or
+  exists(LocalJob local, Step step |
+    local = job and
+    step = local.getAContainedStep() and
+    (
+      result = getMatrixAccessPath(step.getContinueOnErrorExpr())
+      or
+      result = getMatrixAccessPath(step.getIf().getConditionExpr())
+    )
+  )
+  or
+  exists(ExternalJob caller |
+    caller = job and result = getMatrixAccessPath(caller.getArgumentExpr(_))
+  )
+}
+
+bindingset[job]
+pragma[inline_late]
+private string getSynchronizationMatrixDimension(Job job) {
+  exists(string path |
+    path = getSynchronizationMatrixAccessPath(job) and
+    (
+      exists(path.indexOf(".")) and result = path.prefix(path.indexOf("."))
+      or
+      not exists(path.indexOf(".")) and result = path
+    )
+  )
+}
+
+private string getMatrixDimensionAt(Job job, int index) {
+  result =
+    rank[index + 1](string dimension |
+      dimension = job.getStrategy().getAMatrixDimensionName()
+    |
+      dimension order by dimension
+    )
+}
+
+private string getProjectedBaseMatrixAssignmentPrefix(Job job, int length) {
+  length = 0 and result = ""
+  or
+  exists(string prefix, string dimension |
+    length > 0 and
+    dimension = getMatrixDimensionAt(job, length - 1) and
+    prefix = getProjectedBaseMatrixAssignmentPrefix(job, length - 1) and
+    (
+      dimension = getSynchronizationMatrixDimension(job) and
+      exists(int valueIndex |
+        valueIndex in [0 .. job.getStrategy().getMatrixDimensionValueCount(dimension) - 1] and
+        (
+          prefix = "" and result = dimension + "=" + valueIndex.toString()
+          or
+          prefix != "" and result = prefix + "," + dimension + "=" + valueIndex.toString()
+        )
+      )
+      or
+      not dimension = getSynchronizationMatrixDimension(job) and result = prefix
+    )
+  )
+}
+
+private string getAProjectedBaseMatrixAssignment(Job job) {
+  job.getStrategy().hasStaticMatrixProjection() and
+  job.getStrategy().hasPossibleProjectedBaseCombination() and
+  result =
+    getProjectedBaseMatrixAssignmentPrefix(job,
+      count(job.getStrategy().getAMatrixDimensionName()))
+}
+
 private newtype TMatrixJobInstance =
-  TConcreteMatrixJobInstance(Job job, MatrixCombination combination) {
-    combination.getStrategy() = job.getStrategy()
+  TProjectedMatrixJobInstance(Job job, string assignment) {
+    exists(string baseAssignment |
+      baseAssignment = getAProjectedBaseMatrixAssignment(job) and
+      assignment = job.getStrategy().getAProjectedMatrixAssignment(baseAssignment) and
+      (
+        not exists(job.getStrategy().getAProjectedMatrixIncludeKey(assignment))
+        or
+        exists(string key |
+          key = job.getStrategy().getAProjectedMatrixIncludeKey(assignment) and
+          key = getSynchronizationMatrixDimension(job)
+        )
+      )
+    )
+    or
+    assignment = job.getStrategy().getAProjectedMatrixIncludeAssignment() and
+    (
+      not exists(getAProjectedBaseMatrixAssignment(job))
+      or
+      exists(string key |
+        key = job.getStrategy().getAProjectedMatrixIncludeKey(assignment) and
+        key = getSynchronizationMatrixDimension(job)
+      )
+    )
   } or
   TWildcardMatrixJobInstance(Job job) {
-    job.getStrategy().hasMatrix() and not job.getStrategy().hasExactMatrixCombinations()
+    job.getStrategy().hasMatrix() and not job.getStrategy().hasStaticMatrixProjection()
   }
 
-/** A concrete bounded expansion, or conservative wildcard expansion, of a matrix job. */
+/** A demand-projected static expansion, or conservative wildcard expansion, of a matrix job. */
 class MatrixJobInstance extends TMatrixJobInstance {
   Job getJob() {
-    this = TConcreteMatrixJobInstance(result, _) or this = TWildcardMatrixJobInstance(result)
+    this = TProjectedMatrixJobInstance(result, _) or this = TWildcardMatrixJobInstance(result)
   }
 
-  MatrixCombination getCombination() { this = TConcreteMatrixJobInstance(_, result) }
+  private string getProjectedAssignment() { this = TProjectedMatrixJobInstance(_, result) }
 
   string getAssignment() {
-    result = this.getCombination().getAssignment()
+    exists(string assignment |
+      assignment = this.getProjectedAssignment() and
+      assignment.matches("base:%") and
+      not exists(assignment.indexOf(":include=")) and
+      result = assignment.suffix("base:".length()) and
+      result != ""
+    )
+    or
+    this.getProjectedAssignment() = "base:" and result = "*"
+    or
+    exists(string assignment |
+      assignment = this.getProjectedAssignment() and
+      (
+        assignment.matches("include=%") or assignment.matches("base:%:include=%")
+      ) and
+      result = assignment
+    )
     or
     this = TWildcardMatrixJobInstance(_) and result = "*"
   }
 
-  string getAMatrixKey() { result = this.getCombination().getAKey() }
+  string getAMatrixKey() {
+    result = this.getJob().getStrategy().getAProjectedMatrixKey(this.getProjectedAssignment())
+  }
 
   bindingset[name]
   pragma[inline_late]
-  string getMatrixValue(string name) { result = this.getCombination().getValue(name) }
+  string getMatrixValue(string name) {
+    result =
+      this.getJob().getStrategy().getProjectedMatrixValue(this.getProjectedAssignment(), name)
+  }
+
+  bindingset[name]
+  pragma[inline_late]
+  string getMatrixValueKind(string name) {
+    result =
+      this.getJob().getStrategy().getProjectedMatrixValueKind(this.getProjectedAssignment(), name)
+  }
 
   /** Gets a statically known output value from the reusable workflow called by this instance. */
   string getReusableWorkflowOutputValue(string name) {
@@ -284,14 +402,13 @@ private predicate getMatrixInstanceScalarValue(
     value = node.(LiteralExpression).getValue()
   )
   or
-  exists(AccessExpression access, MatrixCombination combination, string path, string accessPath |
+  exists(AccessExpression access, string path, string accessPath |
     access = node and
-    combination = instance.getCombination() and
     path = access.getAccessPath() and
     path.toLowerCase().matches("matrix.%") and
     accessPath = path.suffix("matrix.".length()) and
-    kind = combination.getValueKind(accessPath) and
-    value = combination.getValue(accessPath)
+    kind = instance.getMatrixValueKind(accessPath) and
+    value = instance.getMatrixValue(accessPath)
   )
 }
 
@@ -1133,116 +1250,56 @@ private JobStatus getStatusForCode(string code) {
 bindingset[job, assignment, needed]
 private JobStatus getAssignedStatus(Job job, string assignment, Job needed) {
   exists(int index |
-    needed = getNeededJobAt(job, index) and
+    needed = getDemandedNeededJobAt(job, index) and
     result = getStatusForCode(assignment.charAt(index))
   )
 }
 
-private Job getPrerequisiteAt(Job job, int index) {
+private Job getDemandedNeededJobAt(Job job, int index) {
   result =
-    rank[index + 1](Job prerequisite, int depth |
-      prerequisite = getANeededAncestor(job) and
-      depth = count(prerequisite.getANeededJob+())
+    rank[index + 1](Job needed |
+      needed = getAConditionDemandedNeededJob(job)
     |
-      prerequisite order by depth, prerequisite.getId()
+      needed order by needed.getId()
     )
 }
 
-bindingset[job, assignment, prerequisite]
-private JobStatus getAssignedPrerequisiteStatus(
-  Job job, string assignment, Job prerequisite
+private predicate getAReachableDemandedNeedsStatePrefix(
+  Job job, Event event, int length, string assignment, NeedsStatus status
 ) {
-  exists(int index |
-    prerequisite = getPrerequisiteAt(job, index) and
-    result = getStatusForCode(assignment.charAt(index))
-  )
-}
-
-bindingset[job, prerequisite, prerequisiteAssignment]
-private string getDirectAssignmentFromPrerequisites(
-  Job job, Job prerequisite, string prerequisiteAssignment
-) {
-  result = concat(int index |
-      index in [0 .. count(prerequisite.getANeededJob()) - 1]
-    |
-      getStatusCode(
-        getAssignedPrerequisiteStatus(job, prerequisiteAssignment,
-          getNeededJobAt(prerequisite, index))
-      ), "" order by index
-    )
-}
-
-bindingset[job, event, assignment]
-private predicate decisionMayHaveOutcomeForExactAssignment(
-  Job job, Event event, string assignment, boolean outcome
-) {
-  jobConditionUsesExactNeedsAssignment(job) and
-  decisionMayHaveOutcomeForAssignment(job, event, assignment, outcome)
+  length = 0 and
+  assignment = "" and
+  status = TNeedsStatusSummary(false, false, false)
   or
-  not jobConditionUsesExactNeedsAssignment(job) and
-  decisionMayHaveOutcome(job, event, getAssignmentSummary(assignment), outcome)
-}
-
-bindingset[job, event, assignment]
-private predicate jobMayCompleteForDirectAssignment(
-  Job job, Event event, string assignment, JobStatus status
-) {
-  job.getATriggerEvent() = event and
-  (
-    status instanceof SkippedStatus and
-    decisionMayHaveOutcomeForExactAssignment(job, event, assignment, false)
-    or
-    not status instanceof SkippedStatus and
-    decisionMayHaveOutcomeForExactAssignment(job, event, assignment, true) and
-    status = getAPossibleExecutedJobConclusionForEvent(job, event)
-  )
-}
-
-private string getAReachablePrerequisiteAssignmentPrefix(Job job, Event event, int length) {
-  hasBoundedPrerequisiteClosure(job) and
-  (
-    length = 0 and result = ""
-    or
-    exists(string prefix, string directAssignment, Job prerequisite, JobStatus status |
-      length > 0 and
-      prerequisite = getPrerequisiteAt(job, length - 1) and
-      prefix = getAReachablePrerequisiteAssignmentPrefix(job, event, length - 1) and
-      directAssignment = getDirectAssignmentFromPrerequisites(job, prerequisite, prefix) and
-      jobMayCompleteForDirectAssignment(prerequisite, event, directAssignment, status) and
-      result = prefix + getStatusCode(status)
+  exists(string prefixAssignment, NeedsStatus prefixStatus, Job needed, JobStatus neededStatus |
+    length > 0 and
+    needed = getNeededJobAt(job, length - 1) and
+    getAReachableDemandedNeedsStatePrefix(job, event, length - 1, prefixAssignment,
+      prefixStatus) and
+    jobMayCompleteForEvent(needed, event, neededStatus) and
+    status = addStatusToSummary(prefixStatus, neededStatus) and
+    (
+      needed = getAConditionDemandedNeededJob(job) and
+      assignment = prefixAssignment + getStatusCode(neededStatus)
+      or
+      not needed = getAConditionDemandedNeededJob(job) and
+      assignment = prefixAssignment
     )
   )
 }
 
 private string getANeededStatusAssignment(Job job, Event event) {
-  exists(string prerequisiteAssignment |
-    prerequisiteAssignment =
-      getAReachablePrerequisiteAssignmentPrefix(job, event, count(getANeededAncestor(job))) and
-    result = concat(int index |
-        index in [0 .. count(job.getANeededJob()) - 1]
-      |
-        getStatusCode(
-          getAssignedPrerequisiteStatus(job, prerequisiteAssignment, getNeededJobAt(job, index))
-        ), "" order by index
-      )
+  exists(string assignment, NeedsStatus status |
+    getAReachableDemandedNeedsStatePrefix(job, event, count(job.getANeededJob()), assignment,
+      status) and
+    demandedNeedsAssignmentIsConsistent(job, assignment) and
+    result = assignment + ":" + status.getName()
   )
-}
-
-bindingset[assignment, code]
-private predicate assignmentContains(string assignment, string code, boolean outcome) {
-  exists(assignment.indexOf(code)) and outcome = true
-  or
-  not exists(assignment.indexOf(code)) and outcome = false
 }
 
 bindingset[assignment]
 private NeedsStatus getAssignmentSummary(string assignment) {
-  exists(boolean hasFailure, boolean hasCancellation, boolean hasSkip |
-    assignmentContains(assignment, "f", hasFailure) and
-    assignmentContains(assignment, "c", hasCancellation) and
-    assignmentContains(assignment, "k", hasSkip) and
-    result = TNeedsStatusSummary(hasFailure, hasCancellation, hasSkip)
-  )
+  result.getName() = assignment.splitAt(":", 1)
 }
 
 private predicate needsStatusMayOccurForEvent(Job job, Event event, NeedsStatus status) {
@@ -1441,35 +1498,6 @@ private string getSummaryStringValue(ExpressionNode node, Job job, NeedsStatus s
   )
 }
 
-bindingset[node, child]
-private predicate containsExpressionNode(ExpressionNode node, ExpressionNode child) {
-  child.getExpression() = node.getExpression() and
-  child.getStartOffset() >= node.getStartOffset() and
-  child.getEndOffset() <= node.getEndOffset()
-}
-
-bindingset[node, job]
-private predicate containsAssignedNeedsValue(ExpressionNode node, Job job) {
-  exists(AccessExpression access, Job needed |
-    containsExpressionNode(node, access) and
-    needed = job.getANeededJob() and
-    (
-      access.getAccessPath() = "needs." + needed.getId() + ".result"
-      or
-      exists(getReferencedStaticOutputStringValue(access, job, needed))
-    )
-  )
-}
-
-private predicate jobConditionContainsAssignedNeedsResult(Job job) {
-  exists(If condition, AccessExpression access, Job needed |
-    condition = job.getIf() and
-    access.getExpression() = condition.getConditionExpr() and
-    needed = job.getANeededJob() and
-    access.getAccessPath() = "needs." + needed.getId() + ".result"
-  )
-}
-
 private predicate jobConditionContainsAssignedNeedsValue(Job job) {
   exists(If condition, ExpressionNode node, Job needed |
     condition = job.getIf() and
@@ -1484,8 +1512,51 @@ private predicate jobConditionContainsAssignedNeedsValue(Job job) {
   )
 }
 
+private Job getAConditionReferencedNeededJob(Job job) {
+  exists(If condition, AccessExpression access |
+    condition = job.getIf() and
+    access.getExpression() = condition.getConditionExpr() and
+    result = job.getANeededJob() and
+    access.getAccessPath() = "needs." + result.getId() + ".result"
+  )
+}
+
+private Job getAConditionDemandedNeededJob(Job job) {
+  result = getAConditionReferencedNeededJob(job)
+  or
+  exists(Job referenced |
+    referenced = getAConditionReferencedNeededJob(job) and
+    result = job.getANeededJob() and
+    result = referenced.getANeededJob+()
+  )
+}
+
+private predicate structurallyRequiresSuccessfulCompletionOf(Job job, Job prerequisite) {
+  prerequisite = job.getANeededJob() and not jobConditionHasStatusCheckFunction(job)
+  or
+  exists(Job directPrerequisite |
+    directPrerequisite = job.getANeededJob() and
+    not jobConditionHasStatusCheckFunction(job) and
+    structurallyRequiresSuccessfulCompletionOf(directPrerequisite, prerequisite)
+  )
+}
+
+bindingset[job, assignment]
+pragma[inline_late]
+private predicate demandedNeedsAssignmentIsConsistent(Job job, string assignment) {
+  forall(Job dependent, Job prerequisite |
+    dependent = getAConditionDemandedNeededJob(job) and
+    prerequisite = getAConditionDemandedNeededJob(job) and
+    structurallyRequiresSuccessfulCompletionOf(dependent, prerequisite)
+  |
+    getAssignedStatus(job, assignment, dependent) instanceof SkippedStatus
+    or
+    getAssignedStatus(job, assignment, prerequisite) instanceof SuccessStatus
+  )
+}
+
 private predicate jobConditionUsesExactNeedsAssignment(Job job) {
-  jobConditionContainsAssignedNeedsResult(job) and hasBoundedAssignedNeeds(job)
+  exists(getAConditionDemandedNeededJob(job))
 }
 
 private predicate belongsToAssignedNeedsValueCondition(ExpressionNode node, Job job) {
@@ -1610,14 +1681,12 @@ private predicate mayEvaluateForAssignment(
   ) and
   assignment = getAConservativeNeededStatusAssignment(job) and
   (
-    not containsAssignedNeedsValue(node, job) and
-    exists(NeedsStatus status |
-      status = getAssignmentSummary(assignment) and
-      mayEvaluateForNeedsStatus(node, job, status, outcome)
-    )
-    or
     node instanceof ExpressionRoot and
     mayEvaluateForAssignment(node.getChild(0), job, event, assignment, outcome)
+    or
+    node instanceof LiteralExpression and
+    node.getKind() = "BooleanLiteral" and
+    node.(LiteralExpression).getValue().toLowerCase() = outcome.toString()
     or
     node instanceof UnaryExpression and
     mayEvaluateForAssignment(node.(UnaryExpression).getOperand(), job, event, assignment,
@@ -1677,24 +1746,52 @@ private predicate mayEvaluateForAssignment(
     not exists(getAssignedStringValue(node, job, assignment)) and
     outcome in [false, true]
     or
-    containsAssignedNeedsValue(node, job) and
+    node instanceof FunctionCallExpression and
+    not exists(node.(FunctionCallExpression).getArgument(_)) and
+    (
+      node.(FunctionCallExpression).getCallee().getName().toLowerCase() = "always" and
+      outcome = true
+      or
+      node.(FunctionCallExpression).getCallee().getName().toLowerCase() = "success" and
+      (
+        getAssignmentSummary(assignment).isSuccess() and outcome = true
+        or
+        not getAssignmentSummary(assignment).isSuccess() and outcome = false
+      )
+      or
+      node.(FunctionCallExpression).getCallee().getName().toLowerCase() = "failure" and
+      outcome = getAssignmentSummary(assignment).hasFailure()
+      or
+      node.(FunctionCallExpression).getCallee().getName().toLowerCase() = "cancelled" and
+      outcome = getAssignmentSummary(assignment).hasCancellation()
+    )
+    or
     not node instanceof ExpressionRoot and
     not node instanceof UnaryExpression and
-    not node instanceof BinaryExpression and
+    not (
+      node instanceof BinaryExpression and
+      node.(BinaryExpression).getOperator() = ["&&", "||", "==", "!="]
+    ) and
     not node instanceof AccessExpression and
+    not (node instanceof LiteralExpression and node.getKind() = "BooleanLiteral") and
+    not (
+      node instanceof FunctionCallExpression and
+      not exists(node.(FunctionCallExpression).getArgument(_)) and
+      node.(FunctionCallExpression).getCallee().getName().toLowerCase() =
+        ["always", "success", "failure", "cancelled"]
+    ) and
     outcome in [false, true]
   )
 }
 
 private string getAConservativeNeededStatusAssignmentPrefix(Job job, int length) {
   jobConditionUsesExactNeedsAssignment(job) and
-  hasBoundedPrerequisiteClosure(job) and
   (
     length = 0 and result = ""
     or
     exists(string prefix, Job needed, JobStatus status |
       length > 0 and
-      needed = getNeededJobAt(job, length - 1) and
+      needed = getDemandedNeededJobAt(job, length - 1) and
       (not status instanceof SkippedStatus or jobMayBeSkipped(needed)) and
       prefix = getAConservativeNeededStatusAssignmentPrefix(job, length - 1) and
       result = prefix + getStatusCode(status)
@@ -1703,7 +1800,24 @@ private string getAConservativeNeededStatusAssignmentPrefix(Job job, int length)
 }
 
 private string getAConservativeNeededStatusAssignment(Job job) {
-  result = getAConservativeNeededStatusAssignmentPrefix(job, count(job.getANeededJob()))
+  exists(string assignment, NeedsStatus status |
+    assignment =
+      getAConservativeNeededStatusAssignmentPrefix(job,
+        count(getAConditionDemandedNeededJob(job))) and
+    demandedNeedsAssignmentIsConsistent(job, assignment) and
+    result = assignment + ":" + status.getName()
+  )
+}
+
+bindingset[job, event, assignment]
+private predicate decisionMayHaveOutcomeForExactAssignment(
+  Job job, Event event, string assignment, boolean outcome
+) {
+  jobConditionUsesExactNeedsAssignment(job) and
+  decisionMayHaveOutcomeForAssignment(job, event, assignment, outcome)
+  or
+  not jobConditionUsesExactNeedsAssignment(job) and
+  decisionMayHaveOutcome(job, event, getAssignmentSummary(assignment), outcome)
 }
 
 bindingset[job, event, assignment]
@@ -1878,6 +1992,13 @@ predicate jobExecutionRequiresSuccessfulCompletionOf(Job job, Job neededJob, Eve
     directNeeded = job.getANeededJob() and
     jobExecutionDirectlyRequiresSuccessfulCompletionOf(job, directNeeded, event) and
     jobExecutionRequiresSuccessfulCompletionOf(directNeeded, neededJob, event)
+  )
+  or
+  exists(Job demandedNeeded, SkippedStatus skipped |
+    demandedNeeded = getAConditionDemandedNeededJob(job) and
+    jobMayExecuteForEvent(job, event) and
+    not jobMayExecuteWithDirectNeededStatus(job, event, demandedNeeded, skipped) and
+    jobExecutionRequiresSuccessfulCompletionOf(demandedNeeded, neededJob, event)
   )
 }
 

@@ -106,10 +106,35 @@ query predicate literalTrueStepFailureConclusion(string instance, string conclus
   )
 }
 
-query predicate matrixCapFallback(string instance) {
+query predicate stepConditionProjectionIncludesUndemandedAxis(string assignment) {
+  exists(MatrixJobInstance matrixInstance |
+    matrixInstance.getJob().getId() = "matrix-static" and
+    assignment = matrixInstance.getAssignment() and
+    assignment.matches("%os=%")
+  )
+}
+
+query predicate matrixProjectionCount(int instanceCount) {
+  instanceCount = count(MatrixJobInstance matrixInstance |
+    matrixInstance.getJob().getId() = "matrix-capped"
+  )
+}
+
+query predicate matrixProjectionIncludesUndemandedAxis(string assignment) {
   exists(MatrixJobInstance matrixInstance |
     matrixInstance.getJob().getId() = "matrix-capped" and
-    matrixInstance.getAssignment() = "*" and
-    instance = matrixInstance.toString()
+    assignment = matrixInstance.getAssignment() and
+    assignment.matches("%second=%")
+  )
+}
+
+query predicate matrixProjectionFailureConclusions(string conclusion, int instanceCount) {
+  exists(Event event, FailureStatus failure |
+    event.getName() = "push" and
+    conclusion = ["failure", "success"] and
+    instanceCount = count(MatrixJobInstance matrixInstance |
+      matrixInstance.getJob().getId() = "matrix-capped" and
+      getAMatrixJobConclusionForOutcome(matrixInstance, event, failure).getName() = conclusion
+    )
   )
 }

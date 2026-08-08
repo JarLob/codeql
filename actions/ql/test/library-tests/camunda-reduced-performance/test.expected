@@ -19,19 +19,16 @@ matrixCompletion
 | matrix-static | failure |
 | matrix-static | success |
 matrixStepFailureConclusion
-| matrix-dynamic[experimental=0,shard=0] | success |
-| matrix-dynamic[experimental=0,shard=1] | success |
-| matrix-dynamic[experimental=1,shard=0] | failure |
-| matrix-dynamic[experimental=1,shard=1] | failure |
+| matrix-dynamic[experimental=0] | success |
+| matrix-dynamic[experimental=1] | failure |
 literalTrueStepFailureConclusion
-| matrix-static[os=0,shard=0] | success |
-| matrix-static[os=0,shard=1] | success |
-| matrix-static[os=0,shard=2] | success |
-| matrix-static[os=1,shard=0] | success |
-| matrix-static[os=1,shard=1] | success |
-| matrix-static[os=1,shard=2] | success |
-| matrix-static[os=2,shard=0] | success |
-| matrix-static[os=2,shard=1] | success |
-| matrix-static[os=2,shard=2] | success |
-matrixCapFallback
-| matrix-capped[*] |
+| matrix-static[shard=0] | success |
+| matrix-static[shard=1] | success |
+| matrix-static[shard=2] | success |
+stepConditionProjectionIncludesUndemandedAxis
+matrixProjectionCount
+| 17 |
+matrixProjectionIncludesUndemandedAxis
+matrixProjectionFailureConclusions
+| failure | 16 |
+| success | 1 |

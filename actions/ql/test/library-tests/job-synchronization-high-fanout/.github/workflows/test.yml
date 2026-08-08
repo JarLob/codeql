@@ -47,9 +47,61 @@ jobs:
     steps:
       - run: echo root 8
 
+  chain-0:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo chain 0
+
+  chain-1:
+    needs: chain-0
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo chain 1
+
+  chain-2:
+    needs: chain-1
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo chain 2
+
+  chain-3:
+    needs: chain-2
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo chain 3
+
+  chain-4:
+    needs: chain-3
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo chain 4
+
+  chain-5:
+    needs: chain-4
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo chain 5
+
   high-fanout:
     needs: [root-0, root-1, root-2, root-3, root-4, root-5, root-6, root-7, root-8]
     if: always() && needs.root-0.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - run: echo high fanout
+
+  deep-fanout:
+    needs: [chain-5, root-1, root-2, root-3, root-4, root-5, root-6, root-7, root-8]
+    if: always() && needs.chain-5.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo deep fanout
+
+  impossible-correlated-fanout:
+    needs: [chain-0, chain-5, root-2, root-3, root-4, root-5, root-6, root-7, root-8]
+    if: >-
+      always() &&
+      needs.chain-0.result == 'failure' &&
+      needs.chain-5.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo impossible correlated fanout
