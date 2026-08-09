@@ -1521,10 +1521,19 @@ private Job getAConditionReferencedNeededJob(Job job) {
   )
 }
 
+private predicate jobConditionUsesAggregateNeedsStatus(Job job) {
+  exists(If condition, FunctionCallExpression call |
+    condition = job.getIf() and
+    call.getExpression() = condition.getConditionExpr() and
+    call.getCallee().getName().toLowerCase() = ["cancelled", "failure", "success"]
+  )
+}
+
 private Job getAConditionDemandedNeededJob(Job job) {
   result = getAConditionReferencedNeededJob(job)
   or
   exists(Job referenced |
+    jobConditionUsesAggregateNeedsStatus(job) and
     referenced = getAConditionReferencedNeededJob(job) and
     result = job.getANeededJob() and
     result = referenced.getANeededJob+()
@@ -1671,39 +1680,54 @@ private predicate mayEvaluateForNeedsStatus(
   )
 }
 
-private predicate mayEvaluateForAssignment(
-  ExpressionNode node, Job job, Event event, string assignment, boolean outcome
+private newtype TConservativeNeededStatusAssignment =
+  MkConservativeNeededStatusAssignment(Job job, string assignment) {
+    assignment = getAConservativeNeededStatusAssignment(job)
+  }
+
+private class ConservativeNeededStatusAssignment extends TConservativeNeededStatusAssignment {
+  Job getJob() { this = MkConservativeNeededStatusAssignment(result, _) }
+
+  string getAssignment() { this = MkConservativeNeededStatusAssignment(_, result) }
+
+  string toString() { result = this.getJob().getId() + ":" + this.getAssignment() }
+}
+
+private predicate mayEvaluateForAssignmentImpl(
+  ExpressionNode node, ConservativeNeededStatusAssignment state, Event event, boolean outcome
 ) {
-  exists(If condition |
-    condition = job.getIf() and
-    node.getExpression() = condition.getConditionExpr() and
-    condition.getATriggerEvent() = event
-  ) and
-  assignment = getAConservativeNeededStatusAssignment(job) and
-  (
+  exists(Job job, string assignment |
+    job = state.getJob() and
+    assignment = state.getAssignment() and
+    exists(If condition |
+      condition = job.getIf() and
+      node.getExpression() = condition.getConditionExpr() and
+      condition.getATriggerEvent() = event
+    ) and
+    (
     node instanceof ExpressionRoot and
-    mayEvaluateForAssignment(node.getChild(0), job, event, assignment, outcome)
+    mayEvaluateForAssignmentImpl(node.getChild(0), state, event, outcome)
     or
     node instanceof LiteralExpression and
     node.getKind() = "BooleanLiteral" and
     node.(LiteralExpression).getValue().toLowerCase() = outcome.toString()
     or
     node instanceof UnaryExpression and
-    mayEvaluateForAssignment(node.(UnaryExpression).getOperand(), job, event, assignment,
+    mayEvaluateForAssignmentImpl(node.(UnaryExpression).getOperand(), state, event,
       outcome.booleanNot())
     or
     node instanceof BinaryExpression and
     node.(BinaryExpression).getOperator() = "&&" and
     (
       outcome = false and
-      mayEvaluateForAssignment([
+      mayEvaluateForAssignmentImpl([
           node.(BinaryExpression).getLeftOperand(), node.(BinaryExpression).getRightOperand()
-        ], job, event, assignment, false)
+        ], state, event, false)
       or
       outcome = true and
-      mayEvaluateForAssignment(node.(BinaryExpression).getLeftOperand(), job, event, assignment,
+      mayEvaluateForAssignmentImpl(node.(BinaryExpression).getLeftOperand(), state, event,
         true) and
-      mayEvaluateForAssignment(node.(BinaryExpression).getRightOperand(), job, event, assignment,
+      mayEvaluateForAssignmentImpl(node.(BinaryExpression).getRightOperand(), state, event,
         true)
     )
     or
@@ -1711,14 +1735,14 @@ private predicate mayEvaluateForAssignment(
     node.(BinaryExpression).getOperator() = "||" and
     (
       outcome = true and
-      mayEvaluateForAssignment([
+      mayEvaluateForAssignmentImpl([
           node.(BinaryExpression).getLeftOperand(), node.(BinaryExpression).getRightOperand()
-        ], job, event, assignment, true)
+        ], state, event, true)
       or
       outcome = false and
-      mayEvaluateForAssignment(node.(BinaryExpression).getLeftOperand(), job, event, assignment,
+      mayEvaluateForAssignmentImpl(node.(BinaryExpression).getLeftOperand(), state, event,
         false) and
-      mayEvaluateForAssignment(node.(BinaryExpression).getRightOperand(), job, event, assignment,
+      mayEvaluateForAssignmentImpl(node.(BinaryExpression).getRightOperand(), state, event,
         false)
     )
     or
@@ -1781,6 +1805,19 @@ private predicate mayEvaluateForAssignment(
         ["always", "success", "failure", "cancelled"]
     ) and
     outcome in [false, true]
+    )
+  )
+}
+
+bindingset[node, job, event]
+pragma[inline_late]
+private predicate mayEvaluateForAssignment(
+  ExpressionNode node, Job job, Event event, string assignment, boolean outcome
+) {
+  exists(ConservativeNeededStatusAssignment state |
+    state.getJob() = job and
+    state.getAssignment() = assignment and
+    mayEvaluateForAssignmentImpl(node, state, event, outcome)
   )
 }
 
@@ -1799,12 +1836,103 @@ private string getAConservativeNeededStatusAssignmentPrefix(Job job, int length)
   )
 }
 
+bindingset[job, assignment]
+pragma[inline_late]
+private boolean demandedAssignmentHasFailure(Job job, string assignment) {
+  exists(Job needed |
+    needed = getAConditionDemandedNeededJob(job) and
+    getAssignedStatus(job, assignment, needed) instanceof FailureStatus
+  ) and
+  result = true
+  or
+  not exists(Job needed |
+    needed = getAConditionDemandedNeededJob(job) and
+    getAssignedStatus(job, assignment, needed) instanceof FailureStatus
+  ) and
+  result = false
+}
+
+bindingset[job, assignment]
+pragma[inline_late]
+private boolean demandedAssignmentHasCancellation(Job job, string assignment) {
+  exists(Job needed |
+    needed = getAConditionDemandedNeededJob(job) and
+    getAssignedStatus(job, assignment, needed) instanceof CancelledStatus
+  ) and
+  result = true
+  or
+  not exists(Job needed |
+    needed = getAConditionDemandedNeededJob(job) and
+    getAssignedStatus(job, assignment, needed) instanceof CancelledStatus
+  ) and
+  result = false
+}
+
+bindingset[job, assignment]
+pragma[inline_late]
+private boolean demandedAssignmentHasSkip(Job job, string assignment) {
+  exists(Job needed |
+    needed = getAConditionDemandedNeededJob(job) and
+    getAssignedStatus(job, assignment, needed) instanceof SkippedStatus
+  ) and
+  result = true
+  or
+  not exists(Job needed |
+    needed = getAConditionDemandedNeededJob(job) and
+    getAssignedStatus(job, assignment, needed) instanceof SkippedStatus
+  ) and
+  result = false
+}
+
+bindingset[job, assignment]
+pragma[inline_late]
+private NeedsStatus getDemandedAssignmentSummary(Job job, string assignment) {
+  result =
+    TNeedsStatusSummary(demandedAssignmentHasFailure(job, assignment),
+      demandedAssignmentHasCancellation(job, assignment),
+      demandedAssignmentHasSkip(job, assignment))
+}
+
+bindingset[job]
+pragma[inline_late]
+private predicate allDirectNeedsAreDemanded(Job job) {
+  forall(Job needed | needed = job.getANeededJob() |
+    needed = getAConditionDemandedNeededJob(job)
+  )
+}
+
+bindingset[job, assignment, summary]
+pragma[inline_late]
+private predicate assignmentSummaryIncludesDemandedStatuses(
+  Job job, string assignment, NeedsStatus summary
+) {
+  allDirectNeedsAreDemanded(job) and
+  summary = getDemandedAssignmentSummary(job, assignment)
+  or
+  not allDirectNeedsAreDemanded(job) and
+  forall(Job needed | needed = getAConditionDemandedNeededJob(job) |
+    exists(JobStatus status |
+      status = getAssignedStatus(job, assignment, needed) and
+      (
+        status instanceof SuccessStatus
+        or
+        status instanceof FailureStatus and summary.hasFailure() = true
+        or
+        status instanceof CancelledStatus and summary.hasCancellation() = true
+        or
+        status instanceof SkippedStatus and summary.hasSkip() = true
+      )
+    )
+  )
+}
+
 private string getAConservativeNeededStatusAssignment(Job job) {
   exists(string assignment, NeedsStatus status |
     assignment =
       getAConservativeNeededStatusAssignmentPrefix(job,
         count(getAConditionDemandedNeededJob(job))) and
     demandedNeedsAssignmentIsConsistent(job, assignment) and
+    assignmentSummaryIncludesDemandedStatuses(job, assignment, status) and
     result = assignment + ":" + status.getName()
   )
 }

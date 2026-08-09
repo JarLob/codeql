@@ -105,3 +105,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo impossible correlated fanout
+
+  impossible-aggregate-correlation:
+    needs: [chain-0, chain-5]
+    if: failure() && needs.chain-5.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo impossible aggregate correlation

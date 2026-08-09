@@ -21,7 +21,8 @@ query predicate completion(string job, string status) {
 
 query predicate impossibleCorrelatedExecution(string job) {
   exists(Job candidate, Event event |
-    candidate.getId() = "impossible-correlated-fanout" and
+    candidate.getId() =
+      ["impossible-correlated-fanout", "impossible-aggregate-correlation"] and
     event.getName() = "push" and
     jobMayExecuteForEvent(candidate, event) and
     job = candidate.getId()
