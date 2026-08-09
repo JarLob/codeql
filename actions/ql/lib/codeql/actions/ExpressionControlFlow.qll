@@ -100,6 +100,12 @@ class CompletionNode extends Node, TCompletionNode {
   }
 }
 
+bindingset[expression, outcome]
+pragma[inline_late]
+private TNode getCompletionNode(ExpressionNode expression, boolean outcome) {
+  result = TCompletionNode(expression, outcome)
+}
+
 cached
 private predicate structuralSuccessor(Node predecessor, Node successor) {
   predecessor instanceof EvaluationNode and
@@ -118,13 +124,13 @@ private predicate structuralSuccessor(Node predecessor, Node successor) {
   exists(CompletionNode completion, ExpressionRoot root |
     predecessor = completion and
     root = completion.getExpressionNode().getParent() and
-    successor = TCompletionNode(root, completion.getOutcome())
+    successor = getCompletionNode(root, completion.getOutcome())
   )
   or
   exists(CompletionNode completion, UnaryExpression unary |
     predecessor = completion and
     unary = completion.getExpressionNode().getParent() and
-    successor = TCompletionNode(unary, completion.getOutcome().booleanNot())
+    successor = getCompletionNode(unary, completion.getOutcome().booleanNot())
   )
   or
   exists(CompletionNode completion, BinaryExpression binary |
@@ -138,10 +144,10 @@ private predicate structuralSuccessor(Node predecessor, Node successor) {
       or
       completion.getExpressionNode() = binary.getLeftOperand() and
       completion.getOutcome() = false and
-      successor = TCompletionNode(binary, false)
+      successor = getCompletionNode(binary, false)
       or
       completion.getExpressionNode() = binary.getRightOperand() and
-      successor = TCompletionNode(binary, completion.getOutcome())
+      successor = getCompletionNode(binary, completion.getOutcome())
     )
   )
   or
@@ -156,10 +162,10 @@ private predicate structuralSuccessor(Node predecessor, Node successor) {
       or
       completion.getExpressionNode() = binary.getLeftOperand() and
       completion.getOutcome() = true and
-      successor = TCompletionNode(binary, true)
+      successor = getCompletionNode(binary, true)
       or
       completion.getExpressionNode() = binary.getRightOperand() and
-      successor = TCompletionNode(binary, completion.getOutcome())
+      successor = getCompletionNode(binary, completion.getOutcome())
     )
   )
 }
@@ -172,7 +178,7 @@ private predicate expressionSuccessor(Node predecessor, Node successor) {
     predecessor = evaluation and
     isAtomicCondition(evaluation.getExpressionNode()) and
     outcome in [false, true] and
-    successor = TCompletionNode(evaluation.getExpressionNode(), outcome)
+    successor = getCompletionNode(evaluation.getExpressionNode(), outcome)
   )
 }
 
@@ -190,7 +196,7 @@ private predicate expressionSuccessorForEvent(Node predecessor, Node successor, 
         condition.getConditionExpr() = evaluation.getExpressionNode().getExpression() and
         mayEvaluateConditionToBoolean(condition, evaluation.getExpressionNode(), event, outcome)
       ) and
-      successor = TCompletionNode(evaluation.getExpressionNode(), outcome)
+      successor = getCompletionNode(evaluation.getExpressionNode(), outcome)
     )
   )
 }

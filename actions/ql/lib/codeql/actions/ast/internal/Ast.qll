@@ -1101,6 +1101,41 @@ private string restrictPermission(string requested, string cap) {
   permissionLevel(cap) < permissionLevel(requested) and result = cap
 }
 
+bindingset[n, scope]
+pragma[inline_late]
+private string getConfiguredPermissionForNode(YamlMappingLikeNode n, string scope) {
+  scope = permissionScope() and
+  (
+    exists(YamlMapping mapping |
+      mapping = n and
+      (
+        result = mapping.lookup(scope).(YamlScalar).getValue().trim().toLowerCase()
+        or
+        not exists(mapping.lookup(scope)) and result = "none"
+      )
+    )
+    or
+    exists(YamlScalar scalar |
+      scalar = n and
+      (
+        scalar.getValue() = "read-all" and
+        (
+          isWriteOnlyPermissionScope(scope) and result = "none"
+          or
+          not isWriteOnlyPermissionScope(scope) and result = "read"
+        )
+        or
+        scalar.getValue() = "write-all" and
+        (
+          isReadOnlyPermissionScope(scope) and result = "read"
+          or
+          not isReadOnlyPermissionScope(scope) and result = "write"
+        )
+      )
+    )
+  )
+}
+
 class PermissionsImpl extends AstNodeImpl, TPermissionsNode {
   YamlMappingLikeNode n;
 
@@ -1151,36 +1186,7 @@ class PermissionsImpl extends AstNodeImpl, TPermissionsNode {
   bindingset[scope]
   pragma[inline_late]
   string getConfiguredPermission(string scope) {
-    scope = this.getAScope() and
-    (
-      exists(YamlMapping mapping |
-        mapping = n and
-        (
-          result = mapping.lookup(scope).(YamlScalar).getValue().trim().toLowerCase()
-          or
-          not exists(mapping.lookup(scope)) and result = "none"
-        )
-      )
-      or
-      exists(YamlScalar scalar |
-        scalar = n and
-        (
-          scalar.getValue() = "read-all" and
-          (
-            isWriteOnlyPermissionScope(scope) and result = "none"
-            or
-            not isWriteOnlyPermissionScope(scope) and result = "read"
-          )
-          or
-          scalar.getValue() = "write-all" and
-          (
-            isReadOnlyPermissionScope(scope) and result = "read"
-            or
-            not isReadOnlyPermissionScope(scope) and result = "write"
-          )
-        )
-      )
-    )
+    result = getConfiguredPermissionForNode(n, scope)
   }
 }
 
