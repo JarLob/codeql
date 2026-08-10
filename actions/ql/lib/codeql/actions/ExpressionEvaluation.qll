@@ -329,6 +329,11 @@ private predicate conditionGetBooleanValue(
 ) {
   condition.getConditionExpr() = node.getExpression() and
   (
+    condition.getATriggerEvent() = event
+    or
+    not exists(condition.getATriggerEvent())
+  ) and
+  (
     node instanceof ExpressionRoot and
     conditionGetBooleanValue(condition, node.getAChild(), event, statusMode, outcome)
     or
