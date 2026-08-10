@@ -2375,27 +2375,19 @@ class JobImpl extends AstNodeImpl, TJobNode {
   }
 
   predicate hasKnownEffectivePermissions() {
-    exists(string scope | scope = permissionScope() and exists(this.getEffectivePermission(scope)))
+    effectivePermissionIsKnown(this)
   }
 
   private predicate hasKnownEffectivePermissionsForEvent(EventImpl event) {
-    exists(string scope, string permission |
-      scope = permissionScope() and
-      effectivePermissionForEvent(this, event, scope, permission)
-    )
+    effectivePermissionForEventIsKnown(this, event)
   }
 
   private predicate hasEffectiveWritePermission() {
-    exists(string scope |
-      scope = permissionScope() and this.getEffectivePermission(scope) = "write"
-    )
+    exists(string scope | effectiveWritePermission(this, scope))
   }
 
   private predicate hasEffectiveWritePermissionForEvent(EventImpl event) {
-    exists(string scope |
-      scope = permissionScope() and
-      effectivePermissionForEvent(this, event, scope, "write")
-    )
+    exists(string scope | effectiveWritePermissionForEvent(this, event, scope))
   }
 
   private predicate hasRuntimeDataForEvent(EventImpl event) {
@@ -2509,48 +2501,113 @@ private predicate maximumEffectivePermission(JobImpl job, string scope, string p
   )
 }
 
-private predicate effectivePermissionForEvent(
-  JobImpl job, EventImpl event, string scope, string permission
+private predicate maximumEffectivePermissionIsKnown(JobImpl job) {
+  job.mayRunWithoutReusableCaller()
+  or
+  exists(ExternalJobImpl caller |
+    job.getEnclosingWorkflow().(ReusableWorkflowImpl).getACaller() = caller and
+    maximumEffectivePermissionIsKnown(caller)
+  )
+}
+
+private predicate effectivePermissionIsKnown(JobImpl job) {
+  job.hasRequestedPermissions() and maximumEffectivePermissionIsKnown(job)
+  or
+  not job.hasRequestedPermissions() and
+  exists(ExternalJobImpl caller |
+    job.getEnclosingWorkflow().(ReusableWorkflowImpl).getACaller() = caller and
+    maximumEffectivePermissionIsKnown(caller)
+  )
+}
+
+private predicate maximumEffectivePermissionForEventIsKnown(
+  JobImpl job, EventImpl event
 ) {
+  job.getEnclosingWorkflow().getOn().getAnEvent() = event and
+  not event.getName() = "workflow_call"
+  or
+  exists(ExternalJobImpl caller |
+    job.getEnclosingWorkflow().(ReusableWorkflowImpl).getACaller() = caller and
+    maximumEffectivePermissionForEventIsKnown(caller, event)
+  )
+}
+
+private predicate effectivePermissionForEventIsKnown(JobImpl job, EventImpl event) {
+  job.hasRequestedPermissions() and maximumEffectivePermissionForEventIsKnown(job, event)
+  or
+  not job.hasRequestedPermissions() and
+  exists(ExternalJobImpl caller |
+    job.getEnclosingWorkflow().(ReusableWorkflowImpl).getACaller() = caller and
+    maximumEffectivePermissionForEventIsKnown(caller, event)
+  )
+}
+
+private predicate maximumEffectiveWritePermission(JobImpl job, string scope) {
   scope = permissionScope() and
   (
-    job.hasRequestedPermissions() and
-    maximumEffectivePermissionForEvent(job, event, scope, permission)
+    job.mayRunWithoutReusableCaller() and
+    (
+      job.hasRequestedPermissions() and job.getRequestedPermission(scope) = "write"
+      or
+      not job.hasRequestedPermissions() and maximumPermission(scope) = "write"
+    )
     or
-    not job.hasRequestedPermissions() and
     exists(ExternalJobImpl caller |
       job.getEnclosingWorkflow().(ReusableWorkflowImpl).getACaller() = caller and
-      maximumEffectivePermissionForEvent(caller, event, scope, permission)
+      maximumEffectiveWritePermission(caller, scope) and
+      (
+        job.hasRequestedPermissions() and job.getRequestedPermission(scope) = "write"
+        or
+        not job.hasRequestedPermissions()
+      )
     )
   )
 }
 
-private predicate maximumEffectivePermissionForEvent(
-  JobImpl job, EventImpl event, string scope, string permission
+private predicate effectiveWritePermission(JobImpl job, string scope) {
+  job.hasRequestedPermissions() and maximumEffectiveWritePermission(job, scope)
+  or
+  not job.hasRequestedPermissions() and
+  exists(ExternalJobImpl caller |
+    job.getEnclosingWorkflow().(ReusableWorkflowImpl).getACaller() = caller and
+    maximumEffectiveWritePermission(caller, scope)
+  )
+}
+
+private predicate maximumEffectiveWritePermissionForEvent(
+  JobImpl job, EventImpl event, string scope
 ) {
   scope = permissionScope() and
   (
     job.getEnclosingWorkflow().getOn().getAnEvent() = event and
     not event.getName() = "workflow_call" and
     (
-      job.hasRequestedPermissions() and permission = job.getRequestedPermission(scope)
+      job.hasRequestedPermissions() and job.getRequestedPermission(scope) = "write"
       or
-      not job.hasRequestedPermissions() and permission = maximumPermission(scope)
+      not job.hasRequestedPermissions() and maximumPermission(scope) = "write"
     )
     or
-    exists(ExternalJobImpl caller, string cap |
+    exists(ExternalJobImpl caller |
       job.getEnclosingWorkflow().(ReusableWorkflowImpl).getACaller() = caller and
-      maximumEffectivePermissionForEvent(caller, event, scope, cap) and
+      maximumEffectiveWritePermissionForEvent(caller, event, scope) and
       (
-        exists(string requested |
-          job.hasRequestedPermissions() and
-          requested = job.getRequestedPermission(scope) and
-          permission = restrictPermission(requested, cap)
-        )
+        job.hasRequestedPermissions() and job.getRequestedPermission(scope) = "write"
         or
-        not job.hasRequestedPermissions() and permission = cap
+        not job.hasRequestedPermissions()
       )
     )
+  )
+}
+
+private predicate effectiveWritePermissionForEvent(
+  JobImpl job, EventImpl event, string scope
+) {
+  job.hasRequestedPermissions() and maximumEffectiveWritePermissionForEvent(job, event, scope)
+  or
+  not job.hasRequestedPermissions() and
+  exists(ExternalJobImpl caller |
+    job.getEnclosingWorkflow().(ReusableWorkflowImpl).getACaller() = caller and
+    maximumEffectiveWritePermissionForEvent(caller, event, scope)
   )
 }
 
