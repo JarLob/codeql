@@ -290,60 +290,78 @@ private predicate hasKnownLiteralTruthiness(ExpressionNode node, boolean outcome
   )
 }
 
-private predicate expressionTrueIsProtected(ExpressionNode node, ProtectionMode mode) {
-  hasKnownLiteralTruthiness(node, false)
-  or
-  atomProtectsMode(node, mode)
-  or
-  node instanceof ExpressionRoot and
-  expressionTrueIsProtected(node.getChild(0), mode)
-  or
-  node instanceof UnaryExpression and
-  expressionFalseIsProtected(node.(UnaryExpression).getOperand(), mode)
-  or
-  node instanceof BinaryExpression and
-  node.(BinaryExpression).getOperator() = "&&" and
-  (
-    expressionTrueIsProtected(node.(BinaryExpression).getLeftOperand(), mode)
-    or
-    expressionTrueIsProtected(node.(BinaryExpression).getRightOperand(), mode)
-  )
-  or
-  node instanceof BinaryExpression and
-  node.(BinaryExpression).getOperator() = "||" and
-  expressionTrueIsProtected(node.(BinaryExpression).getLeftOperand(), mode) and
-  (
-    expressionFalseIsProtected(node.(BinaryExpression).getLeftOperand(), mode)
-    or
-    expressionTrueIsProtected(node.(BinaryExpression).getRightOperand(), mode)
+private predicate expressionChildTrueIsProtected(
+  ExpressionNode parent, int index, ProtectionMode mode
+) {
+  exists(ExpressionNode node |
+    node = parent.getChild(index) and
+    (
+      hasKnownLiteralTruthiness(node, false)
+      or
+      atomProtectsMode(node, mode)
+      or
+      node instanceof ExpressionRoot and
+      expressionChildTrueIsProtected(node, 0, mode)
+      or
+      node instanceof UnaryExpression and
+      expressionChildFalseIsProtected(node, 0, mode)
+      or
+      node instanceof BinaryExpression and
+      node.(BinaryExpression).getOperator() = "&&" and
+      (
+        expressionChildTrueIsProtected(node, 0, mode)
+        or
+        expressionChildTrueIsProtected(node, 1, mode)
+      )
+      or
+      node instanceof BinaryExpression and
+      node.(BinaryExpression).getOperator() = "||" and
+      expressionChildTrueIsProtected(node, 0, mode) and
+      (
+        expressionChildFalseIsProtected(node, 0, mode)
+        or
+        expressionChildTrueIsProtected(node, 1, mode)
+      )
+    )
   )
 }
 
-private predicate expressionFalseIsProtected(ExpressionNode node, ProtectionMode mode) {
-  hasKnownLiteralTruthiness(node, true)
-  or
-  node instanceof ExpressionRoot and
-  expressionFalseIsProtected(node.getChild(0), mode)
-  or
-  node instanceof UnaryExpression and
-  expressionTrueIsProtected(node.(UnaryExpression).getOperand(), mode)
-  or
-  node instanceof BinaryExpression and
-  node.(BinaryExpression).getOperator() = "&&" and
-  expressionFalseIsProtected(node.(BinaryExpression).getLeftOperand(), mode) and
-  (
-    expressionTrueIsProtected(node.(BinaryExpression).getLeftOperand(), mode)
-    or
-    expressionFalseIsProtected(node.(BinaryExpression).getRightOperand(), mode)
+private predicate expressionChildFalseIsProtected(
+  ExpressionNode parent, int index, ProtectionMode mode
+) {
+  exists(ExpressionNode node |
+    node = parent.getChild(index) and
+    (
+      hasKnownLiteralTruthiness(node, true)
+      or
+      node instanceof ExpressionRoot and
+      expressionChildFalseIsProtected(node, 0, mode)
+      or
+      node instanceof UnaryExpression and
+      expressionChildTrueIsProtected(node, 0, mode)
+      or
+      node instanceof BinaryExpression and
+      node.(BinaryExpression).getOperator() = "&&" and
+      expressionChildFalseIsProtected(node, 0, mode) and
+      (
+        expressionChildTrueIsProtected(node, 0, mode)
+        or
+        expressionChildFalseIsProtected(node, 1, mode)
+      )
+      or
+      node instanceof BinaryExpression and
+      node.(BinaryExpression).getOperator() = "||" and
+      (
+        expressionChildFalseIsProtected(node, 0, mode)
+        or
+        expressionChildFalseIsProtected(node, 1, mode)
+      )
+    )
   )
-  or
-  node instanceof BinaryExpression and
-  node.(BinaryExpression).getOperator() = "||" and
-  (
-    expressionFalseIsProtected(node.(BinaryExpression).getLeftOperand(), mode)
-    or
-    expressionFalseIsProtected(node.(BinaryExpression).getRightOperand(), mode)
-  )
+}
+
+private predicate expressionTrueIsProtected(ExpressionNode node, ProtectionMode mode) {
+  node instanceof ExpressionRoot and expressionChildTrueIsProtected(node, 0, mode)
 }
 
 predicate parsedConditionProtectsCategoryAndEvent(If condition, string category, string event) {

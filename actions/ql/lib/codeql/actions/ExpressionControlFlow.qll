@@ -67,7 +67,17 @@ abstract class Node extends TNode {
   Node getAReachableNode() { result = this or result = this.getASuccessor+() }
 
   /** Gets a reachable node for `event`, including this node. */
-  Node getAReachableNode(Event event) { expressionReachableForEvent(this, result, event) }
+  bindingset[this, event]
+  pragma[inline_late]
+  Node getAReachableNode(Event event) {
+    result = this
+    or
+    exists(EventNode source, EventNode target |
+      source = TExpressionEventNode(this, event) and
+      target = source.getASuccessor+() and
+      result = target.getNode()
+    )
+  }
 
   abstract string toString();
 }
@@ -98,6 +108,26 @@ class CompletionNode extends Node, TCompletionNode {
   override string toString() {
     result = "complete " + expression.toString() + " as " + outcome.toString()
   }
+}
+
+private newtype TEventNode =
+  TExpressionEventNode(Node node, Event event) {
+    node.getExpression().getATriggerEvent() = event
+  }
+
+private class EventNode extends TEventNode, TExpressionEventNode {
+  Node node;
+  Event event;
+
+  EventNode() { this = TExpressionEventNode(node, event) }
+
+  Node getNode() { result = node }
+
+  EventNode getASuccessor() {
+    result = TExpressionEventNode(node.getASuccessor(event), event)
+  }
+
+  string toString() { result = node + " / " + event }
 }
 
 bindingset[expression, outcome]
@@ -198,16 +228,6 @@ private predicate expressionSuccessorForEvent(Node predecessor, Node successor, 
       ) and
       successor = getCompletionNode(evaluation.getExpressionNode(), outcome)
     )
-  )
-}
-
-cached
-private predicate expressionReachableForEvent(Node source, Node target, Event event) {
-  target = source
-  or
-  exists(Node predecessor |
-    expressionReachableForEvent(source, predecessor, event) and
-    expressionSuccessorForEvent(predecessor, target, event)
   )
 }
 
