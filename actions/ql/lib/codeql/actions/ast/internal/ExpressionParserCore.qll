@@ -4,6 +4,15 @@ private string epsilon() { result = "" }
 
 private int maxExpressionLength() { result = 21000 }
 
+bindingset[expression]
+pragma[inline_late]
+predicate isSimpleAccessExpression(ExpressionImpl expression) {
+  expressionLengthIsValid(expression.getFullExpression()) and
+  expression
+      .getFullExpression()
+      .regexpMatch("(?!(null|true|false|NaN|Infinity)(?![A-Za-z0-9_-]))[A-Za-z_][A-Za-z0-9_-]*(\\.(?:[A-Za-z_][A-Za-z0-9_-]*|\\*))*")
+}
+
 /** Holds if `expression` is within the public runner's expression length limit. */
 bindingset[expression]
 predicate expressionLengthIsValid(string expression) {
@@ -245,20 +254,23 @@ private predicate extraCompletion(
 }
 
 predicate parserItem(ExpressionImpl e, Production prod, int start, int end, int trimmedEnd) {
-  start = 0 and
-  end = start and
-  trimmedEnd = end and
-  prod.isStartItem() and
-  expressionLengthIsValid(e.getExpression()) and
-  exists(e)
-  or
-  scan(e, prod, start, end) and trimmedEnd = end
-  or
-  bottomUpPrediction(e, prod, start) and end = start and trimmedEnd = end
-  or
-  completion(e, prod, start, end, trimmedEnd)
-  or
-  extraCompletion(e, prod, start, end, trimmedEnd)
+  not isSimpleAccessExpression(e) and
+  (
+    start = 0 and
+    end = start and
+    trimmedEnd = end and
+    prod.isStartItem() and
+    expressionLengthIsValid(e.getExpression()) and
+    exists(e)
+    or
+    scan(e, prod, start, end) and trimmedEnd = end
+    or
+    bottomUpPrediction(e, prod, start) and end = start and trimmedEnd = end
+    or
+    completion(e, prod, start, end, trimmedEnd)
+    or
+    extraCompletion(e, prod, start, end, trimmedEnd)
+  )
 }
 
 private newtype TParserItem =

@@ -2,22 +2,193 @@ private import Ast
 private import ExpressionParserCore
 private import Yaml
 
-class ExpressionNodeImpl extends ItemNode {
-  ExpressionNodeImpl() { this.isInSyntaxTree() and this.isVisible() }
+/** Gets the exclusive end offset of the access-chain part starting at `start`. */
+bindingset[expression, start]
+pragma[inline_late]
+private int getSimpleAccessPartEnd(ExpressionImpl expression, int start) {
+  start < expression.getFullExpression().length() and
+  result =
+    start +
+      min([
+            expression.getFullExpression().suffix(start).indexOf("."),
+            expression.getFullExpression().length() - start
+          ]
+      )
+}
 
-  ExpressionNodeImpl getAChild() { result = this.getVisibleChild(_) }
+private predicate getASimpleAccessPart(ExpressionImpl expression, int start, int end) {
+  start = 0 and end = getSimpleAccessPartEnd(expression, start)
+  or
+  exists(int previousStart |
+    getASimpleAccessPart(expression, previousStart, start - 1) and
+    start > 0 and
+    end = getSimpleAccessPartEnd(expression, start)
+  )
+}
 
-  ExpressionNodeImpl getChild(int i) { result = this.getVisibleChild(i) }
+/** A generic parser node, or a directly represented simple access-chain node. */
+private newtype TExpressionNode =
+  TParsedExpressionNode(ItemNode item) { item.isInSyntaxTree() and item.isVisible() } or
+  TDirectExpressionRoot(ExpressionImpl expression) { isSimpleAccessExpression(expression) } or
+  TDirectAccessExpression(ExpressionImpl expression, int end) {
+    isSimpleAccessExpression(expression) and
+    exists(int start | getASimpleAccessPart(expression, start, end) and start > 0)
+  } or
+  TDirectIdentifierExpression(ExpressionImpl expression, int start, int end) {
+    isSimpleAccessExpression(expression) and
+    getASimpleAccessPart(expression, start, end) and
+    expression.getFullExpression().substring(start, end) != "*"
+  } or
+  TDirectPropertyAccessExpression(ExpressionImpl expression, int start, int end) {
+    isSimpleAccessExpression(expression) and
+    start >= 0 and
+    getASimpleAccessPart(expression, start + 1, end) and
+    expression.getFullExpression().substring(start + 1, end) != "*"
+  } or
+  TDirectWildcardAccessExpression(ExpressionImpl expression, int start, int end) {
+    isSimpleAccessExpression(expression) and
+    start >= 0 and
+    getASimpleAccessPart(expression, start + 1, end) and
+    expression.getFullExpression().substring(start + 1, end) = "*"
+  }
+
+class ExpressionNodeImpl extends TExpressionNode {
+  ItemNode getParserItem() { this = TParsedExpressionNode(result) }
+
+  ExpressionImpl getExpression() {
+    result = this.getParserItem().getExpression()
+    or
+    this = TDirectExpressionRoot(result)
+    or
+    this = TDirectAccessExpression(result, _)
+    or
+    this = TDirectIdentifierExpression(result, _, _)
+    or
+    this = TDirectPropertyAccessExpression(result, _, _)
+    or
+    this = TDirectWildcardAccessExpression(result, _, _)
+  }
+
+  string getRawKind() {
+    (
+      if this.getParserItem().isTopNode()
+      then result = "root"
+      else result = this.getParserItem().getProduction().getLhs()
+    )
+    or
+    this = TDirectExpressionRoot(_) and result = "root"
+    or
+    this = TDirectAccessExpression(_, _) and result = "AccessExpression"
+    or
+    this = TDirectIdentifierExpression(_, 0, _) and result = "Identifier"
+    or
+    exists(ExpressionImpl expression, int start, int end |
+      this = TDirectIdentifierExpression(expression, start, end) and
+      start > 0 and
+      result = "PropertyIdentifier"
+    )
+    or
+    this = TDirectPropertyAccessExpression(_, _, _) and result = "PropertyAccess"
+    or
+    this = TDirectWildcardAccessExpression(_, _, _) and result = "WildcardAccess"
+  }
+
+  predicate isTopNode() {
+    this.getParserItem().isTopNode()
+    or
+    this = TDirectExpressionRoot(_)
+  }
+
+  ExpressionNodeImpl getChild(int i) {
+    result = TParsedExpressionNode(this.getParserItem().getVisibleChild(i))
+    or
+    exists(ExpressionImpl expression |
+      i = 0 and
+      this = TDirectExpressionRoot(expression) and
+      (
+        not exists(int start, int end | getASimpleAccessPart(expression, start, end) and start > 0) and
+        result = TDirectIdentifierExpression(expression, 0, expression.getFullExpression().length())
+        or
+        exists(int start, int end | getASimpleAccessPart(expression, start, end) and start > 0) and
+        result = TDirectAccessExpression(expression, expression.getFullExpression().length())
+      )
+    )
+    or
+    exists(ExpressionImpl expression, int start, int end, int previousStart |
+      this = TDirectAccessExpression(expression, end) and
+      getASimpleAccessPart(expression, start, end) and
+      start > 0 and
+      getASimpleAccessPart(expression, previousStart, start - 1) and
+      (
+        i = 0 and
+        (
+          previousStart = 0 and
+          result = TDirectIdentifierExpression(expression, previousStart, start - 1)
+          or
+          previousStart > 0 and
+          result = TDirectAccessExpression(expression, start - 1)
+        )
+        or
+        i = 1 and
+        (
+          expression.getFullExpression().substring(start, end) != "*" and
+          result = TDirectPropertyAccessExpression(expression, start - 1, end)
+          or
+          expression.getFullExpression().substring(start, end) = "*" and
+          result = TDirectWildcardAccessExpression(expression, start - 1, end)
+        )
+      )
+    )
+    or
+    exists(ExpressionImpl expression, int start, int end |
+      i = 0 and
+      this = TDirectPropertyAccessExpression(expression, start, end) and
+      result = TDirectIdentifierExpression(expression, start + 1, end)
+    )
+  }
+
+  ExpressionNodeImpl getAChild() { result = this.getChild(_) }
 
   ExpressionNodeImpl getParent() { result.getAChild() = this }
 
-  string getKind() {
-    if this.isTopNode() then result = "root" else result = this.getProduction().getLhs()
+  string getKind() { result = this.getRawKind() }
+
+  int getStartOffset() {
+    result = this.getParserItem().getStart()
+    or
+    this = TDirectExpressionRoot(_) and result = 0
+    or
+    this = TDirectAccessExpression(_, _) and result = 0
+    or
+    this = TDirectIdentifierExpression(_, result, _)
+    or
+    this = TDirectPropertyAccessExpression(_, result, _)
+    or
+    this = TDirectWildcardAccessExpression(_, result, _)
   }
 
-  int getStartOffset() { result = this.getStart() }
+  int getEndOffset() {
+    result = this.getParserItem().getEnd()
+    or
+    exists(ExpressionImpl expression |
+      this = TDirectExpressionRoot(expression) and result = expression.getFullExpression().length()
+    )
+    or
+    this = TDirectAccessExpression(_, result)
+    or
+    this = TDirectIdentifierExpression(_, _, result)
+    or
+    this = TDirectPropertyAccessExpression(_, _, result)
+    or
+    this = TDirectWildcardAccessExpression(_, _, result)
+  }
 
-  int getEndOffset() { result = this.getEnd() }
+  string getText() {
+    result = this.getParserItem().getText()
+    or
+    not exists(this.getParserItem()) and
+    result = this.getExpression().getFullExpression().substring(this.getStartOffset(), this.getEndOffset())
+  }
 
   predicate hasLocationInfo(string path, int sl, int sc, int el, int ec) {
     this.getExpression()
@@ -27,15 +198,20 @@ class ExpressionNodeImpl extends ItemNode {
   predicate hasExactSourceLocation() { this.getExpression().expressionNodeLocationIsExact() }
 
   int getRunnerDepth() {
-    result =
-      max(int depth |
-        exists(ExpressionNodeImpl descendant | runnerDescendantDepth(this, descendant, depth))
-      |
-        depth
-      )
+    exists(ItemNode root | root = this.getParserItem() |
+      result =
+        max(int depth |
+          exists(ItemNode descendant | runnerDescendantDepth(root, descendant, depth))
+        |
+          depth
+        )
+    )
+    or
+    not exists(this.getParserItem()) and
+    result = count(int start, int end | getASimpleAccessPart(this.getExpression(), start, end))
   }
 
-  override string toString() { result = this.getKind() + "(" + this.getText() + ")" }
+  string toString() { result = this.getKind() + "(" + this.getText() + ")" }
 }
 
 private ExpressionNodeImpl getALogicalOperand(BinaryExpressionImpl binary) {
@@ -80,11 +256,19 @@ private ExpressionNodeImpl getARunnerChild(ExpressionNodeImpl parent) {
   )
 }
 
-private predicate runnerDescendantDepth(ExpressionNodeImpl root, ExpressionNodeImpl node, int depth) {
+private ItemNode getARunnerParserChild(ItemNode parent) {
+  exists(ExpressionNodeImpl parentNode, ExpressionNodeImpl childNode |
+    parentNode = TParsedExpressionNode(parent) and
+    childNode = getARunnerChild(parentNode) and
+    childNode = TParsedExpressionNode(result)
+  )
+}
+
+private predicate runnerDescendantDepth(ItemNode root, ItemNode node, int depth) {
   node = root and depth = 1
   or
-  exists(ExpressionNodeImpl parent, int parentDepth |
-    node = getARunnerChild(parent) and
+  exists(ItemNode parent, int parentDepth |
+    node = getARunnerParserChild(parent) and
     runnerDescendantDepth(root, parent, parentDepth) and
     depth = parentDepth + 1
   )
@@ -131,7 +315,7 @@ class BinaryExpressionImpl extends ExpressionNodeImpl {
 
   string getOperator() {
     exists(ItemNode operator |
-      operator = this.getARawChild() and
+      operator = this.getParserItem().getARawChild() and
       operator.getProduction().getLhs() =
         ["_OrOperator", "_AndOperator", "_EqualityOperator", "_ComparisonOperator"] and
       result = operator.getText().trim()
@@ -148,9 +332,7 @@ class UnaryExpressionImpl extends ExpressionNodeImpl {
 }
 
 class IdentifierExpressionImpl extends ExpressionNodeImpl {
-  IdentifierExpressionImpl() {
-    this.getProduction().getLhs() = ["Identifier", "PropertyIdentifier"]
-  }
+  IdentifierExpressionImpl() { this.getRawKind() = ["Identifier", "PropertyIdentifier"] }
 
   override string getKind() { result = "Identifier" }
 
