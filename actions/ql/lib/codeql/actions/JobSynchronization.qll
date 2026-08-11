@@ -1122,7 +1122,12 @@ private predicate decisionMayHaveOutcome(
     decisionMayHaveOutcomeForAssignment(job, event, assignment, outcome)
   )
   or
+  not isRootJob(job) and
+  jobConditionUsesSeparableNeedsAssignment(job) and
+  separableConditionMayHaveOutcome(job, event, needsStatus, outcome)
+  or
   not jobConditionUsesExactNeedsAssignment(job) and
+  not jobConditionUsesSeparableNeedsAssignment(job) and
   (
     isRootJob(job) and
     ownConditionMayHaveOutcome(job, event, outcome)
@@ -1267,23 +1272,26 @@ private Job getDemandedNeededJobAt(Job job, int index) {
 private predicate getAReachableDemandedNeedsStatePrefix(
   Job job, Event event, int length, string assignment, NeedsStatus status
 ) {
-  length = 0 and
-  assignment = "" and
-  status = TNeedsStatusSummary(false, false, false)
-  or
-  exists(string prefixAssignment, NeedsStatus prefixStatus, Job needed, JobStatus neededStatus |
-    length > 0 and
-    needed = getNeededJobAt(job, length - 1) and
-    getAReachableDemandedNeedsStatePrefix(job, event, length - 1, prefixAssignment,
-      prefixStatus) and
-    jobMayCompleteForEvent(needed, event, neededStatus) and
-    status = addStatusToSummary(prefixStatus, neededStatus) and
-    (
-      needed = getAConditionDemandedNeededJob(job) and
-      assignment = prefixAssignment + getStatusCode(neededStatus)
-      or
-      not needed = getAConditionDemandedNeededJob(job) and
-      assignment = prefixAssignment
+  jobConditionUsesExactNeedsAssignment(job) and
+  (
+    length = 0 and
+    assignment = "" and
+    status = TNeedsStatusSummary(false, false, false)
+    or
+    exists(string prefixAssignment, NeedsStatus prefixStatus, Job needed, JobStatus neededStatus |
+      length > 0 and
+      needed = getNeededJobAt(job, length - 1) and
+      getAReachableDemandedNeedsStatePrefix(job, event, length - 1, prefixAssignment,
+        prefixStatus) and
+      jobMayCompleteForEvent(needed, event, neededStatus) and
+      status = addStatusToSummary(prefixStatus, neededStatus) and
+      (
+        needed = getAConditionDemandedNeededJob(job) and
+        assignment = prefixAssignment + getStatusCode(neededStatus)
+        or
+        not needed = getAConditionDemandedNeededJob(job) and
+        assignment = prefixAssignment
+      )
     )
   )
 }
@@ -1309,7 +1317,12 @@ private predicate needsStatusMayOccurForEvent(Job job, Event event, NeedsStatus 
     status = getAssignmentSummary(assignment)
   )
   or
+  jobConditionUsesSeparableNeedsAssignment(job) and
+  job.getATriggerEvent() = event and
+  needsStatusMayOccur(job, status)
+  or
   not jobConditionUsesExactNeedsAssignment(job) and
+  not jobConditionUsesSeparableNeedsAssignment(job) and
   job.getATriggerEvent() = event and
   status = getAReachableNeedsStatus(job, event)
 }
@@ -1498,6 +1511,13 @@ private string getSummaryStringValue(ExpressionNode node, Job job, NeedsStatus s
   )
 }
 
+bindingset[access, job]
+pragma[inline_late]
+private Job getReferencedNeededResult(AccessExpression access, Job job) {
+  result = job.getANeededJob() and
+  access.getAccessPath() = "needs." + result.getId() + ".result"
+}
+
 private predicate jobConditionContainsAssignedNeedsValue(Job job) {
   exists(If condition, ExpressionNode node, Job needed |
     condition = job.getIf() and
@@ -1528,8 +1548,7 @@ private Job getAConditionReferencedNeededJob(Job job) {
     condition = job.getIf() and
     access.getExpression() = condition.getConditionExpr() and
     isDirectlyEvaluatedAssignedNeedsValue(access) and
-    result = job.getANeededJob() and
-    access.getAccessPath() = "needs." + result.getId() + ".result"
+    result = getReferencedNeededResult(access, job)
   )
 }
 
@@ -1576,8 +1595,352 @@ private predicate demandedNeedsAssignmentIsConsistent(Job job, string assignment
   )
 }
 
+private Job getASeparableComparisonNeededJob(BinaryExpression comparison, Job job) {
+  comparison.getOperator() = ["==", "!="] and
+  exists(AccessExpression access |
+    access.getParent() = comparison and
+    result = getReferencedNeededResult(access, job)
+  )
+}
+
+private predicate isLogicallyComposedNeedsComparison(BinaryExpression comparison) {
+  forall(ExpressionNode ancestor | ancestor = comparison.getParent+() |
+    ancestor instanceof ExpressionRoot
+    or
+    ancestor instanceof UnaryExpression
+    or
+    ancestor instanceof BinaryExpression and
+    ancestor.(BinaryExpression).getOperator() = ["&&", "||"]
+  )
+}
+
+private predicate jobConditionUsesSeparableNeedsAssignment(Job job) {
+  exists(getAConditionDemandedNeededJob(job)) and
+  forall(AccessExpression access, Job needed |
+    access.getExpression() = job.getIf().getConditionExpr() and
+    isDirectlyEvaluatedAssignedNeedsValue(access) and
+    needed = getReferencedNeededResult(access, job)
+  |
+    exists(BinaryExpression comparison |
+      comparison = access.getParent() and
+      isLogicallyComposedNeedsComparison(comparison) and
+      count(getASeparableComparisonNeededJob(comparison, job)) = 1
+    )
+  )
+}
+
 private predicate jobConditionUsesExactNeedsAssignment(Job job) {
-  exists(getAConditionDemandedNeededJob(job))
+  exists(getAConditionDemandedNeededJob(job)) and
+  not jobConditionUsesSeparableNeedsAssignment(job)
+}
+
+bindingset[job]
+pragma[inline_late]
+private string getUnknownDirectNeedsAssignment(Job job) {
+  result =
+    concat(int index | index in [0 .. count(job.getANeededJob()) - 1] |
+      "?", "" order by index
+    )
+}
+
+bindingset[job, needed, status]
+pragma[inline_late]
+private string getSingleStatusPartialAssignment(Job job, Job needed, JobStatus status) {
+  needed = job.getANeededJob() and
+  result =
+    concat(int index, string code |
+      index in [0 .. count(job.getANeededJob()) - 1] and
+      (
+        getNeededJobAt(job, index) = needed and code = getStatusCode(status)
+        or
+        not getNeededJobAt(job, index) = needed and code = "?"
+      )
+    |
+      code, "" order by index
+    )
+}
+
+bindingset[job, left, right]
+pragma[inline_late]
+private string mergePartialAssignments(Job job, string left, string right) {
+  left.length() = count(job.getANeededJob()) and
+  right.length() = left.length() and
+  result =
+    concat(int index, string code |
+      index in [0 .. left.length() - 1] and
+      (
+        left.charAt(index) = "?" and code = right.charAt(index)
+        or
+        right.charAt(index) = "?" and code = left.charAt(index)
+        or
+        left.charAt(index) = right.charAt(index) and code = left.charAt(index)
+      )
+    |
+      code, "" order by index
+    ) and
+  result.length() = left.length()
+}
+
+bindingset[job, assignment, needed]
+pragma[inline_late]
+private JobStatus getPartialAssignedStatus(Job job, string assignment, Job needed) {
+  exists(int index |
+    needed = getNeededJobAt(job, index) and
+    result = getStatusForCode(assignment.charAt(index))
+  )
+}
+
+bindingset[node, job, assignment]
+pragma[inline_late]
+private string getPartialAssignedStringValue(
+  ExpressionNode node, Job job, string assignment
+) {
+  result = getStringLiteralValue(node)
+  or
+  exists(AccessExpression access, Job needed |
+    access = node and
+    needed = getReferencedNeededResult(access, job) and
+    result = getPartialAssignedStatus(job, assignment, needed).getName()
+  )
+  or
+  exists(Job needed, JobStatus status, string staticValue |
+    staticValue = getReferencedStaticOutputStringValue(node, job, needed) and
+    status = getPartialAssignedStatus(job, assignment, needed) and
+    (
+      status instanceof SuccessStatus and result = staticValue
+      or
+      status instanceof FailureStatus and result = [staticValue, ""]
+      or
+      status instanceof CancelledStatus and result = [staticValue, ""]
+      or
+      status instanceof SkippedStatus and result = ""
+    )
+  )
+}
+
+bindingset[node, job]
+pragma[inline_late]
+private predicate containsDirectlyEvaluatedNeededResult(ExpressionNode node, Job job) {
+  exists(AccessExpression access |
+    (access = node or access.getParent+() = node) and
+    isDirectlyEvaluatedAssignedNeedsValue(access) and
+    exists(getReferencedNeededResult(access, job))
+  )
+}
+
+private predicate directNeededStatusMayOccurForEvent(
+  Job needed, Event event, JobStatus status
+) {
+  needed.getATriggerEvent() = event and
+  (
+    status instanceof SkippedStatus and jobMayBeSkipped(needed)
+    or
+    not status instanceof SkippedStatus and
+    status = getAPossibleExecutedJobConclusionForEvent(needed, event)
+  )
+}
+
+private predicate separableComparisonMayEvaluateTo(
+  BinaryExpression comparison, Job job, Event event, string assignment, boolean outcome
+) {
+  exists(Job needed, JobStatus status |
+    needed = getASeparableComparisonNeededJob(comparison, job) and
+    directNeededStatusMayOccurForEvent(needed, event, status) and
+    assignment = getSingleStatusPartialAssignment(job, needed, status) and
+    (
+      stringComparisonEvaluatesTo(
+        getPartialAssignedStringValue(comparison.getLeftOperand(), job, assignment),
+        comparison.getOperator(),
+        getPartialAssignedStringValue(comparison.getRightOperand(), job, assignment), outcome
+      )
+      or
+      (
+        not exists(getPartialAssignedStringValue(comparison.getLeftOperand(), job, assignment))
+        or
+        not exists(getPartialAssignedStringValue(comparison.getRightOperand(), job, assignment))
+      ) and
+      outcome in [false, true]
+    )
+  )
+}
+
+private predicate separableNodeMayEvaluateTo(
+  ExpressionNode node, Job job, Event event, NeedsStatus status, string assignment,
+  boolean outcome
+) {
+  not containsDirectlyEvaluatedNeededResult(node, job) and
+  assignment = getUnknownDirectNeedsAssignment(job) and
+  mayEvaluateForNeedsStatus(node, job, status, outcome)
+  or
+  node instanceof ExpressionRoot and
+  separableNodeMayEvaluateTo(node.getChild(0), job, event, status, assignment, outcome)
+  or
+  node instanceof UnaryExpression and
+  separableNodeMayEvaluateTo(node.(UnaryExpression).getOperand(), job, event, status, assignment,
+    outcome.booleanNot())
+  or
+  node instanceof BinaryExpression and
+  node.(BinaryExpression).getOperator() = "&&" and
+  (
+    outcome = false and
+    separableNodeMayEvaluateTo([
+        node.(BinaryExpression).getLeftOperand(), node.(BinaryExpression).getRightOperand()
+      ], job, event, status, assignment, false)
+    or
+    outcome = true and
+    exists(string leftAssignment, string rightAssignment |
+      separableNodeMayEvaluateTo(node.(BinaryExpression).getLeftOperand(), job, event, status,
+        leftAssignment, true) and
+      separableNodeMayEvaluateTo(node.(BinaryExpression).getRightOperand(), job, event, status,
+        rightAssignment, true) and
+      assignment = mergePartialAssignments(job, leftAssignment, rightAssignment)
+    )
+  )
+  or
+  node instanceof BinaryExpression and
+  node.(BinaryExpression).getOperator() = "||" and
+  (
+    outcome = true and
+    separableNodeMayEvaluateTo([
+        node.(BinaryExpression).getLeftOperand(), node.(BinaryExpression).getRightOperand()
+      ], job, event, status, assignment, true)
+    or
+    outcome = false and
+    exists(string leftAssignment, string rightAssignment |
+      separableNodeMayEvaluateTo(node.(BinaryExpression).getLeftOperand(), job, event, status,
+        leftAssignment, false) and
+      separableNodeMayEvaluateTo(node.(BinaryExpression).getRightOperand(), job, event, status,
+        rightAssignment, false) and
+      assignment = mergePartialAssignments(job, leftAssignment, rightAssignment)
+    )
+  )
+  or
+  node instanceof BinaryExpression and
+  containsDirectlyEvaluatedNeededResult(node, job) and
+  separableComparisonMayEvaluateTo(node.(BinaryExpression), job, event, assignment, outcome)
+}
+
+bindingset[job, assignment]
+pragma[inline_late]
+private int getAFixedPartialNonSuccessKind(Job job, string assignment) {
+  assignment.length() = count(job.getANeededJob()) and
+  exists(int index, string code |
+    index in [0 .. assignment.length() - 1] and
+    code = assignment.charAt(index) and
+    (
+      code = "f" and result = 0
+      or
+      code = "c" and result = 1
+      or
+      code = "k" and result = 2
+    )
+  )
+}
+
+bindingset[job, assignment]
+pragma[inline_late]
+private Job getAnUnknownPartialNeededJob(Job job, string assignment) {
+  assignment.length() = count(job.getANeededJob()) and
+  exists(int index |
+    result = getNeededJobAt(job, index) and assignment.charAt(index) = "?"
+  )
+}
+
+bindingset[job, assignment, needed]
+pragma[inline_late]
+private predicate partialAssignmentRequiresSuccess(
+  Job job, string assignment, Job needed
+) {
+  getPartialAssignedStatus(job, assignment, needed) instanceof SuccessStatus
+  or
+  exists(Job dependent, JobStatus dependentStatus |
+    dependent = job.getANeededJob() and
+    dependentStatus = getPartialAssignedStatus(job, assignment, dependent) and
+    not dependentStatus instanceof SkippedStatus and
+    structurallyRequiresSuccessfulCompletionOf(dependent, needed)
+  )
+}
+
+bindingset[job, assignment]
+pragma[inline_late]
+private predicate partialAssignmentIsConsistent(Job job, string assignment) {
+  forall(Job needed |
+    needed = job.getANeededJob() and partialAssignmentRequiresSuccess(job, assignment, needed)
+  |
+    not exists(getPartialAssignedStatus(job, assignment, needed))
+    or
+    getPartialAssignedStatus(job, assignment, needed) instanceof SuccessStatus
+  )
+}
+
+bindingset[job, assignment]
+pragma[inline_late]
+private Job getAnUnconstrainedUnknownPartialNeededJob(Job job, string assignment) {
+  result = getAnUnknownPartialNeededJob(job, assignment) and
+  not partialAssignmentRequiresSuccess(job, assignment, result)
+}
+
+bindingset[job, assignment, summary]
+pragma[inline_late]
+private predicate partialAssignmentMayHaveSummary(
+  Job job, string assignment, NeedsStatus summary
+) {
+  assignment.length() = count(job.getANeededJob()) and
+  partialAssignmentIsConsistent(job, assignment) and
+  forall(int index, string code |
+    index in [0 .. assignment.length() - 1] and
+    code = assignment.charAt(index) and
+    code != "?"
+  |
+    code = "s"
+    or
+    code = "f" and summary.hasFailure() = true
+    or
+    code = "c" and summary.hasCancellation() = true
+    or
+    code = "k" and summary.hasSkip() = true
+  ) and
+  summary.getNonSuccessKindCount() <=
+    count(getAFixedPartialNonSuccessKind(job, assignment)) +
+      count(getAnUnconstrainedUnknownPartialNeededJob(job, assignment)) and
+  (
+    summary.hasSkip() = false
+    or
+    exists(assignment.indexOf("k"))
+    or
+    exists(Job needed |
+      needed = getAnUnconstrainedUnknownPartialNeededJob(job, assignment) and
+      jobMayBeSkipped(needed)
+    )
+  )
+}
+
+private predicate separableConditionMayHaveOutcome(
+  Job job, Event event, NeedsStatus status, boolean outcome
+) {
+  exists(If condition, string assignment |
+    condition = job.getIf() and
+    condition.getATriggerEvent() = event and
+    separableNodeMayEvaluateTo(condition.getConditionExpr().getRoot(), job, event, status,
+      assignment, outcome) and
+    partialAssignmentMayHaveSummary(job, assignment, status)
+  )
+}
+
+private predicate separableConditionMayHaveOutcomeWithDirectStatus(
+  Job job, Event event, NeedsStatus status, boolean outcome, Job needed, JobStatus neededStatus
+) {
+  exists(If condition, string assignment, string constrainedAssignment |
+    condition = job.getIf() and
+    condition.getATriggerEvent() = event and
+    directNeededStatusMayOccurForEvent(needed, event, neededStatus) and
+    separableNodeMayEvaluateTo(condition.getConditionExpr().getRoot(), job, event, status,
+      assignment, outcome) and
+    constrainedAssignment =
+      mergePartialAssignments(job, assignment,
+        getSingleStatusPartialAssignment(job, needed, neededStatus)) and
+    partialAssignmentMayHaveSummary(job, constrainedAssignment, status)
+  )
 }
 
 private predicate belongsToAssignedNeedsValueCondition(ExpressionNode node, Job job) {
@@ -2090,6 +2453,12 @@ private predicate jobMayExecuteWithDirectNeededStatus(
   neededJob = job.getANeededJob() and
   job.getATriggerEvent() = event and
   (
+    jobConditionUsesSeparableNeedsAssignment(job) and
+    exists(NeedsStatus status |
+      separableConditionMayHaveOutcomeWithDirectStatus(job, event, status, true, neededJob,
+        neededStatus)
+    )
+    or
     jobConditionUsesExactNeedsAssignment(job) and
     exists(string assignment |
       assignment = getANeededStatusAssignment(job, event) and
@@ -2098,6 +2467,7 @@ private predicate jobMayExecuteWithDirectNeededStatus(
     )
     or
     not jobConditionUsesExactNeedsAssignment(job) and
+    not jobConditionUsesSeparableNeedsAssignment(job) and
     exists(NeedsStatus status |
       status = getAConservativeNeedsStatusForDirectStatus(job, neededJob, neededStatus) and
       decisionMayHaveOutcome(job, event, status, true)

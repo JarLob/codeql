@@ -214,6 +214,46 @@ jobs:
     steps:
       - run: echo unsupported result fan-in
 
+  separable-result-fan-in:
+    needs:
+      - anchor-load-000
+      - anchor-load-001
+      - anchor-load-002
+      - anchor-load-003
+      - anchor-load-004
+      - anchor-load-005
+      - anchor-load-006
+      - anchor-load-007
+      - anchor-load-008
+      - anchor-load-009
+      - anchor-load-010
+      - anchor-load-011
+      - anchor-load-012
+      - anchor-load-013
+      - anchor-load-014
+      - anchor-load-015
+    if: >-
+      always() &&
+      needs.anchor-load-000.result == 'success' &&
+      needs.anchor-load-001.result == 'success' &&
+      needs.anchor-load-002.result == 'success' &&
+      needs.anchor-load-003.result == 'success' &&
+      needs.anchor-load-004.result == 'success' &&
+      needs.anchor-load-005.result == 'success' &&
+      needs.anchor-load-006.result == 'success' &&
+      needs.anchor-load-007.result == 'success' &&
+      needs.anchor-load-008.result == 'success' &&
+      needs.anchor-load-009.result == 'success' &&
+      needs.anchor-load-010.result == 'success' &&
+      needs.anchor-load-011.result == 'success' &&
+      needs.anchor-load-012.result == 'success' &&
+      needs.anchor-load-013.result == 'success' &&
+      needs.anchor-load-014.result == 'success' &&
+      needs.anchor-load-015.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo separable result fan-in
+
   root-a:
     runs-on: ubuntu-latest
     outputs:
@@ -242,6 +282,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo root-e
+
+  separable-not-failure:
+    needs: [root-a]
+    if: always() && needs.root-a.result != 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo separable not failure
+
+  separable-or-gate:
+    needs: [root-a, root-b]
+    if: always() && (needs.root-a.result == 'success' || needs.root-b.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo separable or gate
+
+  separable-mixed-gate:
+    needs: [root-a, root-b, root-c]
+    if: >-
+      always() &&
+      (needs.root-a.result == 'success' || needs.root-b.result == 'failure') &&
+      needs.root-c.result != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo separable mixed gate
+
+  separable-contradiction:
+    needs: [root-a]
+    if: >-
+      always() &&
+      needs.root-a.result == 'success' &&
+      needs.root-a.result == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo unreachable contradiction
 
   condition-free-fan-in:
     needs: [root-a, root-b, root-c, root-d, root-e]

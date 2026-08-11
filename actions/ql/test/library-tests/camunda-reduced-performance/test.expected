@@ -9,6 +9,10 @@ fanInExecution
 | condition-free-fan-in |
 | large-fan-in |
 | output-gate |
+| separable-mixed-gate |
+| separable-not-failure |
+| separable-or-gate |
+| separable-result-fan-in |
 | unsupported-result-fan-in |
 largeFanInStatusCount
 | 4 |

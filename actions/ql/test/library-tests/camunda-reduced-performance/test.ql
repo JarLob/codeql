@@ -51,7 +51,11 @@ query predicate forbiddenReachability(string description) {
 query predicate fanInExecution(string job) {
   exists(Job candidate, Event event |
     candidate.getId() =
-      ["condition-free-fan-in", "output-gate", "large-fan-in", "unsupported-result-fan-in"] and
+      [
+        "condition-free-fan-in", "output-gate", "large-fan-in", "unsupported-result-fan-in",
+        "separable-result-fan-in", "separable-not-failure", "separable-or-gate",
+        "separable-mixed-gate", "separable-contradiction"
+      ] and
     event.getName() = "push" and
     jobMayExecuteForEvent(candidate, event) and
     job = candidate.getId()
