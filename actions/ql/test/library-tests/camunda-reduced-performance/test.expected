@@ -9,6 +9,7 @@ fanInExecution
 | condition-free-fan-in |
 | large-fan-in |
 | output-gate |
+| unsupported-result-fan-in |
 largeFanInStatusCount
 | 4 |
 matrixCompletion

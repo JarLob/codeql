@@ -174,6 +174,46 @@ jobs:
     steps:
       - run: echo large fan-in
 
+  unsupported-result-fan-in:
+    needs:
+      - anchor-load-000
+      - anchor-load-001
+      - anchor-load-002
+      - anchor-load-003
+      - anchor-load-004
+      - anchor-load-005
+      - anchor-load-006
+      - anchor-load-007
+      - anchor-load-008
+      - anchor-load-009
+      - anchor-load-010
+      - anchor-load-011
+      - anchor-load-012
+      - anchor-load-013
+      - anchor-load-014
+      - anchor-load-015
+    if: >-
+      always() &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-000.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-001.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-002.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-003.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-004.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-005.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-006.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-007.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-008.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-009.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-010.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-011.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-012.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-013.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-014.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.anchor-load-015.result)
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo unsupported result fan-in
+
   root-a:
     runs-on: ubuntu-latest
     outputs:

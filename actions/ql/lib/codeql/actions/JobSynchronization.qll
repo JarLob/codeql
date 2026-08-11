@@ -1512,10 +1512,22 @@ private predicate jobConditionContainsAssignedNeedsValue(Job job) {
   )
 }
 
+/** Holds if assignment evaluation directly reads the scalar value of `access`. */
+private predicate isDirectlyEvaluatedAssignedNeedsValue(AccessExpression access) {
+  access.getParent() instanceof ExpressionRoot
+  or
+  access.getParent() instanceof UnaryExpression
+  or
+  exists(BinaryExpression parent |
+    parent = access.getParent() and parent.getOperator() = ["&&", "||", "==", "!="]
+  )
+}
+
 private Job getAConditionReferencedNeededJob(Job job) {
   exists(If condition, AccessExpression access |
     condition = job.getIf() and
     access.getExpression() = condition.getConditionExpr() and
+    isDirectlyEvaluatedAssignedNeedsValue(access) and
     result = job.getANeededJob() and
     access.getAccessPath() = "needs." + result.getId() + ".result"
   )
