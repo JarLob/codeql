@@ -1,0 +1,179 @@
+name: Privileged agent
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  target:
+    if: >-
+      github.event.label.name == 'agent/fix-dependency' &&
+      github.event.pull_request.head.repo.id == github.repository_id
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - id: target-checkout
+        uses: actions/checkout@1111111111111111111111111111111111111111
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          submodules: recursive
+      - id: target-execution
+        run: make fix
+
+  wrong-label:
+    if: github.event.label.name == 'human-approved'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ignored
+
+  optional-label:
+    if: >-
+      github.event.label.name == 'agent/fix-dependency' ||
+      github.actor == 'trusted-maintainer'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - id: optional-checkout
+        uses: actions/checkout@1111111111111111111111111111111111111111
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - id: optional-execution
+        run: make optional
+
+  unprivileged:
+    if: >-
+      github.event.label.name == 'agent/fix-dependency' &&
+      github.event.pull_request.head.repo.id == github.repository_id
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - id: unprivileged-checkout
+        uses: actions/checkout@1111111111111111111111111111111111111111
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - id: unprivileged-execution
+        run: make unprivileged
+
+  no-repository-check:
+    if: github.event.label.name == 'agent/fix-dependency'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - id: no-repository-checkout
+        uses: actions/checkout@1111111111111111111111111111111111111111
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - id: no-repository-execution
+        run: make no-repository-check
+
+  actor-control:
+    if: >-
+      github.actor == 'supervisor-app[bot]' &&
+      github.event.pull_request.head.repo.id == github.repository_id
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - id: actor-checkout
+        uses: actions/checkout@1111111111111111111111111111111111111111
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - id: actor-execution
+        run: make actor
+
+  author-control:
+    if: >-
+      github.event.pull_request.user.login == 'dependency-updater[bot]' &&
+      github.event.pull_request.head.repo.id == github.repository_id
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - id: author-checkout
+        uses: actions/checkout@1111111111111111111111111111111111111111
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - id: author-execution
+        run: make author
+
+  wrong-actor:
+    if: >-
+      github.actor == 'other-app[bot]' &&
+      github.event.pull_request.head.repo.id == github.repository_id
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - id: wrong-actor-checkout
+        uses: actions/checkout@1111111111111111111111111111111111111111
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - id: wrong-actor-execution
+        run: make wrong-actor
+
+  wrong-author:
+    if: >-
+      github.event.pull_request.user.login == 'other-updater[bot]' &&
+      github.event.pull_request.head.repo.id == github.repository_id
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - id: wrong-author-checkout
+        uses: actions/checkout@1111111111111111111111111111111111111111
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - id: wrong-author-execution
+        run: make wrong-author
+
+  optional-actor:
+    if: >-
+      github.event.pull_request.head.repo.id == github.repository_id &&
+      (github.actor == 'supervisor-app[bot]' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - id: optional-actor-checkout
+        uses: actions/checkout@1111111111111111111111111111111111111111
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - id: optional-actor-execution
+        run: make optional-actor
+
+  label-and-actor:
+    if: >-
+      github.event.label.name == 'agent/fix-dependency' &&
+      github.actor == 'supervisor-app[bot]' &&
+      github.event.pull_request.head.repo.id == github.repository_id
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - id: label-and-actor-checkout
+        uses: actions/checkout@1111111111111111111111111111111111111111
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - id: label-and-actor-execution
+        run: make label-and-actor
+
+  label-and-wrong-actor:
+    if: >-
+      github.event.label.name == 'agent/fix-dependency' &&
+      github.actor == 'trusted-maintainer' &&
+      github.event.pull_request.head.repo.id == github.repository_id
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - id: label-and-wrong-actor-checkout
+        uses: actions/checkout@1111111111111111111111111111111111111111
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - id: label-and-wrong-actor-execution
+        run: make label-and-wrong-actor

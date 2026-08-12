@@ -1,8 +1,9 @@
 /**
  * @name Checkout of untrusted code in a privileged context
  * @description Privileged workflows have read/write access to the base repository and access to secrets.
- *              By explicitly checking out and running the build script from a fork the untrusted code is running in an environment
- *              that is able to push to the base repository and to access secrets.
+ *              By explicitly checking out and running externally controlled pull request code, including code imported into
+ *              an automated same-repository pull request, the untrusted code runs in an environment that may push to the base
+ *              repository or access secrets.
  * @kind path-problem
  * @problem.severity error
  * @precision very-high
@@ -33,7 +34,11 @@ from
 where
   checkoutReference = getCheckoutReference(checkout) and
   checkoutReferenceText = getCheckoutReferenceText(checkoutReference) and
-  criticalSeverityUntrustedCheckout(checkout, poisonable, event)
+  (
+    criticalSeverityUntrustedCheckout(checkout, poisonable, event)
+    or
+    criticalSeverityAutomatedLocalPullRequestCheckout(checkout, poisonable, event)
+  )
 select checkout, checkoutReference, poisonable,
   "Checkout of untrusted code from $@ in a privileged workflow with later potential execution (event trigger: $@).",
   checkoutReference, checkoutReferenceText, event, event.getName()

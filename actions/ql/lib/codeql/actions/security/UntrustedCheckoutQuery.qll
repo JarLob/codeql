@@ -8,6 +8,7 @@ private import codeql.actions.security.ControlCheckConditions as Conditions
 private import codeql.actions.security.PoisonableSteps
 private import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 private import codeql.actions.JobSynchronization as JobSync
+private import codeql.actions.PullRequestAutomation as PullRequestAutomation
 
 string checkoutTriggers() {
   result = ["pull_request_target", "workflow_run", "workflow_call", "issue_comment"]
@@ -687,6 +688,50 @@ predicate criticalSeverityUntrustedCheckout(
   criticalSeverityCheckout(checkout, poisonable, event) and
   // No effective control between checkout and execution protects the poisonable step.
   not exists(ControlCheck check | check.protects(poisonable, event, "untrusted-checkout"))
+}
+
+bindingset[checkout, event]
+pragma[inline_late]
+private predicate hasExternallyInfluencedAutomatedLocalPullRequestContext(
+  PRHeadCheckoutStep checkout, Event event
+) {
+  checkout.getATriggerEvent() = event and
+  event.getName() = "pull_request" and
+  PullRequestAutomation::conditionRequiresSameRepositoryPullRequestHead(checkout
+        .getEnclosingJob()
+        .getIf()) and
+  exists(Event source |
+    exists(string kind, string value |
+      PullRequestAutomation::conditionRequiresPullRequestAutomationControl(checkout
+            .getEnclosingJob()
+            .getIf(), kind, value) and
+      source =
+        PullRequestAutomation::getAnAutomatedLocalPullRequestControlSource(event, kind,
+          value.toLowerCase())
+    ) and
+    forall(string kind, string value |
+      PullRequestAutomation::conditionRequiresPullRequestAutomationControl(checkout
+            .getEnclosingJob()
+            .getIf(), kind, value)
+    |
+      source =
+        PullRequestAutomation::getAnAutomatedLocalPullRequestControlSource(event, kind,
+          value.toLowerCase())
+    )
+  )
+}
+
+/**
+ * Holds if `checkout` executes externally influenced code from an automated same-repository pull
+ * request in a job with configured privileged credentials.
+ */
+predicate criticalSeverityAutomatedLocalPullRequestCheckout(
+  PRHeadCheckoutStep checkout, PoisonableStep poisonable, Event event
+) {
+  hasExternallyInfluencedAutomatedLocalPullRequestContext(checkout, event) and
+  checkoutMayLeadToCodeExecution(checkout, poisonable, event) and
+  checkout.getEnclosingJob().isPrivileged() and
+  poisonable.getEnclosingJob().isPrivileged()
 }
 
 /** Holds if `checkout` forms a high ordinary untrusted-checkout finding. */

@@ -1,0 +1,37 @@
+edges
+| .github/workflows/ci.yml:11:9:14:6 | Uses Step | .github/workflows/ci.yml:14:9:14:22 | Run Step |
+| .github/workflows/create.yml:11:9:14:6 | Uses Step | .github/workflows/create.yml:14:9:16:6 | Run Step: update-submodule |
+| .github/workflows/create.yml:14:9:16:6 | Run Step: update-submodule | .github/workflows/create.yml:16:9:20:6 | Uses Step: app-token |
+| .github/workflows/create.yml:16:9:20:6 | Uses Step: app-token | .github/workflows/create.yml:20:9:26:6 | Uses Step: create-pr |
+| .github/workflows/create.yml:20:9:26:6 | Uses Step: create-pr | .github/workflows/create.yml:26:9:31:6 | Uses Step: default-token-create-pr |
+| .github/workflows/create.yml:26:9:31:6 | Uses Step: default-token-create-pr | .github/workflows/create.yml:31:9:38:2 | Uses Step: fork-create-pr |
+| .github/workflows/create.yml:41:9:45:6 | Uses Step: app-token | .github/workflows/create.yml:45:9:49:32 | Uses Step: no-remote-import |
+| .github/workflows/supervisor.yml:23:9:27:6 | Uses Step: app-token | .github/workflows/supervisor.yml:27:9:32:6 | Run Step: add-label |
+| .github/workflows/supervisor.yml:27:9:32:6 | Run Step: add-label | .github/workflows/supervisor.yml:32:9:35:64 | Run Step: default-token-label |
+| .github/workflows/target.yml:17:9:22:6 | Uses Step: target-checkout | .github/workflows/target.yml:22:9:25:2 | Run Step: target-execution |
+| .github/workflows/target.yml:20:17:20:57 | github.event.pull_request.head.ref | .github/workflows/target.yml:17:9:22:6 | Uses Step: target-checkout |
+| .github/workflows/target.yml:39:9:43:6 | Uses Step: optional-checkout | .github/workflows/target.yml:43:9:46:2 | Run Step: optional-execution |
+| .github/workflows/target.yml:42:17:42:57 | github.event.pull_request.head.ref | .github/workflows/target.yml:39:9:43:6 | Uses Step: optional-checkout |
+| .github/workflows/target.yml:54:9:58:6 | Uses Step: unprivileged-checkout | .github/workflows/target.yml:58:9:61:2 | Run Step: unprivileged-execution |
+| .github/workflows/target.yml:57:17:57:57 | github.event.pull_request.head.ref | .github/workflows/target.yml:54:9:58:6 | Uses Step: unprivileged-checkout |
+| .github/workflows/target.yml:67:9:71:6 | Uses Step: no-repository-checkout | .github/workflows/target.yml:71:9:74:2 | Run Step: no-repository-execution |
+| .github/workflows/target.yml:70:17:70:57 | github.event.pull_request.head.ref | .github/workflows/target.yml:67:9:71:6 | Uses Step: no-repository-checkout |
+| .github/workflows/target.yml:82:9:86:6 | Uses Step: actor-checkout | .github/workflows/target.yml:86:9:89:2 | Run Step: actor-execution |
+| .github/workflows/target.yml:85:17:85:57 | github.event.pull_request.head.ref | .github/workflows/target.yml:82:9:86:6 | Uses Step: actor-checkout |
+| .github/workflows/target.yml:97:9:101:6 | Uses Step: author-checkout | .github/workflows/target.yml:101:9:104:2 | Run Step: author-execution |
+| .github/workflows/target.yml:100:17:100:57 | github.event.pull_request.head.ref | .github/workflows/target.yml:97:9:101:6 | Uses Step: author-checkout |
+| .github/workflows/target.yml:112:9:116:6 | Uses Step: wrong-actor-checkout | .github/workflows/target.yml:116:9:119:2 | Run Step: wrong-actor-execution |
+| .github/workflows/target.yml:115:17:115:57 | github.event.pull_request.head.ref | .github/workflows/target.yml:112:9:116:6 | Uses Step: wrong-actor-checkout |
+| .github/workflows/target.yml:127:9:131:6 | Uses Step: wrong-author-checkout | .github/workflows/target.yml:131:9:134:2 | Run Step: wrong-author-execution |
+| .github/workflows/target.yml:130:17:130:57 | github.event.pull_request.head.ref | .github/workflows/target.yml:127:9:131:6 | Uses Step: wrong-author-checkout |
+| .github/workflows/target.yml:142:9:146:6 | Uses Step: optional-actor-checkout | .github/workflows/target.yml:146:9:149:2 | Run Step: optional-actor-execution |
+| .github/workflows/target.yml:145:17:145:57 | github.event.pull_request.head.ref | .github/workflows/target.yml:142:9:146:6 | Uses Step: optional-actor-checkout |
+| .github/workflows/target.yml:158:9:162:6 | Uses Step: label-and-actor-checkout | .github/workflows/target.yml:162:9:165:2 | Run Step: label-and-actor-execution |
+| .github/workflows/target.yml:161:17:161:57 | github.event.pull_request.head.ref | .github/workflows/target.yml:158:9:162:6 | Uses Step: label-and-actor-checkout |
+| .github/workflows/target.yml:174:9:178:6 | Uses Step: label-and-wrong-actor-checkout | .github/workflows/target.yml:178:9:179:39 | Run Step: label-and-wrong-actor-execution |
+| .github/workflows/target.yml:177:17:177:57 | github.event.pull_request.head.ref | .github/workflows/target.yml:174:9:178:6 | Uses Step: label-and-wrong-actor-checkout |
+#select
+| .github/workflows/target.yml:17:9:22:6 | Uses Step: target-checkout | .github/workflows/target.yml:20:17:20:57 | github.event.pull_request.head.ref | .github/workflows/target.yml:22:9:25:2 | Run Step: target-execution | Checkout of untrusted code from $@ in a privileged workflow with later potential execution (event trigger: $@). | .github/workflows/target.yml:20:17:20:57 | github.event.pull_request.head.ref | github.event.pull_request.head.ref | .github/workflows/target.yml:4:3:4:14 | pull_request | pull_request |
+| .github/workflows/target.yml:82:9:86:6 | Uses Step: actor-checkout | .github/workflows/target.yml:85:17:85:57 | github.event.pull_request.head.ref | .github/workflows/target.yml:86:9:89:2 | Run Step: actor-execution | Checkout of untrusted code from $@ in a privileged workflow with later potential execution (event trigger: $@). | .github/workflows/target.yml:85:17:85:57 | github.event.pull_request.head.ref | github.event.pull_request.head.ref | .github/workflows/target.yml:4:3:4:14 | pull_request | pull_request |
+| .github/workflows/target.yml:97:9:101:6 | Uses Step: author-checkout | .github/workflows/target.yml:100:17:100:57 | github.event.pull_request.head.ref | .github/workflows/target.yml:101:9:104:2 | Run Step: author-execution | Checkout of untrusted code from $@ in a privileged workflow with later potential execution (event trigger: $@). | .github/workflows/target.yml:100:17:100:57 | github.event.pull_request.head.ref | github.event.pull_request.head.ref | .github/workflows/target.yml:4:3:4:14 | pull_request | pull_request |
+| .github/workflows/target.yml:158:9:162:6 | Uses Step: label-and-actor-checkout | .github/workflows/target.yml:161:17:161:57 | github.event.pull_request.head.ref | .github/workflows/target.yml:162:9:165:2 | Run Step: label-and-actor-execution | Checkout of untrusted code from $@ in a privileged workflow with later potential execution (event trigger: $@). | .github/workflows/target.yml:161:17:161:57 | github.event.pull_request.head.ref | github.event.pull_request.head.ref | .github/workflows/target.yml:4:3:4:14 | pull_request | pull_request |

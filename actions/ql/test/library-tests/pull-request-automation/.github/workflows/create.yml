@@ -1,0 +1,49 @@
+name: Dependency updater
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@1111111111111111111111111111111111111111
+        with:
+          submodules: recursive
+      - id: update-submodule
+        run: git submodule update --checkout --remote dependency
+      - id: app-token
+        uses: example/actions/create-github-app-token@2222222222222222222222222222222222222222
+        with:
+          github_app: dependency-updater
+      - id: create-pr
+        uses: peter-evans/create-pull-request@3333333333333333333333333333333333333333
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: automated-update
+          labels: automated-pr
+      - id: default-token-create-pr
+        uses: peter-evans/create-pull-request@3333333333333333333333333333333333333333
+        with:
+          token: ${{ github.token }}
+          branch: ignored-update
+      - id: fork-create-pr
+        uses: peter-evans/create-pull-request@3333333333333333333333333333333333333333
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: fork-update
+          push-to-fork: example/fork
+
+  trusted-update:
+    runs-on: ubuntu-latest
+    steps:
+      - id: app-token
+        uses: example/actions/create-github-app-token@2222222222222222222222222222222222222222
+        with:
+          github_app: trusted-updater
+      - id: no-remote-import
+        uses: peter-evans/create-pull-request@3333333333333333333333333333333333333333
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: trusted-update

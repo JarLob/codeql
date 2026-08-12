@@ -1,0 +1,35 @@
+name: Supervisor
+
+on:
+  workflow_run:
+    workflows: [PR CI]
+    types: [completed]
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    outputs:
+      pr-number: ${{ steps.select-automated-pr.outputs.pr_number }}
+    steps:
+      - id: select-automated-pr
+        run: |
+          gh pr view "$PR_NUMBER" --json labels --jq '.labels[] | select(.name == "automated-pr")'
+          echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+
+  label:
+    needs: evaluate
+    runs-on: ubuntu-latest
+    steps:
+      - id: app-token
+        uses: example/actions/create-github-app-token@2222222222222222222222222222222222222222
+        with:
+          github_app: supervisor-app
+      - id: add-label
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ needs.evaluate.outputs.pr-number }}
+        run: gh pr edit "$PR_NUMBER" --add-label "agent/fix-dependency"
+      - id: default-token-label
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr edit "$PR_NUMBER" --add-label "ignored-label"

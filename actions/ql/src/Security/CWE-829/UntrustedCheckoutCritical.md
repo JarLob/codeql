@@ -1,12 +1,12 @@
 ## Overview
 
-GitHub workflows can be triggered through various repository events, including incoming pull requests (PRs) or comments on Issues/PRs. Under certain conditions described below, attackers can take over a repository by opening malicious PRs from forks. The attacks can result in malicious code execution causing unauthorized changes to the repository or exfiltration of repository secrets and a compromise of connected systems.
+GitHub workflows can be triggered through various repository events, including incoming pull requests (PRs) or comments on Issues/PRs. Under certain conditions described below, attackers can take over a repository by opening malicious PRs from forks or by influencing automation that imports external content into a same-repository PR. The attacks can result in malicious code execution causing unauthorized changes to the repository or exfiltration of repository secrets and a compromise of connected systems.
 
 ## Workflow Security Model
 
 In GitHub Actions, there is a distinction between unprivileged and privileged workflows. For example, a workflow with a `pull_request` trigger is unprivileged while a workflow with `pull_request_target` is privileged.
 
-This is relevant especially for PRs from forks. Normal PRs can only be submitted by people who have write access to a repository, while PRs from forks can be submitted by anyone.
+This is relevant especially for PRs from forks. Same-repository PRs normally require write access, but automation can also create them from externally controlled dependencies or generated content. Such a PR is not subject to fork credential restrictions even though its content may remain untrusted.
 
 On a PR from a fork, an unprivileged `pull_request` workflow has only limited capabilities but a privileged `pull_request_target` workflow is much more dangerous. A privileged workflow:
 
@@ -29,6 +29,8 @@ Certain triggers automatically grant a workflow elevated privileges:
   * The workflow in the base repository checks out the forked code
   * The workflow runs the malicious code
 
+Alternatively, repository automation may import externally controlled content, create a same-repository PR using a GitHub App token, and trigger a privileged `pull_request` workflow after satisfying an exact label, event-actor, or pull-request-author check. A same-repository or trusted-bot check does not establish that the imported content is trusted.
+
 Please note that not only build scripts can be malicious code vectors. There is a large number of other possibilities. Some of them are listed in the [LOTP](https://boostsecurityio.github.io/lotp/) catalog.
 
 ## Recommendation
@@ -36,6 +38,7 @@ Please note that not only build scripts can be malicious code vectors. There is 
 - Avoid using `pull_request_target` unless necessary.
 - Employ unprivileged `pull_request` workflows followed by `workflow_run` for privileged operations.
 - Use labels like `safe to test` to vet PRs and manage the execution context appropriately.
+- Do not treat a same-repository check, automatically applied label, or expected bot identity as authorization when automation can create the branch from external content.
 
 The best practice is to handle the potentially untrusted pull request via the **pull_request** trigger so that it is isolated in an unprivileged environment. The workflow processing the pull request should then store any results like code coverage or failed/passed tests in artifacts and exit. A second privileged workflow with the access to repository secrets, triggered by the completion of the first workflow using `workflow_run` trigger event, downloads the artifacts and make any necessary modifications to the repository or interact with third party services that require repository secrets (e.g. API tokens).
 

@@ -1,0 +1,47 @@
+remoteSubmoduleUpdates
+| update-submodule |
+localPullRequestCreators
+| create-pr |
+workflowTriggeringLabels
+| add-label | agent/fix-dependency |
+requiredLabels
+| label-and-actor | agent/fix-dependency |
+| label-and-wrong-actor | agent/fix-dependency |
+| no-repository-check | agent/fix-dependency |
+| target | agent/fix-dependency |
+| unprivileged | agent/fix-dependency |
+| wrong-label | human-approved |
+requiredAutomationControls
+| actor-control | event-actor | supervisor-app[bot] |
+| author-control | pull-request-author | dependency-updater[bot] |
+| label-and-actor | event-actor | supervisor-app[bot] |
+| label-and-actor | label | agent/fix-dependency |
+| label-and-wrong-actor | event-actor | trusted-maintainer |
+| label-and-wrong-actor | label | agent/fix-dependency |
+| no-repository-check | label | agent/fix-dependency |
+| target | label | agent/fix-dependency |
+| unprivileged | label | agent/fix-dependency |
+| wrong-actor | event-actor | other-app[bot] |
+| wrong-author | pull-request-author | other-updater[bot] |
+| wrong-label | label | human-approved |
+sameRepositoryGuards
+| actor-control |
+| author-control |
+| label-and-actor |
+| label-and-wrong-actor |
+| optional-actor |
+| target |
+| unprivileged |
+| wrong-actor |
+| wrong-author |
+automatedLabelTransitions
+| Privileged agent | agent/fix-dependency | PR CI |
+automatedControlTransitions
+| Privileged agent | event-actor | supervisor-app[bot] | PR CI |
+| Privileged agent | label | agent/fix-dependency | PR CI |
+| Privileged agent | pull-request-author | dependency-updater[bot] | PR CI |
+automatedLocalPullRequestCriticalCheckout
+| Privileged agent | actor-checkout | actor-execution |
+| Privileged agent | author-checkout | author-execution |
+| Privileged agent | label-and-actor-checkout | label-and-actor-execution |
+| Privileged agent | target-checkout | target-execution |
