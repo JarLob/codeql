@@ -1595,6 +1595,8 @@ private predicate demandedNeedsAssignmentIsConsistent(Job job, string assignment
   )
 }
 
+bindingset[comparison, job]
+pragma[inline_late]
 private Job getASeparableComparisonNeededJob(BinaryExpression comparison, Job job) {
   comparison.getOperator() = ["==", "!="] and
   exists(AccessExpression access |
@@ -1603,17 +1605,28 @@ private Job getASeparableComparisonNeededJob(BinaryExpression comparison, Job jo
   )
 }
 
-private predicate isLogicallyComposedNeedsComparison(BinaryExpression comparison) {
-  forall(ExpressionNode ancestor | ancestor = comparison.getParent+() |
-    ancestor instanceof ExpressionRoot
-    or
-    ancestor instanceof UnaryExpression
-    or
-    ancestor instanceof BinaryExpression and
-    ancestor.(BinaryExpression).getOperator() = ["&&", "||"]
+private predicate hasOnlyLogicalAncestors(ExpressionNode node) {
+  node.getParent() instanceof ExpressionRoot
+  or
+  exists(UnaryExpression parent |
+    parent = node.getParent() and hasOnlyLogicalAncestors(parent)
+  )
+  or
+  exists(BinaryExpression parent |
+    parent = node.getParent() and
+    parent.getOperator() = ["&&", "||"] and
+    hasOnlyLogicalAncestors(parent)
   )
 }
 
+bindingset[comparison]
+pragma[inline_late]
+private predicate isLogicallyComposedNeedsComparison(BinaryExpression comparison) {
+  hasOnlyLogicalAncestors(comparison)
+}
+
+bindingset[job]
+pragma[inline_late]
 private predicate jobConditionUsesSeparableNeedsAssignment(Job job) {
   exists(getAConditionDemandedNeededJob(job)) and
   forall(AccessExpression access, Job needed |
@@ -1718,16 +1731,6 @@ private string getPartialAssignedStringValue(
   )
 }
 
-bindingset[node, job]
-pragma[inline_late]
-private predicate containsDirectlyEvaluatedNeededResult(ExpressionNode node, Job job) {
-  exists(AccessExpression access |
-    (access = node or access.getParent+() = node) and
-    isDirectlyEvaluatedAssignedNeedsValue(access) and
-    exists(getReferencedNeededResult(access, job))
-  )
-}
-
 private predicate directNeededStatusMayOccurForEvent(
   Job needed, Event event, JobStatus status
 ) {
@@ -1740,6 +1743,8 @@ private predicate directNeededStatusMayOccurForEvent(
   )
 }
 
+bindingset[comparison, job, event]
+pragma[inline_late]
 private predicate separableComparisonMayEvaluateTo(
   BinaryExpression comparison, Job job, Event event, string assignment, boolean outcome
 ) {
@@ -1768,56 +1773,67 @@ private predicate separableNodeMayEvaluateTo(
   ExpressionNode node, Job job, Event event, NeedsStatus status, string assignment,
   boolean outcome
 ) {
-  not containsDirectlyEvaluatedNeededResult(node, job) and
-  assignment = getUnknownDirectNeedsAssignment(job) and
-  mayEvaluateForNeedsStatus(node, job, status, outcome)
-  or
-  node instanceof ExpressionRoot and
-  separableNodeMayEvaluateTo(node.getChild(0), job, event, status, assignment, outcome)
-  or
-  node instanceof UnaryExpression and
-  separableNodeMayEvaluateTo(node.(UnaryExpression).getOperand(), job, event, status, assignment,
-    outcome.booleanNot())
-  or
-  node instanceof BinaryExpression and
-  node.(BinaryExpression).getOperator() = "&&" and
+  belongsToAssignedNeedsValueCondition(node, job) and
+  jobConditionUsesSeparableNeedsAssignment(job) and
   (
-    outcome = false and
-    separableNodeMayEvaluateTo([
-        node.(BinaryExpression).getLeftOperand(), node.(BinaryExpression).getRightOperand()
-      ], job, event, status, assignment, false)
+    job.getATriggerEvent() = event and
+    not node instanceof ExpressionRoot and
+    not node instanceof UnaryExpression and
+    not exists(BinaryExpression binary |
+      binary = node and binary.getOperator() = ["&&", "||"]
+    ) and
+    not exists(BinaryExpression comparison |
+      comparison = node and exists(getASeparableComparisonNeededJob(comparison, job))
+    ) and
+    assignment = getUnknownDirectNeedsAssignment(job) and
+    mayEvaluateForNeedsStatus(node, job, status, outcome)
     or
-    outcome = true and
-    exists(string leftAssignment, string rightAssignment |
-      separableNodeMayEvaluateTo(node.(BinaryExpression).getLeftOperand(), job, event, status,
-        leftAssignment, true) and
-      separableNodeMayEvaluateTo(node.(BinaryExpression).getRightOperand(), job, event, status,
-        rightAssignment, true) and
-      assignment = mergePartialAssignments(job, leftAssignment, rightAssignment)
-    )
-  )
-  or
-  node instanceof BinaryExpression and
-  node.(BinaryExpression).getOperator() = "||" and
-  (
-    outcome = true and
-    separableNodeMayEvaluateTo([
-        node.(BinaryExpression).getLeftOperand(), node.(BinaryExpression).getRightOperand()
-      ], job, event, status, assignment, true)
+    node instanceof ExpressionRoot and
+    separableNodeMayEvaluateTo(node.getChild(0), job, event, status, assignment, outcome)
     or
-    outcome = false and
-    exists(string leftAssignment, string rightAssignment |
-      separableNodeMayEvaluateTo(node.(BinaryExpression).getLeftOperand(), job, event, status,
-        leftAssignment, false) and
-      separableNodeMayEvaluateTo(node.(BinaryExpression).getRightOperand(), job, event, status,
-        rightAssignment, false) and
-      assignment = mergePartialAssignments(job, leftAssignment, rightAssignment)
+    node instanceof UnaryExpression and
+    separableNodeMayEvaluateTo(node.(UnaryExpression).getOperand(), job, event, status, assignment,
+      outcome.booleanNot())
+    or
+    node instanceof BinaryExpression and
+    node.(BinaryExpression).getOperator() = "&&" and
+    (
+      outcome = false and
+      separableNodeMayEvaluateTo([
+          node.(BinaryExpression).getLeftOperand(), node.(BinaryExpression).getRightOperand()
+        ], job, event, status, assignment, false)
+      or
+      outcome = true and
+      exists(string leftAssignment, string rightAssignment |
+        separableNodeMayEvaluateTo(node.(BinaryExpression).getLeftOperand(), job, event, status,
+          leftAssignment, true) and
+        separableNodeMayEvaluateTo(node.(BinaryExpression).getRightOperand(), job, event, status,
+          rightAssignment, true) and
+        assignment = mergePartialAssignments(job, leftAssignment, rightAssignment)
+      )
     )
+    or
+    node instanceof BinaryExpression and
+    node.(BinaryExpression).getOperator() = "||" and
+    (
+      outcome = true and
+      separableNodeMayEvaluateTo([
+          node.(BinaryExpression).getLeftOperand(), node.(BinaryExpression).getRightOperand()
+        ], job, event, status, assignment, true)
+      or
+      outcome = false and
+      exists(string leftAssignment, string rightAssignment |
+        separableNodeMayEvaluateTo(node.(BinaryExpression).getLeftOperand(), job, event, status,
+          leftAssignment, false) and
+        separableNodeMayEvaluateTo(node.(BinaryExpression).getRightOperand(), job, event, status,
+          rightAssignment, false) and
+        assignment = mergePartialAssignments(job, leftAssignment, rightAssignment)
+      )
+    )
+    or
+    node instanceof BinaryExpression and
+    separableComparisonMayEvaluateTo(node.(BinaryExpression), job, event, assignment, outcome)
   )
-  or
-  node instanceof BinaryExpression and
-  containsDirectlyEvaluatedNeededResult(node, job) and
-  separableComparisonMayEvaluateTo(node.(BinaryExpression), job, event, assignment, outcome)
 }
 
 bindingset[job, assignment]
