@@ -401,6 +401,39 @@ abstract class MutableRefCheckoutStep extends PRHeadCheckoutStep { }
 abstract class SHACheckoutStep extends PRHeadCheckoutStep { }
 
 /**
+ * Holds if every caller that can reach this composite checkout for `event` explicitly binds its
+ * `ref` input to the base repository's default branch.
+ */
+bindingset[checkout, event]
+pragma[inline_late]
+private predicate compositeCheckoutUsesDefaultBranchForEvent(
+  PRHeadCheckoutStep checkout, Event event
+) {
+  exists(UsesStep uses, InputsExpression access, Input input, CompositeAction action |
+    checkout = uses and
+    not exists(uses.getArgumentExpr("repository")) and
+    access = uses.getArgumentExpr("ref") and
+    input = access.getTarget() and
+    action = uses.getEnclosingCompositeAction() and
+    exists(UsesStep caller |
+      action.getACallerStep() = caller and
+      caller.getATriggerEvent() = event and
+      IntegratedCfg::mayExecuteForEvent(caller, event)
+    ) and
+    forall(UsesStep caller |
+      action.getACallerStep() = caller and
+      caller.getATriggerEvent() = event and
+      IntegratedCfg::mayExecuteForEvent(caller, event)
+    |
+      exists(Expression reference |
+        reference = caller.getArgumentExpr(input.getName()) and
+        isExactAccessExpression(reference, "github.event.repository.default_branch")
+      )
+    )
+  )
+}
+
+/**
  * Holds if `checkout` may retrieve pull request code that changed after an approval for `event`.
  *
  * Mutable references can change after any approval. An `issue_comment` payload does not contain
@@ -410,7 +443,8 @@ abstract class SHACheckoutStep extends PRHeadCheckoutStep { }
  * reviewed.
  */
 predicate mayCheckoutCodeChangedAfterApproval(PRHeadCheckoutStep checkout, Event event) {
-  checkout instanceof MutableRefCheckoutStep
+  checkout instanceof MutableRefCheckoutStep and
+  not compositeCheckoutUsesDefaultBranchForEvent(checkout, event)
   or
   checkout instanceof SHACheckoutStep and
   (

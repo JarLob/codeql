@@ -1,4 +1,5 @@
 edges
+| .github/actions/composite-ref/action.yml:11:7:14:4 | Uses Step | .github/actions/composite-ref/action.yml:14:7:15:17 | Run Step |
 | .github/workflows/actor.yml:17:9:20:6 | Uses Step | .github/workflows/actor.yml:20:9:21:16 | Run Step |
 | .github/workflows/comment.yml:13:9:28:6 | Uses Step: issue | .github/workflows/comment.yml:28:9:32:6 | Uses Step |
 | .github/workflows/comment.yml:28:9:32:6 | Uses Step | .github/workflows/comment.yml:32:9:34:2 | Run Step |
@@ -18,6 +19,10 @@ edges
 | .github/workflows/comment_sha_freshness.yml:72:9:85:6 | Uses Step: issue | .github/workflows/comment_sha_freshness.yml:85:9:122:6 | Run Step |
 | .github/workflows/comment_sha_freshness.yml:85:9:122:6 | Run Step | .github/workflows/comment_sha_freshness.yml:122:9:124:62 | Uses Step |
 | .github/workflows/comment_sha_high.yml:13:9:26:6 | Uses Step: issue | .github/workflows/comment_sha_high.yml:26:9:28:62 | Uses Step |
+| .github/workflows/composite_ref_safe.yml:16:9:19:6 | Uses Step | .github/workflows/composite_ref_safe.yml:19:9:21:60 | Uses Step |
+| .github/workflows/composite_ref_safe.yml:19:9:21:60 | Uses Step | .github/actions/composite-ref/action.yml:11:7:14:4 | Uses Step |
+| .github/workflows/composite_ref_unsafe.yml:16:9:19:6 | Uses Step | .github/workflows/composite_ref_unsafe.yml:19:9:21:63 | Uses Step |
+| .github/workflows/composite_ref_unsafe.yml:19:9:21:63 | Uses Step | .github/actions/composite-ref/action.yml:11:7:14:4 | Uses Step |
 | .github/workflows/deployment1.yml:16:10:22:7 | Uses Step | .github/workflows/deployment1.yml:22:10:27:7 | Uses Step |
 | .github/workflows/deployment1.yml:22:10:27:7 | Uses Step | .github/workflows/deployment1.yml:27:10:30:7 | Run Step |
 | .github/workflows/deployment1.yml:27:10:30:7 | Run Step | .github/workflows/deployment1.yml:30:10:31:53 | Run Step |
@@ -111,6 +116,7 @@ edges
 | .github/workflows/test6.yml:224:7:232:4 | Uses Step | .github/workflows/test6.yml:232:7:252:4 | Uses Step |
 | .github/workflows/test6.yml:232:7:252:4 | Uses Step | .github/workflows/test6.yml:252:7:253:45 | Run Step |
 #select
+| .github/actions/composite-ref/action.yml:14:7:15:17 | Run Step | .github/actions/composite-ref/action.yml:11:7:14:4 | Uses Step | .github/actions/composite-ref/action.yml:14:7:15:17 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/composite_ref_unsafe.yml:4:3:4:15 | issue_comment | issue_comment |
 | .github/workflows/comment.yml:32:9:34:2 | Run Step | .github/workflows/comment.yml:28:9:32:6 | Uses Step | .github/workflows/comment.yml:32:9:34:2 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/comment.yml:4:3:4:15 | issue_comment | issue_comment |
 | .github/workflows/comment.yml:58:9:60:2 | Run Step | .github/workflows/comment.yml:54:9:58:6 | Uses Step | .github/workflows/comment.yml:58:9:60:2 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/comment.yml:4:3:4:15 | issue_comment | issue_comment |
 | .github/workflows/comment.yml:68:9:68:43 | Run Step | .github/workflows/comment.yml:64:9:68:6 | Uses Step | .github/workflows/comment.yml:68:9:68:43 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/comment.yml:4:3:4:15 | issue_comment | issue_comment |
