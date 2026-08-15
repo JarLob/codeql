@@ -1,0 +1,28 @@
+name: TOCTOU SARIF grouping
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions: write-all
+
+jobs:
+  first:
+    if: github.actor == 'maintainer'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.issue.number }}/merge
+      - run: make build-first
+      - run: make test-first
+
+  second:
+    if: github.actor == 'maintainer'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.issue.number }}/merge
+      - run: make build-second
+      - run: make test-second

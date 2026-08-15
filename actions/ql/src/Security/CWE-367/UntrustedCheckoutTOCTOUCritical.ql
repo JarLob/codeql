@@ -19,6 +19,6 @@ query predicate edges(Step a, Step b) { a.getNextStep() = b }
 
 from PRHeadCheckoutStep checkout, PoisonableStep step, Event event
 where criticalSeverityUntrustedCheckoutTOCTOU(checkout, step, event)
-select step, checkout, step,
+select checkout, checkout, step,
   "Insufficient protection against execution of untrusted code on a privileged workflow ($@).",
   event, event.getName()
