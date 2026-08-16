@@ -21,6 +21,8 @@ classifications
 | pull_request_target.yml | permission-protected | protected |
 | pull_request_target.yml | permission-read | improper-access-control |
 | pull_request_target.yml | permission-unchecked-write | improper-access-control |
+| workflow_dispatch.yml | mutable-critical | toctou |
+| workflow_dispatch.yml | mutable-high | toctou |
 | workflow_run.yml | event-specific-label | untrusted-checkout |
 | workflow_run.yml | pull-request-nonprivileged | untrusted-checkout |
 | workflow_run.yml | repository-bypass | improper-access-control |

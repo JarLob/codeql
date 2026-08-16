@@ -1,1 +1,2 @@
 | .github/workflows/issue_comment.yml:48:9:52:2 | Uses Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/issue_comment.yml:2:3:2:15 | issue_comment | issue_comment |
+| .github/workflows/workflow_dispatch.yml:31:9:35:2 | Uses Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/workflow_dispatch.yml:4:3:4:19 | workflow_dispatch | workflow_dispatch |

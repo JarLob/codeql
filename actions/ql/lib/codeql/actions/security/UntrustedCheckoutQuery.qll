@@ -535,9 +535,22 @@ predicate hasEffectiveCheckoutTOCTOUProtection(PRHeadCheckoutStep checkout, Even
   )
 }
 
-/** Holds if an effective authorization control protects `checkout` for `event`. */
+bindingset[checkout, event]
+pragma[inline_late]
+private predicate isWorkflowDispatchPullRequestCheckout(PRHeadCheckoutStep checkout, Event event) {
+  event.getName() = "workflow_dispatch" and
+  checkout.getATriggerEvent() = event and
+  checkout instanceof UsesStep and
+  checkout.(UsesStep).getCallee() = "actions/checkout" and
+  runtimeGuardArgumentMatches(checkout.(UsesStep), "ref", "refs/pull/.+/(head|merge)")
+}
+
+/** Holds if `checkout` is authorized for `event`. */
 predicate hasEffectiveCheckoutAuthorization(PRHeadCheckoutStep checkout, Event event) {
   exists(ControlCheck check | check.protects(checkout, event, "untrusted-checkout"))
+  or
+  // Manually dispatching a workflow requires repository write access and approves its inputs.
+  isWorkflowDispatchPullRequestCheckout(checkout, event)
 }
 
 private predicate isStalePullRequestApprovalTrigger(Event event) {
@@ -593,7 +606,11 @@ predicate knownImproperCheckoutAuthorization(
 
 private predicate isClassifiableCheckout(PRHeadCheckoutStep checkout, Event event) {
   checkout.getATriggerEvent() = event and
-  event.getName() = [checkoutTriggers(), "pull_request"] and
+  (
+    event.getName() = [checkoutTriggers(), "pull_request"]
+    or
+    isWorkflowDispatchPullRequestCheckout(checkout, event)
+  ) and
   IntegratedCfg::mayExecuteForEvent(checkout, event) and
   not runtimeGuardPreventsCheckout(checkout, event)
 }

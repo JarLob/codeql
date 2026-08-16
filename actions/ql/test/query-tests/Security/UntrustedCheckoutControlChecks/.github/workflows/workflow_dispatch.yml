@@ -1,0 +1,53 @@
+name: Workflow dispatch checkout controls
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        required: true
+      reviewed_sha:
+        required: true
+      branch:
+        required: true
+
+permissions: {}
+
+jobs:
+  mutable-critical: # Expected: critical TOCTOU; dispatch approval is not bound to this mutable PR ref.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.inputs.pr_number }}/merge
+      - run: make test
+
+  mutable-high: # Expected: high TOCTOU; no later execution of the mutable PR ref is known.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ inputs.pr_number }}/merge
+
+  immutable-reviewed-sha: # Expected: no alert; the dispatcher supplies the reviewed immutable revision.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.reviewed_sha }}
+      - run: make test
+
+  non-pr-branch: # Expected: no alert; a generic dispatch branch is not necessarily PR-derived.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+      - run: make test

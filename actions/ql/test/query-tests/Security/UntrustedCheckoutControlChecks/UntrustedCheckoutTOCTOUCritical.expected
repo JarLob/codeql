@@ -39,9 +39,13 @@ edges
 | .github/workflows/pull_request_target.yml:131:9:135:6 | Uses Step | .github/workflows/pull_request_target.yml:135:9:137:2 | Run Step |
 | .github/workflows/pull_request_target.yml:140:9:141:6 | Uses Step | .github/workflows/pull_request_target.yml:141:9:145:6 | Uses Step |
 | .github/workflows/pull_request_target.yml:141:9:145:6 | Uses Step | .github/workflows/pull_request_target.yml:145:9:145:18 | Run Step |
+| .github/workflows/workflow_dispatch.yml:21:9:24:6 | Uses Step | .github/workflows/workflow_dispatch.yml:24:9:26:2 | Run Step |
+| .github/workflows/workflow_dispatch.yml:40:9:43:6 | Uses Step | .github/workflows/workflow_dispatch.yml:43:9:45:2 | Run Step |
+| .github/workflows/workflow_dispatch.yml:50:9:53:6 | Uses Step | .github/workflows/workflow_dispatch.yml:53:9:53:22 | Run Step |
 | .github/workflows/workflow_run_issue_consumer.yml:12:9:15:6 | Uses Step | .github/workflows/workflow_run_issue_consumer.yml:15:9:19:6 | Uses Step |
 | .github/workflows/workflow_run_issue_consumer.yml:15:9:19:6 | Uses Step | .github/workflows/workflow_run_issue_consumer.yml:19:9:21:2 | Run Step |
 | .github/workflows/workflow_run_issue_consumer.yml:28:9:32:6 | Uses Step | .github/workflows/workflow_run_issue_consumer.yml:32:9:32:22 | Run Step |
 #select
 | .github/workflows/classification.yml:14:9:17:6 | Uses Step | .github/workflows/classification.yml:14:9:17:6 | Uses Step | .github/workflows/classification.yml:17:9:19:2 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/classification.yml:2:3:2:21 | pull_request_target | pull_request_target |
 | .github/workflows/issue_comment.yml:84:9:87:6 | Uses Step | .github/workflows/issue_comment.yml:84:9:87:6 | Uses Step | .github/workflows/issue_comment.yml:87:9:87:18 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/issue_comment.yml:2:3:2:15 | issue_comment | issue_comment |
+| .github/workflows/workflow_dispatch.yml:21:9:24:6 | Uses Step | .github/workflows/workflow_dispatch.yml:21:9:24:6 | Uses Step | .github/workflows/workflow_dispatch.yml:24:9:26:2 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/workflow_dispatch.yml:4:3:4:19 | workflow_dispatch | workflow_dispatch |
