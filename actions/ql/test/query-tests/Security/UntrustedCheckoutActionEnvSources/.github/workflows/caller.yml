@@ -1,0 +1,21 @@
+name: Auto merge
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  refs:
+    uses: ./.github/workflows/comment-refs.yml
+    with:
+      pull_request: "42"
+    secrets: inherit
+
+  update:
+    needs: refs
+    uses: ./.github/workflows/inner.yml
+    with:
+      repo: ${{ needs.refs.outputs.repo }}
+      ref: ${{ needs.refs.outputs.ref }}
+      update_command: cargo build
+    secrets: inherit

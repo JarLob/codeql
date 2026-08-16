@@ -1,0 +1,32 @@
+name: Comment-selected refs
+
+on:
+  workflow_call:
+    inputs:
+      pull_request:
+        required: true
+        type: string
+    outputs:
+      repo:
+        value: ${{ jobs.refs.outputs.repo }}
+      ref:
+        value: ${{ jobs.refs.outputs.ref }}
+
+jobs:
+  refs:
+    runs-on: ubuntu-latest
+    outputs:
+      repo: ${{ steps.print.outputs.repo }}
+      ref: ${{ steps.print.outputs.ref }}
+    steps:
+      - uses: qinsoon/comment-env-vars@1.1.0
+        with:
+          pull_request: ${{ inputs.pull_request }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          default_env: |
+            BINDING_REPO=example/binding
+            BINDING_REF=main
+      - id: print
+        run: |
+          echo "repo=${{ env.BINDING_REPO }}" >> "$GITHUB_OUTPUT"
+          echo "ref=${{ env.BINDING_REF }}" >> "$GITHUB_OUTPUT"

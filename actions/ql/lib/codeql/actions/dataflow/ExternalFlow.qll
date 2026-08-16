@@ -49,6 +49,21 @@ predicate actionsSinkModel(
   Extensions::actionsSinkModel(action, version, input, kind, provenance)
 }
 
+/** Gets a source action or statically scoped expression for a modeled environment output. */
+bindingset[uses, fieldName]
+pragma[inline_late]
+private predicate modeledEnvSource(DataFlow::Node source, Uses uses, string fieldName) {
+  exists(string envName |
+    fieldName.trim().matches("env.%") and
+    envName = fieldName.trim().replaceAll("env.", "") and
+    (
+      source.asExpr() = uses.getInScopeEnvVarExpr(envName)
+      or
+      uses instanceof UsesStep and source.asExpr() = uses
+    )
+  )
+}
+
 /**
  * Holds if source.fieldName is a MaD-defined source of a given taint kind.
  */
@@ -63,7 +78,7 @@ predicate madSource(DataFlow::Node source, string kind, string fieldName) {
     ) and
     (
       if fieldName.trim().matches("env.%")
-      then source.asExpr() = uses.getInScopeEnvVarExpr(fieldName.trim().replaceAll("env.", ""))
+      then modeledEnvSource(source, uses, fieldName)
       else (
         fieldName.trim().matches("output.%") and
         source.asExpr() = uses
@@ -107,6 +122,4 @@ predicate madStoreStep(DataFlow::Node pred, DataFlow::Node succ, DataFlow::Conte
 /**
  * Holds if sink is a MaD-defined sink for a given taint kind.
  */
-predicate madSink(DataFlow::Node sink, string kind) {
-  ExternalFlowSinks::modeledSink(sink, kind)
-}
+predicate madSink(DataFlow::Node sink, string kind) { ExternalFlowSinks::modeledSink(sink, kind) }

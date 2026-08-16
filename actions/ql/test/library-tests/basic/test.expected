@@ -1598,6 +1598,7 @@ sources
 | peter-murray/issue-forms-body-parser | * | output.payload | text | manual |
 | potiuk/get-workflow-origin | * | output.sourceHeadBranch | branch | manual |
 | puppeteer/puppeteer/.github/workflows/changed-packages.yml | * | output.changes | filename | manual |
+| qinsoon/comment-env-vars | * | env.* | text,oneline | manual |
 | redhat-plumbers-in-action/download-artifact | * | output.* | artifact | manual |
 | the-coding-turtle/ga-file-list | * | output.file_names | filename | manual |
 | the-coding-turtle/ga-file-list | * | output.files | filename | manual |

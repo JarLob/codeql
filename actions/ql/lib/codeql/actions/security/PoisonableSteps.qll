@@ -15,6 +15,31 @@ class PoisonableCommandStep extends PoisonableStep, Run {
   }
 }
 
+private predicate reusableInputCommandMayInvoke(Run run, Event event) {
+  exists(
+    InputsExpression access, Input input, ReusableWorkflow workflow, ExternalJob caller,
+    string regexp
+  |
+    run.getAChildNode*() = access and
+    access.getTarget() = input and
+    workflow = run.getEnclosingWorkflow() and
+    workflow.getInput(input.getName()) = input and
+    workflow.getACaller() = caller and
+    caller.getATriggerEvent() = event and
+    poisonableCommandsDataModel(regexp) and
+    caller.getArgument(input.getName()).regexpMatch(regexp)
+  )
+}
+
+/** A run step that invokes a modeled poisonable command supplied by a reusable workflow caller. */
+class ReusableInputCommandStep extends PoisonableStep, Run {
+  ReusableInputCommandStep() { exists(Event event | reusableInputCommandMayInvoke(this, event)) }
+
+  predicate mayInvokePoisonableCommandForEvent(Event event) {
+    reusableInputCommandMayInvoke(this, event)
+  }
+}
+
 class JavascriptImportUsesStep extends PoisonableStep, UsesStep {
   JavascriptImportUsesStep() {
     exists(string script, string line |

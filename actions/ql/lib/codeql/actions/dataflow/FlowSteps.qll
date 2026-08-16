@@ -6,6 +6,18 @@ private import actions
 private import codeql.actions.DataFlow
 private import codeql.actions.dataflow.FlowSources
 
+bindingset[run, var]
+pragma[inline_late]
+private predicate envValueForRun(DataFlow::Node pred, Run run, string var) {
+  run.getInScopeEnvVarExpr(var) = pred.asExpr()
+  or
+  exists(EnvExpression access |
+    pred.asExpr() = access and
+    access.getFieldName() = var and
+    run.getAChildNode*() = access
+  )
+}
+
 /**
  * Holds if a Run step declares an environment variable, uses it in its script and sets an output in its script.
  * e.g.
@@ -21,9 +33,22 @@ private import codeql.actions.dataflow.FlowSources
  */
 predicate envToOutputStoreStep(DataFlow::Node pred, DataFlow::Node succ, DataFlow::ContentSet c) {
   exists(Run run, string var, string field |
-    run.getInScopeEnvVarExpr(var) = pred.asExpr() and
+    envValueForRun(pred, run, var) and
     succ.asExpr() = run and
     run.getScript().getAnEnvReachingGitHubOutputWrite(var, field) and
+    c = any(DataFlow::FieldContent ct | ct.getName() = field)
+  )
+}
+
+predicate envExpressionToOutputStoreStep(
+  DataFlow::Node pred, DataFlow::Node succ, DataFlow::ContentSet c
+) {
+  exists(Run run, EnvExpression access, string field, string data |
+    pred.asExpr() = access and
+    run.getAChildNode*() = access and
+    run.getScript().getAWriteToGitHubOutput(field, data) and
+    data.regexpMatch("\\s*\\$\\{\\{\\s*env\\." + access.getFieldName() + "\\s*}}\\s*") and
+    succ.asExpr() = run and
     c = any(DataFlow::FieldContent ct | ct.getName() = field)
   )
 }
@@ -32,7 +57,7 @@ predicate envToEnvStoreStep(DataFlow::Node pred, DataFlow::Node succ, DataFlow::
   exists(
     Run run, string var, string field //string key, string value |
   |
-    run.getInScopeEnvVarExpr(var) = pred.asExpr() and
+    envValueForRun(pred, run, var) and
     // we store the taint on the enclosing job since the may not exist an implicit env attribute
     succ.asExpr() = run.getEnclosingJob() and
     run.getScript().getAnEnvReachingGitHubEnvWrite(var, field) and

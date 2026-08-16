@@ -288,7 +288,12 @@ predicate envCtxLocalStep(Node nodeFrom, Node nodeTo) {
     astFrom = nodeFrom.asExpr() and
     astTo = nodeTo.asExpr() and
     (
-      madSource(nodeFrom, _, "env." + astTo.getFieldName())
+      exists(UsesStep source, Step following |
+        source = astFrom and
+        madSource(nodeFrom, _, "env." + ["*", astTo.getFieldName()]) and
+        source.getAFollowingStep() = following and
+        following.getAChildNode*() = astTo
+      )
       or
       astTo.getTarget() = astFrom
     )
@@ -416,6 +421,7 @@ predicate storeStep(Node node1, ContentSet c, Node node2) {
   fieldStoreStep(node1, node2, c) or
   madStoreStep(node1, node2, c) or
   envToOutputStoreStep(node1, node2, c) or
+  envExpressionToOutputStoreStep(node1, node2, c) or
   envToEnvStoreStep(node1, node2, c) or
   commandToOutputStoreStep(node1, node2, c) or
   commandToEnvStoreStep(node1, node2, c)

@@ -604,12 +604,52 @@ predicate knownImproperCheckoutAuthorization(
   )
 }
 
+bindingset[source, context]
+pragma[inline_late]
+private predicate modeledActionSourceIsUntrustedInContext(
+  MaDSource source, WorkflowExecutionContext context
+) {
+  exists(Event sourceEvent |
+    source.asExpr().getATriggerEvent() = sourceEvent and context.acceptsSourceEvent(sourceEvent)
+  )
+}
+
+bindingset[checkout, event]
+pragma[inline_late]
+private predicate hasContextualUntrustedCheckoutSource(PRHeadCheckoutStep checkout, Event event) {
+  exists(WorkflowExecutionContext context |
+    context = getAWorkflowExecutionContextForNode(checkout) and
+    context.getEvent() = event and
+    (
+      exists(
+        ActionsMutableRefCheckoutFlow::PathNode source, ActionsMutableRefCheckoutFlow::PathNode sink
+      |
+        checkout instanceof ActionsMutableRefCheckout and
+        ActionsMutableRefCheckoutFlow::flowPath(source, sink) and
+        checkout.(UsesStep).getArgumentExpr(["ref", "repository"]) = sink.getNode().asExpr() and
+        source.getNode() instanceof MaDSource and
+        modeledActionSourceIsUntrustedInContext(source.getNode().(MaDSource), context)
+      )
+      or
+      exists(ActionsSHACheckoutFlow::PathNode source, ActionsSHACheckoutFlow::PathNode sink |
+        checkout instanceof ActionsSHACheckout and
+        ActionsSHACheckoutFlow::flowPath(source, sink) and
+        checkout.(UsesStep).getArgumentExpr(["ref", "repository"]) = sink.getNode().asExpr() and
+        source.getNode() instanceof MaDSource and
+        modeledActionSourceIsUntrustedInContext(source.getNode().(MaDSource), context)
+      )
+    )
+  )
+}
+
 private predicate isClassifiableCheckout(PRHeadCheckoutStep checkout, Event event) {
   checkout.getATriggerEvent() = event and
   (
     event.getName() = [checkoutTriggers(), "pull_request"]
     or
     isWorkflowDispatchPullRequestCheckout(checkout, event)
+    or
+    hasContextualUntrustedCheckoutSource(checkout, event)
   ) and
   IntegratedCfg::mayExecuteForEvent(checkout, event) and
   not runtimeGuardPreventsCheckout(checkout, event)
@@ -680,6 +720,9 @@ predicate checkoutMayLeadToCodeExecution(
   (
     poisonable instanceof Run and
     (
+      poisonable instanceof ReusableInputCommandStep and
+      poisonable.(ReusableInputCommandStep).mayInvokePoisonableCommandForEvent(event)
+      or
       // Check if the poisonable step is a local script execution step and the path of the command
       // or script matches the path of the downloaded code.
       isSubpath(poisonable.(LocalScriptExecutionRunStep).getPath(), checkout.getPath())

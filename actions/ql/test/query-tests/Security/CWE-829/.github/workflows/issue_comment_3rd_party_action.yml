@@ -33,7 +33,7 @@ jobs:
         with:
           ref: ${{ steps.comment-branch.outputs.head_ref }}
 
-  test3:
+  test3: # Expected: high alert for the mutable PR ref in the privileged workflow_dispatch context.
     runs-on: ubuntu-20.04
     steps:
       - name: resolve pr refs
