@@ -10,6 +10,8 @@ The best practice to avoid code injection vulnerabilities in GitHub workflows is
 
 It is also recommended to limit the permissions of any tokens used by a workflow such as the GITHUB_TOKEN.
 
+Authorization checks must apply to the principal controlling the interpolated value. For example, checking the triggering commenter's repository association does not make pull request metadata returned by the GitHub API trusted, because that metadata remains controlled by the pull request author.
+
 ## Example
 
 ### Incorrect Usage

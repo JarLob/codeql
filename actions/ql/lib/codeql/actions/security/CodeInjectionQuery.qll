@@ -50,9 +50,6 @@ WorkflowExecutionContext getRelevantCriticalContextForSink(DataFlow::Node sink) 
   result = getAPrivilegedWorkflowExecutionContext(sink.asExpr()) and
   sinkMayExecuteForEvent(sink, result.getEvent()) and
   (not isJobContainerImageSink(sink) or jobContainerHasSensitiveCapability(sink, result)) and
-  not exists(ControlCheck check |
-    check.protects(sink.asExpr(), result.getEvent(), "code-injection")
-  ) and
   not isGithubScriptUsingToJson(sink.asExpr())
 }
 
@@ -120,6 +117,18 @@ private module CodeInjectionConfig implements DataFlow::ConfigSig {
 /** Tracks flow of unsafe user input that is used to construct and evaluate a code script. */
 module CodeInjectionFlow = TaintTracking::Global<CodeInjectionConfig>;
 
+private predicate controlProtectsCodeInjection(
+  ControlCheck check, RemoteFlowSource source, DataFlow::Node sink, WorkflowExecutionContext context
+) {
+  check.protects(sink.asExpr(), context.getEvent(), "code-injection") and
+  not exists(GhCLICommandSource commandSource |
+    check instanceof AssociationCheck and
+    context.getEvent().getName() = ["issue_comment", "pull_request_comment"] and
+    source = commandSource and
+    commandSource.getCommand().regexpMatch(".*\\b(pr|pulls)\\b.*")
+  )
+}
+
 /**
  * Holds if untrusted input flows from `source` to `sink` and the sink may execute without
  * protection in `context`.
@@ -133,7 +142,7 @@ predicate codeInjectionInContext(
   context.mayExecute(sink.getNode().asExpr()) and
   sinkMayExecuteForEvent(sink.getNode(), context.getEvent()) and
   not exists(ControlCheck check |
-    check.protects(sink.getNode().asExpr(), context.getEvent(), "code-injection")
+    controlProtectsCodeInjection(check, source.getNode().(RemoteFlowSource), sink.getNode(), context)
   ) and
   not isGithubScriptUsingToJson(sink.getNode().asExpr())
 }

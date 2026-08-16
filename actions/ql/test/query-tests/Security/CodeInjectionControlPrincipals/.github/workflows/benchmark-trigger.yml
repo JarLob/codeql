@@ -1,0 +1,38 @@
+name: Benchmark trigger source principals
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  actions: write
+  checks: write
+  pull-requests: read
+
+jobs:
+  trigger: # Expected: critical alert for the PR-controlled ref; no alert for direct comment data.
+    if: >-
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/benchmark') &&
+      (github.event.comment.author_association == 'MEMBER' ||
+       github.event.comment.author_association == 'OWNER' ||
+       github.event.comment.author_association == 'COLLABORATOR')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read PR-controlled ref
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          head_ref=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" --jq '.head.ref')
+          echo "head_ref=$head_ref" >> "$GITHUB_OUTPUT"
+
+      - name: Use PR-controlled ref
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run benchmarks.yml --ref "${{ steps.pr.outputs.head_ref }}"
+
+      - name: Use trusted comment command
+        run: echo "${{ github.event.comment.body }}"

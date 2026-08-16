@@ -1,0 +1,11 @@
+edges
+| .github/workflows/benchmark-trigger.yml:22:9:32:6 | Run Step: pr [head_ref] | .github/workflows/benchmark-trigger.yml:35:53:35:84 | steps.pr.outputs.head_ref | provenance |  |
+| .github/workflows/benchmark-trigger.yml:28:14:30:56 | head_ref=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" --jq '.head.ref')\necho "head_ref=$head_ref" >> "$GITHUB_OUTPUT"\n | .github/workflows/benchmark-trigger.yml:22:9:32:6 | Run Step: pr [head_ref] | provenance |  |
+nodes
+| .github/workflows/benchmark-trigger.yml:22:9:32:6 | Run Step: pr [head_ref] | semmle.label | Run Step: pr [head_ref] |
+| .github/workflows/benchmark-trigger.yml:28:14:30:56 | head_ref=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" --jq '.head.ref')\necho "head_ref=$head_ref" >> "$GITHUB_OUTPUT"\n | semmle.label | head_ref=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" --jq '.head.ref')\necho "head_ref=$head_ref" >> "$GITHUB_OUTPUT"\n |
+| .github/workflows/benchmark-trigger.yml:35:53:35:84 | steps.pr.outputs.head_ref | semmle.label | steps.pr.outputs.head_ref |
+| .github/workflows/benchmark-trigger.yml:38:21:38:52 | github.event.comment.body | semmle.label | github.event.comment.body |
+subpaths
+#select
+| .github/workflows/benchmark-trigger.yml:35:53:35:84 | steps.pr.outputs.head_ref | .github/workflows/benchmark-trigger.yml:28:14:30:56 | head_ref=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" --jq '.head.ref')\necho "head_ref=$head_ref" >> "$GITHUB_OUTPUT"\n | .github/workflows/benchmark-trigger.yml:35:53:35:84 | steps.pr.outputs.head_ref | Potential code injection in $@, which may be controlled by an external user ($@). | .github/workflows/benchmark-trigger.yml:35:53:35:84 | steps.pr.outputs.head_ref | ${{ steps.pr.outputs.head_ref }} | .github/workflows/benchmark-trigger.yml:4:3:4:15 | issue_comment | issue_comment |
