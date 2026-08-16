@@ -1,6 +1,8 @@
 edges
 | .github/actions/composite-ref/action.yml:11:7:14:4 | Uses Step | .github/actions/composite-ref/action.yml:14:7:15:17 | Run Step |
 | .github/workflows/actor.yml:17:9:20:6 | Uses Step | .github/workflows/actor.yml:20:9:21:16 | Run Step |
+| .github/workflows/checkout_v7_formatted_pull_ref.yml:12:9:15:6 | Uses Step | .github/workflows/checkout_v7_formatted_pull_ref.yml:15:9:17:2 | Run Step |
+| .github/workflows/checkout_v7_formatted_pull_ref.yml:21:9:25:6 | Uses Step | .github/workflows/checkout_v7_formatted_pull_ref.yml:25:9:25:34 | Run Step |
 | .github/workflows/comment.yml:13:9:28:6 | Uses Step: issue | .github/workflows/comment.yml:28:9:32:6 | Uses Step |
 | .github/workflows/comment.yml:28:9:32:6 | Uses Step | .github/workflows/comment.yml:32:9:34:2 | Run Step |
 | .github/workflows/comment.yml:39:9:54:6 | Uses Step: issue | .github/workflows/comment.yml:54:9:58:6 | Uses Step |
@@ -117,6 +119,7 @@ edges
 | .github/workflows/test6.yml:232:7:252:4 | Uses Step | .github/workflows/test6.yml:252:7:253:45 | Run Step |
 #select
 | .github/actions/composite-ref/action.yml:11:7:14:4 | Uses Step | .github/actions/composite-ref/action.yml:11:7:14:4 | Uses Step | .github/actions/composite-ref/action.yml:14:7:15:17 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/composite_ref_unsafe.yml:4:3:4:15 | issue_comment | issue_comment |
+| .github/workflows/checkout_v7_formatted_pull_ref.yml:21:9:25:6 | Uses Step | .github/workflows/checkout_v7_formatted_pull_ref.yml:21:9:25:6 | Uses Step | .github/workflows/checkout_v7_formatted_pull_ref.yml:25:9:25:34 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/checkout_v7_formatted_pull_ref.yml:4:3:4:21 | pull_request_target | pull_request_target |
 | .github/workflows/comment.yml:28:9:32:6 | Uses Step | .github/workflows/comment.yml:28:9:32:6 | Uses Step | .github/workflows/comment.yml:32:9:34:2 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/comment.yml:4:3:4:15 | issue_comment | issue_comment |
 | .github/workflows/comment.yml:54:9:58:6 | Uses Step | .github/workflows/comment.yml:54:9:58:6 | Uses Step | .github/workflows/comment.yml:58:9:60:2 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/comment.yml:4:3:4:15 | issue_comment | issue_comment |
 | .github/workflows/comment.yml:64:9:68:6 | Uses Step | .github/workflows/comment.yml:64:9:68:6 | Uses Step | .github/workflows/comment.yml:68:9:68:43 | Run Step | Insufficient protection against execution of untrusted code on a privileged workflow ($@). | .github/workflows/comment.yml:4:3:4:15 | issue_comment | issue_comment |

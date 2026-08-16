@@ -1,0 +1,25 @@
+name: Formatted pull request ref
+
+on:
+  pull_request_target:
+    types: [labeled]
+
+jobs:
+  guarded:
+    if: contains(github.event.pull_request.labels.*.name, 'build fonts')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ format('refs/pull/{0}/merge', github.event.pull_request.number) }}
+      - run: make -C src/fonts all
+
+  opted-out: # Expected: TOCTOU Critical; allow-unsafe-pr-checkout disables the runtime guard.
+    if: contains(github.event.pull_request.labels.*.name, 'build fonts')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ format('refs/pull/{0}/merge', github.event.pull_request.number) }}
+          allow-unsafe-pr-checkout: true
+      - run: make -C src/fonts all

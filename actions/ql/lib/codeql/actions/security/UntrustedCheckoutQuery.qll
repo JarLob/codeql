@@ -73,11 +73,30 @@ private predicate runtimeGuardArgumentMatches(UsesStep checkout, string argument
   )
 }
 
+bindingset[checkout]
+pragma[inline_late]
+private predicate runtimeGuardRecognizesFormattedPullRequestRef(UsesStep checkout) {
+  exists(Expression expression, FunctionCallExpression call |
+    expression = checkout.getArgumentExpr("ref") and
+    call.getExpression() = expression and
+    call.getStartOffset() = 0 and
+    call.getEndOffset() = expression.getExpression().length() and
+    call.getCallee().getName().toLowerCase() = "format" and
+    call.getArgument(0).(LiteralExpression).getValue() =
+      ["'refs/pull/{0}/head'", "'refs/pull/{0}/merge'"] and
+    call.getArgument(1).(AccessExpression).getAccessPath().toLowerCase() =
+      "github.event.pull_request.number" and
+    not exists(call.getArgument(2))
+  )
+}
+
 private predicate runtimeGuardRecognizesCheckout(UsesStep checkout, Event event) {
   checkout.getArgument("ref").regexpMatch("refs/pull/[0-9]+/(head|merge)")
   or
   event.getName() = "pull_request_target" and
   (
+    runtimeGuardRecognizesFormattedPullRequestRef(checkout)
+    or
     runtimeGuardArgumentMatches(checkout, "ref",
       ".*\\bgithub\\.event\\.pull_request\\.(head\\.sha|merge_commit_sha)\\b.*")
     or
