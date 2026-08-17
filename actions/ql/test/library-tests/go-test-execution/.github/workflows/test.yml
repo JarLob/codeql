@@ -1,0 +1,17 @@
+on: pull_request_target
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: go test
+      - run: go test ./...
+      - run: go test -run='^$' -bench="Benchmark" ./test/... > pr.txt 2>&1
+      - run: go -C ./subdir test ./...
+      - run: go -C=./subdir test ./...
+      - run: go testdata ./...
