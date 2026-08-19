@@ -1,0 +1,30 @@
+knownValues
+| dynamic | .github/workflows/reusable.yml | false |
+| non-input | .github/workflows/caller.yml | true |
+| non-input | .github/workflows/reusable.yml | true |
+| omitted-default | .github/workflows/caller.yml | false |
+| omitted-default | .github/workflows/reusable.yml | false |
+| static | .github/workflows/caller.yml | false |
+| static | .github/workflows/caller.yml | true |
+| static | .github/workflows/reusable.yml | false |
+possibleValues
+| dynamic | .github/workflows/caller.yml | false |
+| dynamic | .github/workflows/caller.yml | true |
+| dynamic | .github/workflows/reusable.yml | false |
+| non-input | .github/workflows/caller.yml | true |
+| non-input | .github/workflows/reusable.yml | true |
+| omitted-default | .github/workflows/caller.yml | false |
+| omitted-default | .github/workflows/reusable.yml | false |
+| static | .github/workflows/caller.yml | false |
+| static | .github/workflows/caller.yml | true |
+| static | .github/workflows/reusable.yml | false |
+semanticCoverage
+| contains-input |
+| ends-with-input |
+| generic-equality |
+| generic-function |
+| generic-input |
+| generic-logical |
+| nested-input-boolean |
+| starts-with-input |
+| truthy-input |

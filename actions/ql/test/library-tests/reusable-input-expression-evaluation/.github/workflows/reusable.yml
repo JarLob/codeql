@@ -1,0 +1,98 @@
+name: Reusable input evaluation
+
+"on":
+  push:
+    branches: [main]
+  workflow_call:
+    inputs:
+      omitted:
+        type: string
+        required: false
+        default: ""
+      static:
+        type: string
+        required: false
+        default: ""
+      dynamic:
+        type: string
+        required: false
+        default: ""
+
+jobs:
+  omitted-default:
+    if: inputs.omitted != '' && github.actor != ''
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo omitted
+
+  static:
+    if: inputs.static != ''
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo static
+
+  dynamic:
+    if: inputs.dynamic != ''
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo dynamic
+
+  non-input:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo event name
+
+  contains-input:
+    if: contains(inputs.static, 'config')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo contains
+
+  starts-with-input:
+    if: startsWith(inputs.static, 'con')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo starts with
+
+  ends-with-input:
+    if: endsWith(inputs.static, 'ured')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ends with
+
+  truthy-input:
+    if: inputs.static
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo truthy
+
+  nested-input-boolean:
+    if: (inputs.static != '') == true
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo nested boolean
+
+  generic-input:
+    name: ${{ inputs.static }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo generic
+
+  generic-equality:
+    name: ${{ inputs.static != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo generic equality
+
+  generic-function:
+    name: ${{ contains(inputs.static, 'config') }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo generic function
+
+  generic-logical:
+    name: ${{ inputs.static != '' && github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo generic logical

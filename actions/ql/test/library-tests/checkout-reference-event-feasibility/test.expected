@@ -1,0 +1,19 @@
+#select
+| both-selectors | pull_request_target |
+| dispatch-input | workflow_dispatch |
+| event-specific | pull_request_target |
+| repository-empty | pull_request_target |
+| repository-false | pull_request_target |
+| repository-zero | pull_request_target |
+| unknown | pull_request_target |
+| unknown | push |
+| unknown | workflow_dispatch |
+nonEmptyRefValues
+| repository-false | pull_request_target |
+| repository-false | push |
+| repository-false | workflow_dispatch |
+| repository-zero | pull_request_target |
+| repository-zero | push |
+| repository-zero | workflow_dispatch |
+preferredSelectors
+| both-selectors | pull_request_target | github.event.pull_request.head.sha |

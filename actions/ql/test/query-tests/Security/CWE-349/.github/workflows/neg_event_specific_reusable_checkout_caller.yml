@@ -1,0 +1,11 @@
+name: Event-specific reusable checkout caller
+
+"on":
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  call:
+    uses: ./.github/workflows/neg_event_specific_reusable_checkout.yml

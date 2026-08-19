@@ -27,6 +27,7 @@ where
   job.getAContainedStep() = source and
   (
     source instanceof PRHeadCheckoutStep and
+    checkoutReferenceMayBeNonEmptyForEvent(source.(PRHeadCheckoutStep), event) and
     message = "due to privilege checkout of untrusted code." and
     path = source.(PRHeadCheckoutStep).getPath()
     or

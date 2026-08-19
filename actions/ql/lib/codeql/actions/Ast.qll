@@ -252,6 +252,10 @@ class ReusableWorkflow extends Workflow instanceof ReusableWorkflowImpl {
 
 class Input extends AstNode instanceof InputImpl {
   string getName() { result = super.getName() }
+
+  string getDeclaredType() { result = super.getDeclaredType() }
+
+  string getDefaultValue() { result = super.getDefaultValue() }
 }
 
 class Default extends AstNode instanceof DefaultsImpl {
@@ -304,9 +308,7 @@ class Strategy extends AstNode instanceof StrategyImpl {
   predicate hasStaticMatrixProjection() { super.hasStaticMatrixProjection() }
 
   /** Holds if the base matrix has a combination not ruled out by a simple exhaustive exclusion. */
-  predicate hasPossibleProjectedBaseCombination() {
-    super.hasPossibleProjectedBaseCombination()
-  }
+  predicate hasPossibleProjectedBaseCombination() { super.hasPossibleProjectedBaseCombination() }
 
   /** Gets an effective variant of a bound projected base assignment. */
   bindingset[baseAssignment]

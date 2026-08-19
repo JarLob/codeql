@@ -9,6 +9,7 @@ private import codeql.actions.security.PoisonableSteps
 private import codeql.actions.IntegratedExpressionControlFlow as IntegratedCfg
 private import codeql.actions.JobSynchronization as JobSync
 private import codeql.actions.PullRequestAutomation as PullRequestAutomation
+private import codeql.actions.ExpressionEvaluation as ExpressionEvaluation
 
 string checkoutTriggers() {
   result = ["pull_request_target", "workflow_run", "workflow_call", "issue_comment"]
@@ -917,38 +918,41 @@ predicate highSeverityUntrustedCheckoutTOCTOU(PRHeadCheckoutStep checkout, Event
   )
 }
 
+private predicate isActionsMutableRefCheckoutArgument(UsesStep checkout, Expression expression) {
+  exists(
+    ActionsMutableRefCheckoutFlow::PathNode source, ActionsMutableRefCheckoutFlow::PathNode sink
+  |
+    ActionsMutableRefCheckoutFlow::flowPath(source, sink) and
+    expression = sink.getNode().asExpr() and
+    checkout.getArgumentExpr(["ref", "repository"]) = expression
+  )
+  or
+  // heuristic based on the step id and field name
+  exists(string value |
+    value.regexpMatch(".*(head|branch|ref).*") and
+    not value.regexpMatch(".*(sha|commit).*") and
+    expression = checkout.getArgumentExpr("ref")
+  |
+    expression.(StepsExpression).getStepId() = value
+    or
+    expression.(SimpleReferenceExpression).getFieldName() = value and
+    not expression instanceof GitHubExpression and
+    not expression instanceof MatrixExpression
+    or
+    expression.(NeedsExpression).getNeededJobId() = value
+    or
+    expression.(JsonReferenceExpression).getAccessPath() = value
+    or
+    expression.(JsonReferenceExpression).getInnerExpression() = value
+  )
+}
+
 /** Checkout of a Pull Request HEAD ref using actions/checkout action */
 class ActionsMutableRefCheckout extends MutableRefCheckoutStep instanceof UsesStep {
   ActionsMutableRefCheckout() {
     this.getCallee() = "actions/checkout" and
     not protectedWorkflowRunHeadCheckout(this) and
-    (
-      exists(
-        ActionsMutableRefCheckoutFlow::PathNode source, ActionsMutableRefCheckoutFlow::PathNode sink
-      |
-        ActionsMutableRefCheckoutFlow::flowPath(source, sink) and
-        this.getArgumentExpr(["ref", "repository"]) = sink.getNode().asExpr()
-      )
-      or
-      // heuristic base on the step id and field name
-      exists(string value, Expression expr |
-        value.regexpMatch(".*(head|branch|ref).*") and
-        not value.regexpMatch(".*(sha|commit).*") and
-        expr = this.getArgumentExpr("ref")
-      |
-        expr.(StepsExpression).getStepId() = value
-        or
-        expr.(SimpleReferenceExpression).getFieldName() = value and
-        not expr instanceof GitHubExpression and
-        not expr instanceof MatrixExpression
-        or
-        expr.(NeedsExpression).getNeededJobId() = value
-        or
-        expr.(JsonReferenceExpression).getAccessPath() = value
-        or
-        expr.(JsonReferenceExpression).getInnerExpression() = value
-      )
-    )
+    exists(Expression expression | isActionsMutableRefCheckoutArgument(this, expression))
   }
 
   override string getPath() {
@@ -958,34 +962,37 @@ class ActionsMutableRefCheckout extends MutableRefCheckoutStep instanceof UsesSt
   }
 }
 
+private predicate isActionsSHACheckoutArgument(UsesStep checkout, Expression expression) {
+  exists(ActionsSHACheckoutFlow::PathNode source, ActionsSHACheckoutFlow::PathNode sink |
+    ActionsSHACheckoutFlow::flowPath(source, sink) and
+    expression = sink.getNode().asExpr() and
+    checkout.getArgumentExpr(["ref", "repository"]) = expression
+  )
+  or
+  // heuristic based on the step id and field name
+  exists(string value |
+    value.regexpMatch(".*(sha|commit).*") and expression = checkout.getArgumentExpr("ref")
+  |
+    expression.(StepsExpression).getStepId() = value
+    or
+    expression.(SimpleReferenceExpression).getFieldName() = value and
+    not expression instanceof GitHubExpression and
+    not expression instanceof MatrixExpression
+    or
+    expression.(NeedsExpression).getNeededJobId() = value
+    or
+    expression.(JsonReferenceExpression).getAccessPath() = value
+    or
+    expression.(JsonReferenceExpression).getInnerExpression() = value
+  )
+}
+
 /** Checkout of a Pull Request HEAD ref using actions/checkout action */
 class ActionsSHACheckout extends SHACheckoutStep instanceof UsesStep {
   ActionsSHACheckout() {
     this.getCallee() = "actions/checkout" and
     not protectedWorkflowRunHeadCheckout(this) and
-    (
-      exists(ActionsSHACheckoutFlow::PathNode source, ActionsSHACheckoutFlow::PathNode sink |
-        ActionsSHACheckoutFlow::flowPath(source, sink) and
-        this.getArgumentExpr(["ref", "repository"]) = sink.getNode().asExpr()
-      )
-      or
-      // heuristic base on the step id and field name
-      exists(string value, Expression expr |
-        value.regexpMatch(".*(sha|commit).*") and expr = this.getArgumentExpr("ref")
-      |
-        expr.(StepsExpression).getStepId() = value
-        or
-        expr.(SimpleReferenceExpression).getFieldName() = value and
-        not expr instanceof GitHubExpression and
-        not expr instanceof MatrixExpression
-        or
-        expr.(NeedsExpression).getNeededJobId() = value
-        or
-        expr.(JsonReferenceExpression).getAccessPath() = value
-        or
-        expr.(JsonReferenceExpression).getInnerExpression() = value
-      )
-    )
+    exists(Expression expression | isActionsSHACheckoutArgument(this, expression))
   }
 
   override string getPath() {
@@ -1132,10 +1139,69 @@ string getCheckoutReferenceText(AstNode reference) {
   not reference instanceof Expression and result = "the checkout command"
 }
 
+bindingset[argument, event]
+pragma[inline_late]
+private predicate checkoutArgumentMayBeNonEmptyForEvent(Expression argument, Event event) {
+  not exists(argument.getRoot())
+  or
+  ExpressionEvaluation::mayEvaluateToNonEmptyString(argument.getRoot(), event)
+}
+
+private Expression getAnUntrustedActionsCheckoutArgument(PRHeadCheckoutStep checkout) {
+  exists(ActionsMutableRefCheckout uses |
+    checkout = uses and isActionsMutableRefCheckoutArgument(uses, result)
+  )
+  or
+  exists(ActionsSHACheckout uses | checkout = uses and isActionsSHACheckoutArgument(uses, result))
+}
+
+bindingset[checkout, event]
+pragma[inline_late]
+private Expression getAFeasibleUntrustedActionsCheckoutArgument(
+  PRHeadCheckoutStep checkout, Event event
+) {
+  result = getAnUntrustedActionsCheckoutArgument(checkout) and
+  checkoutArgumentMayBeNonEmptyForEvent(result, event)
+}
+
+/** Gets a PR-controlled checkout selector that may be non-empty for `event`. */
+bindingset[checkout, event]
+pragma[inline_late]
+AstNode getAFeasibleCheckoutReference(PRHeadCheckoutStep checkout, Event event) {
+  result = getCheckoutReference(checkout) and
+  result = getAFeasibleUntrustedActionsCheckoutArgument(checkout, event)
+  or
+  checkout instanceof UsesStep and
+  not exists(AstNode preferred |
+    preferred = getCheckoutReference(checkout) and
+    preferred = getAFeasibleUntrustedActionsCheckoutArgument(checkout, event)
+  ) and
+  result = getAFeasibleUntrustedActionsCheckoutArgument(checkout, event)
+  or
+  checkout instanceof Run and
+  result = getCheckoutReference(checkout) and
+  (
+    not result instanceof Expression
+    or
+    checkoutArgumentMayBeNonEmptyForEvent(result.(Expression), event)
+  )
+}
+
+/** Holds if an argument selecting code for `checkout` may be non-empty for `event`. */
+bindingset[checkout, event]
+pragma[inline_late]
+predicate checkoutReferenceMayBeNonEmptyForEvent(PRHeadCheckoutStep checkout, Event event) {
+  exists(getAFeasibleCheckoutReference(checkout, event))
+}
+
 /** Adds checkout-reference provenance before the checkout step in path queries. */
 predicate checkoutReferenceEdge(AstNode predecessor, AstNode successor) {
   exists(PRHeadCheckoutStep checkout |
-    predecessor = getCheckoutReference(checkout) and
+    (
+      predecessor = getAnUntrustedActionsCheckoutArgument(checkout)
+      or
+      checkout instanceof Run and predecessor = getCheckoutReference(checkout)
+    ) and
     successor = checkout and
     not predecessor = successor
   )

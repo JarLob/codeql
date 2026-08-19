@@ -1012,6 +1012,20 @@ class InputImpl extends AstNodeImpl, TInputNode {
   override YamlScalar getNode() { result = n }
 
   string getName() { result = this.getNode().getValue() }
+
+  string getDeclaredType() {
+    exists(YamlMapping declaration |
+      this.getParentNode().getNode().maps(this.getNode(), declaration) and
+      result = declaration.lookup("type").(YamlScalar).getValue()
+    )
+  }
+
+  string getDefaultValue() {
+    exists(YamlMapping declaration |
+      this.getParentNode().getNode().maps(this.getNode(), declaration) and
+      result = declaration.lookup("default").(YamlScalar).getValue()
+    )
+  }
 }
 
 class OutputsImpl extends AstNodeImpl, TOutputsNode {
@@ -1185,9 +1199,7 @@ class PermissionsImpl extends AstNodeImpl, TPermissionsNode {
 
   bindingset[scope]
   pragma[inline_late]
-  string getConfiguredPermission(string scope) {
-    result = getConfiguredPermissionForNode(n, scope)
-  }
+  string getConfiguredPermission(string scope) { result = getConfiguredPermissionForNode(n, scope) }
 }
 
 class StrategyImpl extends AstNodeImpl, TStrategyNode {
@@ -1249,9 +1261,7 @@ class StrategyImpl extends AstNodeImpl, TStrategyNode {
   predicate hasStaticMatrixProjection() { hasStaticMatrixDefinition(this) }
 
   /** Holds if the base matrix has a combination not ruled out by a simple exhaustive exclusion. */
-  predicate hasPossibleProjectedBaseCombination() {
-    hasPossibleProjectedBaseCombination(this)
-  }
+  predicate hasPossibleProjectedBaseCombination() { hasPossibleProjectedBaseCombination(this) }
 
   /** Gets an effective variant of a bound projected base assignment. */
   bindingset[baseAssignment]
@@ -1538,9 +1548,7 @@ pragma[inline_late]
 private predicate matrixIncludeDefinitelyMatchesProjection(
   StrategyImpl strategy, string assignment, YamlMapping entry
 ) {
-  forall(string key |
-    key = getMatrixEntryKey(entry) and key = strategy.getAMatrixDimensionName()
-  |
+  forall(string key | key = getMatrixEntryKey(entry) and key = strategy.getAMatrixDimensionName() |
     exists(getBaseMatrixDimensionIndex(assignment, key)) and
     getBaseMatrixDimensionValue(strategy, assignment, key) = getMatrixEntryValue(entry, key)
   )
@@ -1548,16 +1556,12 @@ private predicate matrixIncludeDefinitelyMatchesProjection(
 
 bindingset[strategy, entry]
 pragma[inline_late]
-private predicate matrixIncludeCanMergeWithSomeBase(
-  StrategyImpl strategy, YamlMapping entry
-) {
+private predicate matrixIncludeCanMergeWithSomeBase(StrategyImpl strategy, YamlMapping entry) {
   exists(strategy.getAMatrixDimensionName()) and
   forall(string dimension | dimension = strategy.getAMatrixDimensionName() |
     strategy.getMatrixDimensionValueCount(dimension) > 0
   ) and
-  forall(string key |
-    key = getMatrixEntryKey(entry) and key = strategy.getAMatrixDimensionName()
-  |
+  forall(string key | key = getMatrixEntryKey(entry) and key = strategy.getAMatrixDimensionName() |
     exists(int index |
       getMatrixEntryValue(entry, key) = strategy.getMatrixDimensionValue(key, index)
     )
@@ -1647,9 +1651,7 @@ private int getProjectedIncludeIndex(string assignment) {
 
 bindingset[strategy, baseAssignment]
 pragma[inline_late]
-private string getAProjectedMatrixAssignment(
-  StrategyImpl strategy, string baseAssignment
-) {
+private string getAProjectedMatrixAssignment(StrategyImpl strategy, string baseAssignment) {
   hasStaticMatrixDefinition(strategy) and
   not exists(int excludeIndex, YamlMapping exclude |
     exclude = getMatrixControlEntry(strategy, "exclude", excludeIndex) and
@@ -1673,9 +1675,7 @@ private string getAProjectedMatrixIncludeAssignment(StrategyImpl strategy) {
 
 bindingset[strategy, assignment]
 pragma[inline_late]
-private string getAProjectedMatrixKey(
-  StrategyImpl strategy, string assignment
-) {
+private string getAProjectedMatrixKey(StrategyImpl strategy, string assignment) {
   exists(string baseAssignment, string component |
     baseAssignment = getProjectedBaseAssignment(assignment) and
     component = baseAssignment.splitAt(",") and

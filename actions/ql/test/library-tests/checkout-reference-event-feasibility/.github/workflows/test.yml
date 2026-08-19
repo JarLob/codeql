@@ -1,0 +1,54 @@
+name: Checkout reference event feasibility
+
+"on":
+  push:
+    branches: [main]
+  pull_request_target:
+  workflow_dispatch:
+
+jobs:
+  event-specific:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+  unknown:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
+        with:
+          ref: ${{ format('{0}', github.event.pull_request.head.sha) }}
+
+  repository-empty:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
+        with:
+          repository: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ '' }}
+
+  repository-false:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
+        with:
+          repository: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ false }}
+
+  repository-zero:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
+        with:
+          repository: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ 0 }}
+
+  both-selectors:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
+        with:
+          repository: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event.pull_request.head.sha }}

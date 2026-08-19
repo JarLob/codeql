@@ -37,9 +37,10 @@ where
   job.getAContainedStep() = source and
   (
     source instanceof PRHeadCheckoutStep and
+    checkoutReferenceMayBeNonEmptyForEvent(source.(PRHeadCheckoutStep), event) and
     message = "due to privilege checkout of untrusted code from" and
     path = source.(PRHeadCheckoutStep).getPath() and
-    untrustedInput = getCheckoutReference(source.(PRHeadCheckoutStep)) and
+    untrustedInput = getAFeasibleCheckoutReference(source.(PRHeadCheckoutStep), event) and
     untrustedInputText = getCheckoutReferenceText(untrustedInput)
     or
     source instanceof UntrustedArtifactDownloadStep and

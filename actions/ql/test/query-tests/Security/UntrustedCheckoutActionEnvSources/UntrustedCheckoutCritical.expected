@@ -1,6 +1,7 @@
 edges
 | .github/workflows/comment-refs.yml:22:9:29:6 | Uses Step | .github/workflows/comment-refs.yml:29:9:32:63 | Run Step: print |
 | .github/workflows/inner.yml:23:9:29:6 | Uses Step | .github/workflows/inner.yml:29:9:31:73 | Run Step |
+| .github/workflows/inner.yml:25:24:25:41 | inputs.repo | .github/workflows/inner.yml:23:9:29:6 | Uses Step |
 | .github/workflows/inner.yml:26:17:26:33 | inputs.ref | .github/workflows/inner.yml:23:9:29:6 | Uses Step |
 #select
 | .github/workflows/inner.yml:23:9:29:6 | Uses Step | .github/workflows/inner.yml:26:17:26:33 | inputs.ref | .github/workflows/inner.yml:29:9:31:73 | Run Step | Checkout of untrusted code from $@ in a privileged workflow with later potential execution (event trigger: $@). | .github/workflows/inner.yml:26:17:26:33 | inputs.ref | inputs.ref | .github/workflows/caller.yml:4:3:4:6 | push | push |

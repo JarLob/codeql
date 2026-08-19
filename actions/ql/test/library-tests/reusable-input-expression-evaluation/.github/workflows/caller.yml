@@ -1,0 +1,18 @@
+name: Reusable input caller
+
+"on":
+  push:
+    branches: [main]
+
+jobs:
+  call:
+    uses: ./.github/workflows/reusable.yml
+    with:
+      static: configured
+      dynamic: ${{ github.actor }}
+
+  call-conflicting:
+    uses: ./.github/workflows/reusable.yml
+    with:
+      static: ""
+      dynamic: configured

@@ -14,6 +14,87 @@ string getStringLiteralValue(ExpressionNode node) {
         .regexpReplaceAll("''", "'")
 }
 
+private predicate isInputAccess(ExpressionNode node, string name) {
+  node instanceof AccessExpression and
+  node.(AccessExpression).getAccessPath().regexpMatch("(?i)inputs\\.[A-Za-z0-9_-]+") and
+  name = node.(AccessExpression).getAccessPath().regexpCapture("(?i)inputs\\.([A-Za-z0-9_-]+)", 1)
+}
+
+private predicate getReusableInputContext(
+  ExpressionNode node, ReusableWorkflow workflow, Input input
+) {
+  exists(string name |
+    isInputAccess(node, name) and
+    workflow = node.getExpression().getEnclosingWorkflow() and
+    workflow.getAnInput() = input and
+    input.getName().toLowerCase() = name.toLowerCase()
+  )
+}
+
+private predicate isReusableCallerForEvent(
+  ReusableWorkflow workflow, ExternalJob caller, Event event
+) {
+  workflow.getACaller() = caller and caller.getATriggerEvent() = event
+}
+
+private predicate getStaticReusableInputValue(ExternalJob caller, Input input, string value) {
+  exists(caller.getArgument(input.getName())) and
+  not exists(caller.getArgumentExpr(input.getName())) and
+  value = caller.getArgument(input.getName())
+  or
+  not exists(caller.getArgument(input.getName())) and
+  value = input.getDefaultValue()
+}
+
+private predicate getReusableInputStringValue(ExpressionNode node, Event event, string value) {
+  exists(ReusableWorkflow workflow, Input input |
+    getReusableInputContext(node, workflow, input) and
+    input.getDeclaredType().toLowerCase() = "string" and
+    exists(ExternalJob caller | isReusableCallerForEvent(workflow, caller, event)) and
+    forall(ExternalJob caller | isReusableCallerForEvent(workflow, caller, event) |
+      exists(string callerValue | getStaticReusableInputValue(caller, input, callerValue))
+    ) and
+    exists(ExternalJob caller |
+      isReusableCallerForEvent(workflow, caller, event) and
+      getStaticReusableInputValue(caller, input, value)
+    )
+  )
+}
+
+bindingset[node, event]
+pragma[inline_late]
+private predicate isKnownMissingInputValue(ExpressionNode node, Event event) {
+  exists(string name |
+    isInputAccess(node, name) and
+    not event.getName() = ["workflow_call", "workflow_dispatch"] and
+    not exists(node.getExpression().getEnclosingCompositeAction()) and
+    not exists(ReusableWorkflow workflow, Input input, ExternalJob caller |
+      getReusableInputContext(node, workflow, input) and
+      isReusableCallerForEvent(workflow, caller, event)
+    )
+  )
+}
+
+bindingset[node, event]
+pragma[inline_late]
+private predicate getInputStringValue(ExpressionNode node, Event event, string value) {
+  getReusableInputStringValue(node, event, value)
+  or
+  isKnownMissingInputValue(node, event) and value = ""
+}
+
+bindingset[expression]
+pragma[inline_late]
+private predicate mayContainInputAccess(Expression expression) {
+  expression.getExpression().toLowerCase().matches("%inputs%")
+}
+
+private predicate containsInputAccess(ExpressionNode node) {
+  node.getText().toLowerCase().matches("%inputs.%")
+  or
+  node.getText().toLowerCase().matches("%inputs%[%")
+}
+
 private predicate getStringValue(ExpressionNode node, Event event, string value) {
   value = getStringLiteralValue(node)
   or
@@ -499,22 +580,416 @@ private predicate conditionEvaluatesToBooleanWithStatus(
   )
 }
 
-private predicate conditionMayEvaluateToBooleanWithStatus(
-  If condition, ExpressionNode node, Event event, TStatusMode statusMode, boolean outcome
+private predicate conditionInputEqualityStringOperand(
+  If condition, BinaryExpression expression, int index, Event event, string value
 ) {
-  condition.getConditionExpr() = node.getExpression() and
+  condition.getConditionExpr() = expression.getExpression() and
+  containsInputAccess(expression) and
+  (
+    index = 0 and
+    (
+      getStringValue(expression.getLeftOperand(), event, value)
+      or
+      getInputStringValue(expression.getLeftOperand(), event, value)
+    )
+    or
+    index = 1 and
+    (
+      getStringValue(expression.getRightOperand(), event, value)
+      or
+      getInputStringValue(expression.getRightOperand(), event, value)
+    )
+  )
+}
+
+private predicate conditionInputBooleanOperandEvaluatesTo(
+  If condition, BinaryExpression expression, int index, Event event, TStatusMode statusMode,
+  boolean outcome
+) {
+  condition.getConditionExpr() = expression.getExpression() and
+  containsInputAccess(expression) and
+  (
+    index = 0 and
+    conditionEvaluatesToBooleanForInput(condition, expression.getLeftOperand(), event, statusMode,
+      outcome)
+    or
+    index = 1 and
+    conditionEvaluatesToBooleanForInput(condition, expression.getRightOperand(), event, statusMode,
+      outcome)
+  )
+}
+
+private predicate conditionEvaluateInputEquality(
+  If condition, BinaryExpression expression, Event event, TStatusMode statusMode, boolean outcome
+) {
+  condition.getConditionExpr() = expression.getExpression() and
+  containsInputAccess(expression) and
+  (
+    exists(string left, string right |
+      conditionInputEqualityStringOperand(condition, expression, 0, event, left) and
+      conditionInputEqualityStringOperand(condition, expression, 1, event, right) and
+      stringComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
+    )
+    or
+    exists(boolean left, boolean right |
+      conditionInputBooleanOperandEvaluatesTo(condition, expression, 0, event, statusMode, left) and
+      conditionInputBooleanOperandEvaluatesTo(condition, expression, 1, event, statusMode, right) and
+      booleanComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
+    )
+  )
+}
+
+private predicate conditionInputStringFunctionOperand(
+  If condition, FunctionCallExpression call, int index, Event event, string value
+) {
+  condition.getConditionExpr() = call.getExpression() and
+  containsInputAccess(call) and
+  (
+    getStringValue(call.getArgument(index), event, value)
+    or
+    getInputStringValue(call.getArgument(index), event, value)
+  )
+}
+
+private predicate conditionEvaluateInputFunctionCall(
+  If condition, FunctionCallExpression call, Event event, boolean outcome
+) {
+  condition.getConditionExpr() = call.getExpression() and
+  containsInputAccess(call) and
+  exists(string left, string right |
+    conditionInputStringFunctionOperand(condition, call, 0, event, left) and
+    conditionInputStringFunctionOperand(condition, call, 1, event, right) and
+    (
+      stringFunctionHolds(call, left, right) and outcome = true
+      or
+      call.getCallee().getName().toLowerCase() = ["contains", "startswith", "endswith"] and
+      not stringFunctionHolds(call, left, right) and
+      outcome = false
+    )
+  )
+}
+
+private predicate conditionEvaluateInputLogical(
+  If condition, BinaryExpression expression, Event event, TStatusMode statusMode, boolean outcome
+) {
+  condition.getConditionExpr() = expression.getExpression() and
+  containsInputAccess(expression) and
+  expression.getOperator() = "&&" and
+  outcome = false and
+  conditionInputBooleanOperandEvaluatesTo(condition, expression, _, event, statusMode, false)
+  or
+  condition.getConditionExpr() = expression.getExpression() and
+  containsInputAccess(expression) and
+  expression.getOperator() = "&&" and
+  outcome = true and
+  conditionInputBooleanOperandEvaluatesTo(condition, expression, 0, event, statusMode, true) and
+  conditionInputBooleanOperandEvaluatesTo(condition, expression, 1, event, statusMode, true)
+  or
+  condition.getConditionExpr() = expression.getExpression() and
+  containsInputAccess(expression) and
+  expression.getOperator() = "||" and
+  outcome = true and
+  conditionInputBooleanOperandEvaluatesTo(condition, expression, _, event, statusMode, true)
+  or
+  condition.getConditionExpr() = expression.getExpression() and
+  containsInputAccess(expression) and
+  expression.getOperator() = "||" and
+  outcome = false and
+  conditionInputBooleanOperandEvaluatesTo(condition, expression, 0, event, statusMode, false) and
+  conditionInputBooleanOperandEvaluatesTo(condition, expression, 1, event, statusMode, false)
+}
+
+bindingset[condition, event]
+pragma[inline_late]
+private predicate isInputConditionContext(If condition, Event event) {
+  mayContainInputAccess(condition.getConditionExpr()) and
   (
     condition.getATriggerEvent() = event
     or
     not exists(condition.getATriggerEvent())
-  ) and
+  )
+}
+
+private predicate conditionEvaluatesToBooleanForInput(
+  If condition, ExpressionNode node, Event event, TStatusMode statusMode, boolean outcome
+) {
+  condition.getConditionExpr() = node.getExpression() and
+  isInputConditionContext(condition, event) and
   (
+    not containsInputAccess(node) and
     conditionEvaluatesToBooleanWithStatus(condition, node, event, statusMode, outcome)
     or
-    outcome in [false, true] and
-    not exists(boolean known |
-      conditionEvaluatesToBooleanWithStatus(condition, node, event, statusMode, known)
+    containsInputAccess(node) and
+    (
+      node instanceof ExpressionRoot and
+      conditionEvaluatesToBooleanForInput(condition, node.getAChild(), event, statusMode, outcome)
+      or
+      node instanceof UnaryExpression and
+      node.(UnaryExpression).getOperator() = "!" and
+      exists(boolean operandOutcome |
+        conditionEvaluatesToBooleanForInput(condition, node.(UnaryExpression).getOperand(), event,
+          statusMode, operandOutcome) and
+        (
+          operandOutcome = true and outcome = false
+          or
+          operandOutcome = false and outcome = true
+        )
+      )
+      or
+      node instanceof BinaryExpression and
+      node.(BinaryExpression).getOperator() = ["&&", "||"] and
+      conditionEvaluateInputLogical(condition, node.(BinaryExpression), event, statusMode, outcome)
+      or
+      node instanceof BinaryExpression and
+      node.(BinaryExpression).getOperator() = ["==", "!=", ">", ">=", "<", "<="] and
+      conditionEvaluateInputEquality(condition, node.(BinaryExpression), event, statusMode, outcome)
+      or
+      node instanceof FunctionCallExpression and
+      conditionEvaluateInputFunctionCall(condition, node.(FunctionCallExpression), event, outcome)
+      or
+      exists(string value | getInputStringValue(node, event, value) |
+        stringTruthinessEvaluatesTo(value, outcome)
+      )
     )
+  )
+}
+
+bindingset[condition, node, event, statusMode]
+pragma[inline_late]
+private predicate conditionEvaluatesToBooleanWithInput(
+  If condition, ExpressionNode node, Event event, TStatusMode statusMode, boolean outcome
+) {
+  isInputConditionContext(condition, event) and
+  conditionEvaluatesToBooleanForInput(condition, node, event, statusMode, outcome)
+  or
+  not isInputConditionContext(condition, event) and
+  conditionEvaluatesToBooleanWithStatus(condition, node, event, statusMode, outcome)
+}
+
+bindingset[condition, node, event, statusMode]
+pragma[inline_late]
+private predicate conditionMayEvaluateToBooleanForInput(
+  If condition, ExpressionNode node, Event event, TStatusMode statusMode, boolean outcome
+) {
+  conditionEvaluatesToBooleanWithInput(condition, node, event, statusMode, outcome)
+  or
+  outcome in [false, true] and
+  not exists(boolean known |
+    conditionEvaluatesToBooleanWithInput(condition, node, event, statusMode, known)
+  )
+}
+
+private predicate inputEqualityStringOperand(
+  BinaryExpression expression, int index, Event event, string value
+) {
+  containsInputAccess(expression) and
+  (
+    index = 0 and
+    (
+      getStringValue(expression.getLeftOperand(), event, value)
+      or
+      getInputStringValue(expression.getLeftOperand(), event, value)
+    )
+    or
+    index = 1 and
+    (
+      getStringValue(expression.getRightOperand(), event, value)
+      or
+      getInputStringValue(expression.getRightOperand(), event, value)
+    )
+  )
+}
+
+private predicate inputEqualityBooleanOperand(
+  BinaryExpression expression, int index, Event event, TStatusMode statusMode, boolean outcome
+) {
+  containsInputAccess(expression) and
+  (
+    index = 0 and
+    inputExpressionEvaluatesToBoolean(expression.getLeftOperand(), event, statusMode, outcome)
+    or
+    index = 1 and
+    inputExpressionEvaluatesToBoolean(expression.getRightOperand(), event, statusMode, outcome)
+  )
+}
+
+private predicate evaluateInputEquality(
+  BinaryExpression expression, Event event, TStatusMode statusMode, boolean outcome
+) {
+  containsInputAccess(expression) and
+  (
+    exists(string left, string right |
+      inputEqualityStringOperand(expression, 0, event, left) and
+      inputEqualityStringOperand(expression, 1, event, right) and
+      stringComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
+    )
+    or
+    exists(boolean left, boolean right |
+      inputEqualityBooleanOperand(expression, 0, event, statusMode, left) and
+      inputEqualityBooleanOperand(expression, 1, event, statusMode, right) and
+      booleanComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
+    )
+    or
+    exists(float left, float right |
+      getNumberValue(expression.getLeftOperand(), left) and
+      getNumberValue(expression.getRightOperand(), right) and
+      numericComparisonEvaluatesTo(left, expression.getOperator(), right, outcome)
+    )
+    or
+    isKnownNullValue(expression.getLeftOperand(), event) and
+    isKnownNullValue(expression.getRightOperand(), event) and
+    nullComparisonEvaluatesTo(expression.getOperator(), outcome)
+  )
+}
+
+private predicate inputLogicalOperandEvaluatesTo(
+  BinaryExpression expression, int index, Event event, TStatusMode statusMode, boolean outcome
+) {
+  containsInputAccess(expression) and
+  (
+    index = 0 and
+    inputExpressionEvaluatesToBoolean(expression.getLeftOperand(), event, statusMode, outcome)
+    or
+    index = 1 and
+    inputExpressionEvaluatesToBoolean(expression.getRightOperand(), event, statusMode, outcome)
+  )
+}
+
+private predicate evaluateInputLogical(
+  BinaryExpression expression, Event event, TStatusMode statusMode, boolean outcome
+) {
+  containsInputAccess(expression) and
+  (
+    expression.getOperator() = "&&" and
+    outcome = false and
+    inputLogicalOperandEvaluatesTo(expression, _, event, statusMode, false)
+    or
+    expression.getOperator() = "&&" and
+    outcome = true and
+    inputLogicalOperandEvaluatesTo(expression, 0, event, statusMode, true) and
+    inputLogicalOperandEvaluatesTo(expression, 1, event, statusMode, true)
+    or
+    expression.getOperator() = "||" and
+    outcome = true and
+    inputLogicalOperandEvaluatesTo(expression, _, event, statusMode, true)
+    or
+    expression.getOperator() = "||" and
+    outcome = false and
+    inputLogicalOperandEvaluatesTo(expression, 0, event, statusMode, false) and
+    inputLogicalOperandEvaluatesTo(expression, 1, event, statusMode, false)
+  )
+}
+
+private predicate inputStringFunctionOperand(
+  FunctionCallExpression call, int index, Event event, string value
+) {
+  containsInputAccess(call) and
+  (
+    getStringValue(call.getArgument(index), event, value)
+    or
+    getInputStringValue(call.getArgument(index), event, value)
+  )
+}
+
+private predicate evaluateInputFunctionCall(
+  FunctionCallExpression call, Event event, boolean outcome
+) {
+  containsInputAccess(call) and
+  exists(string left, string right |
+    inputStringFunctionOperand(call, 0, event, left) and
+    inputStringFunctionOperand(call, 1, event, right) and
+    (
+      stringFunctionHolds(call, left, right) and outcome = true
+      or
+      call.getCallee().getName().toLowerCase() = ["contains", "startswith", "endswith"] and
+      not stringFunctionHolds(call, left, right) and
+      outcome = false
+    )
+  )
+}
+
+// Keep non-condition input evaluation out of the condition-keyed recursive component above.
+private predicate inputExpressionEvaluatesToBoolean(
+  ExpressionNode node, Event event, TStatusMode statusMode, boolean outcome
+) {
+  not containsInputAccess(node) and
+  evaluatesToBooleanWithStatus(node, event, statusMode, outcome)
+  or
+  containsInputAccess(node) and
+  (
+    node instanceof ExpressionRoot and
+    inputExpressionEvaluatesToBoolean(node.getAChild(), event, statusMode, outcome)
+    or
+    node instanceof UnaryExpression and
+    node.(UnaryExpression).getOperator() = "!" and
+    exists(boolean operandOutcome |
+      inputExpressionEvaluatesToBoolean(node.(UnaryExpression).getOperand(), event, statusMode,
+        operandOutcome) and
+      (
+        operandOutcome = true and outcome = false
+        or
+        operandOutcome = false and outcome = true
+      )
+    )
+    or
+    node instanceof BinaryExpression and
+    node.(BinaryExpression).getOperator() = ["&&", "||"] and
+    evaluateInputLogical(node.(BinaryExpression), event, statusMode, outcome)
+    or
+    node instanceof BinaryExpression and
+    node.(BinaryExpression).getOperator() = ["==", "!=", ">", ">=", "<", "<="] and
+    evaluateInputEquality(node.(BinaryExpression), event, statusMode, outcome)
+    or
+    node instanceof FunctionCallExpression and
+    evaluateInputFunctionCall(node.(FunctionCallExpression), event, outcome)
+    or
+    exists(string value | getInputStringValue(node, event, value) |
+      stringTruthinessEvaluatesTo(value, outcome)
+    )
+  )
+}
+
+bindingset[node, event, statusMode]
+pragma[inline_late]
+private predicate evaluatesToBooleanOutsideCondition(
+  ExpressionNode node, Event event, TStatusMode statusMode, boolean outcome
+) {
+  containsInputAccess(node) and
+  (
+    node.getExpression().getATriggerEvent() = event
+    or
+    not exists(node.getExpression().getATriggerEvent())
+  ) and
+  inputExpressionEvaluatesToBoolean(node, event, statusMode, outcome)
+  or
+  not containsInputAccess(node) and
+  evaluatesToBooleanWithStatus(node, event, statusMode, outcome)
+}
+
+bindingset[node, event, statusMode]
+pragma[inline_late]
+private predicate evaluatesToBooleanWithInputCondition(
+  ExpressionNode node, Event event, TStatusMode statusMode, boolean outcome
+) {
+  exists(If condition |
+    condition.getConditionExpr() = node.getExpression() and
+    conditionEvaluatesToBooleanWithInput(condition, node, event, statusMode, outcome)
+  )
+  or
+  not exists(If condition | condition.getConditionExpr() = node.getExpression()) and
+  evaluatesToBooleanOutsideCondition(node, event, statusMode, outcome)
+}
+
+bindingset[node, event, statusMode]
+pragma[inline_late]
+private predicate mayEvaluateToBooleanWithInputCondition(
+  ExpressionNode node, Event event, TStatusMode statusMode, boolean outcome
+) {
+  evaluatesToBooleanWithInputCondition(node, event, statusMode, outcome)
+  or
+  outcome in [false, true] and
+  not exists(boolean known |
+    evaluatesToBooleanWithInputCondition(node, event, statusMode, known)
   )
 }
 
@@ -523,7 +998,7 @@ private predicate conditionMayEvaluateToBooleanWithStatus(
  * Absence of a result means that the value is unknown.
  */
 predicate evaluatesToBoolean(ExpressionNode node, Event event, boolean outcome) {
-  evaluatesToBooleanWithStatus(node, event, unknownStatusMode(), outcome)
+  evaluatesToBooleanWithInputCondition(node, event, unknownStatusMode(), outcome)
 }
 
 private predicate evaluatesToBooleanWithStatus(
@@ -549,22 +1024,44 @@ private predicate evaluatesToBooleanWithStatus(
 
 /** Holds if `node` may evaluate to `result` for `event`. */
 predicate mayEvaluateToBoolean(ExpressionNode node, Event event, boolean outcome) {
-  mayEvaluateToBooleanWithStatus(node, event, unknownStatusMode(), outcome)
+  mayEvaluateToBooleanWithInputCondition(node, event, unknownStatusMode(), outcome)
 }
 
-private predicate mayEvaluateToBooleanWithStatus(
-  ExpressionNode node, Event event, TStatusMode statusMode, boolean outcome
-) {
-  (
-    node.getExpression().getATriggerEvent() = event
-    or
-    not exists(node.getExpression().getATriggerEvent())
-  ) and
-  (
-    evaluatesToBooleanWithStatus(node, event, statusMode, outcome)
-    or
-    outcome in [false, true] and
-    not exists(boolean known | evaluatesToBooleanWithStatus(node, event, statusMode, known))
+/** Holds if `node` may coerce to a non-empty action input string for `event`. */
+bindingset[node, event]
+pragma[inline_late]
+predicate mayEvaluateToNonEmptyString(ExpressionNode node, Event event) {
+  not exists(ExpressionNode valueNode |
+    (
+      node instanceof ExpressionRoot and valueNode = node.getAChild()
+      or
+      not node instanceof ExpressionRoot and valueNode = node
+    ) and
+    (
+      getStringLiteralValue(valueNode) = ""
+      or
+      isNullValue(valueNode)
+      or
+      exists(string path, string contextPrefix |
+        valueNode instanceof AccessExpression and
+        path = valueNode.(AccessExpression).getAccessPath() and
+        contextTriggerDataModel(_, contextPrefix) and
+        (path = contextPrefix or path.matches(contextPrefix + ".%")) and
+        not contextTriggerDataModel(event.getName(), contextPrefix)
+      )
+      or
+      exists(string name |
+        isInputAccess(valueNode, name) and
+        not event.getName() = ["workflow_call", "workflow_dispatch"] and
+        not exists(valueNode.getExpression().getEnclosingCompositeAction()) and
+        not exists(ReusableWorkflow workflow, Input input, ExternalJob caller |
+          getReusableInputContext(valueNode, workflow, input) and
+          isReusableCallerForEvent(workflow, caller, event)
+        )
+      )
+      or
+      getReusableInputStringValue(valueNode, event, "")
+    )
   )
 }
 
@@ -808,7 +1305,7 @@ private predicate conditionEvaluatesToBooleanForWorkflowRunSource(
   isWorkflowRunSourceConditionContext(condition, event, sourceEvent) and
   (
     not containsWorkflowRunSourceEventAccess(node) and
-    conditionEvaluatesToBooleanWithStatus(condition, node, event, unknownStatusMode(), outcome)
+    conditionEvaluatesToBooleanWithInput(condition, node, event, unknownStatusMode(), outcome)
     or
     containsWorkflowRunSourceEventAccess(node) and
     (
@@ -937,7 +1434,7 @@ predicate isConditionFeasible(If condition, Event event, Event sourceEvent) {
 
 /** Holds if the condition may permit execution for `event`. */
 predicate isConditionFeasible(If condition, Event event) {
-  not conditionEvaluatesToBooleanWithStatus(condition, condition.getConditionExpr().getRoot(),
+  not conditionEvaluatesToBooleanWithInput(condition, condition.getConditionExpr().getRoot(),
     event, unknownStatusMode(), false)
 }
 
@@ -945,7 +1442,7 @@ predicate isConditionFeasible(If condition, Event event) {
 predicate mayEvaluateConditionToBoolean(
   If condition, ExpressionNode node, Event event, boolean outcome
 ) {
-  conditionMayEvaluateToBooleanWithStatus(condition, node, event, unknownStatusMode(), outcome)
+  conditionMayEvaluateToBooleanForInput(condition, node, event, unknownStatusMode(), outcome)
 }
 
 /** Holds if the condition may permit execution after a prerequisite job was skipped. */
@@ -961,7 +1458,7 @@ predicate evaluatesToBooleanAfterNeedsState(
   ExpressionNode node, Event event, boolean hasFailure, boolean hasCancellation, boolean hasSkip,
   boolean outcome
 ) {
-  evaluatesToBooleanWithStatus(node, event,
+  evaluatesToBooleanWithInputCondition(node, event,
     knownNeedsStatusMode(hasFailure, hasCancellation, hasSkip), outcome)
 }
 
@@ -971,7 +1468,7 @@ predicate mayEvaluateToBooleanAfterNeedsState(
   ExpressionNode node, Event event, boolean hasFailure, boolean hasCancellation, boolean hasSkip,
   boolean outcome
 ) {
-  mayEvaluateToBooleanWithStatus(node, event,
+  mayEvaluateToBooleanWithInputCondition(node, event,
     knownNeedsStatusMode(hasFailure, hasCancellation, hasSkip), outcome)
 }
 
@@ -981,7 +1478,7 @@ predicate mayEvaluateConditionToBooleanAfterNeedsState(
   If condition, ExpressionNode node, Event event, boolean hasFailure, boolean hasCancellation,
   boolean hasSkip, boolean outcome
 ) {
-  conditionMayEvaluateToBooleanWithStatus(condition, node, event,
+  conditionMayEvaluateToBooleanForInput(condition, node, event,
     knownNeedsStatusMode(hasFailure, hasCancellation, hasSkip), outcome)
 }
 
@@ -993,7 +1490,7 @@ bindingset[status]
 predicate evaluatesToBooleanAfterNeedsStatus(
   ExpressionNode node, Event event, string status, boolean outcome
 ) {
-  evaluatesToBooleanWithStatus(node, event, knownNeedsStatusMode(status), outcome)
+  evaluatesToBooleanWithInputCondition(node, event, knownNeedsStatusMode(status), outcome)
 }
 
 /** Holds if `node` may evaluate to `outcome` for a known aggregate prerequisite conclusion. */
@@ -1001,13 +1498,13 @@ bindingset[status]
 predicate mayEvaluateToBooleanAfterNeedsStatus(
   ExpressionNode node, Event event, string status, boolean outcome
 ) {
-  mayEvaluateToBooleanWithStatus(node, event, knownNeedsStatusMode(status), outcome)
+  mayEvaluateToBooleanWithInputCondition(node, event, knownNeedsStatusMode(status), outcome)
 }
 
 /** Holds if the condition may permit execution for a known aggregate prerequisite conclusion. */
 bindingset[status]
 predicate isConditionFeasibleAfterNeedsStatus(If condition, Event event, string status) {
-  conditionMayEvaluateToBooleanWithStatus(condition, condition.getConditionExpr().getRoot(), event,
+  conditionMayEvaluateToBooleanForInput(condition, condition.getConditionExpr().getRoot(), event,
     knownNeedsStatusMode(status), true)
 }
 
