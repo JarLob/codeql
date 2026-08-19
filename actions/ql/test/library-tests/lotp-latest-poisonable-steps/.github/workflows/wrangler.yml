@@ -1,0 +1,238 @@
+on: push
+
+jobs:
+  pnpm-run:
+    runs-on: ubuntu-latest
+    steps:
+      - run: pnpm run build
+
+  pnpm-install-ignore-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - run: pnpm install --ignore-scripts
+
+  danger:
+    runs-on: ubuntu-latest
+    steps:
+      - run: danger ci
+
+  deno-task:
+    runs-on: ubuntu-latest
+    steps:
+      - run: deno task build
+
+  deno-test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: deno test
+
+  earthly:
+    runs-on: ubuntu-latest
+    steps:
+      - run: earthly --ci +build
+
+  earthly-version:
+    runs-on: ubuntu-latest
+    steps:
+      - run: earthly --version
+
+  flake8:
+    runs-on: ubuntu-latest
+    steps:
+      - run: flake8 .
+
+  gauge:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gauge run specs
+
+  gauge-version:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gauge --version
+
+  gemini:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gemini --prompt "review this repository"
+
+  just:
+    runs-on: ubuntu-latest
+    steps:
+      - run: just build
+
+  mage:
+    runs-on: ubuntu-latest
+    steps:
+      - run: mage build
+
+  npx:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npx eslint .
+
+  npx-with-option:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npx --yes eslint .
+
+  npx-version:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npx --version
+
+  uv-requirement:
+    runs-on: ubuntu-latest
+    steps:
+      - run: uv pip install -r requirements.txt
+
+  uv-requirement-long:
+    runs-on: ubuntu-latest
+    steps:
+      - run: uv pip install --requirement requirements.txt
+
+  uv-local-package:
+    runs-on: ubuntu-latest
+    steps:
+      - run: uv pip install .
+
+  uv-run:
+    runs-on: ubuntu-latest
+    steps:
+      - run: uv run pytest
+
+  goreleaser-action-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: goreleaser/goreleaser-action@v7
+        with:
+          args: build
+
+  goreleaser-action-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: goreleaser/goreleaser-action@v7
+        with:
+          args: release --clean
+
+  goreleaser-action-install-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: goreleaser/goreleaser-action@v7
+        with:
+          args: release --clean
+          install-only: true
+
+  goreleaser-action-no-args:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: goreleaser/goreleaser-action@v7
+
+  wrangler-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - run: wrangler deploy
+
+  wrangler-versions-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - run: wrangler versions upload --dry-run
+
+  wrangler-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - run: wrangler dev
+
+  wrangler-types:
+    runs-on: ubuntu-latest
+    steps:
+      - run: wrangler types
+
+  wrangler-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - run: wrangler publish
+
+  npx-wrangler:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npx wrangler deploy
+
+  wrangler-whoami:
+    runs-on: ubuntu-latest
+    steps:
+      - run: wrangler whoami
+
+  wrangler-secret:
+    runs-on: ubuntu-latest
+    steps:
+      - run: wrangler secret list
+
+  wrangler-triggers-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - run: wrangler triggers deploy
+
+  wrangler-action-default:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: cloudflare/wrangler-action@v3
+
+  wrangler-action-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          command: deploy --dry-run
+
+  wrangler-action-versions-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          command: versions upload --dry-run
+
+  wrangler-action-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          command: dev
+
+  wrangler-action-types:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          command: types
+
+  wrangler-action-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          command: publish
+
+  wrangler-action-whoami:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          command: whoami
+
+  wrangler-action-triggers-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          command: triggers deploy
+
+  deno-task-list:
+    runs-on: ubuntu-latest
+    steps:
+      - run: deno task
+
+  deno-task-help:
+    runs-on: ubuntu-latest
+    steps:
+      - run: deno task --help

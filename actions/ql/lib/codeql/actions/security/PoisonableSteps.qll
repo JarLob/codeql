@@ -61,6 +61,27 @@ class SetupNodeUsesStep extends PoisonableStep, UsesStep {
   }
 }
 
+class WranglerActionUsesStep extends PoisonableStep, UsesStep {
+  WranglerActionUsesStep() {
+    this.getCallee() = "cloudflare/wrangler-action" and
+    (
+      not exists(this.getArgument("command"))
+      or
+      this.getArgument("command")
+          .trim()
+          .regexpMatch("(deploy|dev|types|publish|versions\\s+upload)\\b.*")
+    )
+  }
+}
+
+class GoReleaserActionUsesStep extends PoisonableStep, UsesStep {
+  GoReleaserActionUsesStep() {
+    this.getCallee() = "goreleaser/goreleaser-action" and
+    this.getArgument("args").trim().regexpMatch("(build|release)\\b.*") and
+    not this.getArgument("install-only").toLowerCase() = "true"
+  }
+}
+
 class LocalScriptExecutionRunStep extends PoisonableStep, Run {
   string path;
 
